@@ -2,7 +2,7 @@
 
 An embedded document database for JavaScript. The same API stores collections in a dedicated browser worker (OPFS), in a Node.js 26+ or Bun 1.4.4+ directory, or in memory. It is an alternative to MongoDB for applications whose data lives on one machine: a transaction commits several collections together, a reader sees one snapshot, and a directory commit returns after it is flushed. defuss-db runs inside your process; it has no server and does not replicate, shard or federate. [Compared with MongoDB](docs/PERFORMANCE.md#compared-with-mongodb-on-one-machine)
 
-It uses **defuss-dataview 0.7.0** for queries, **defuss-dbsonl 0.9.0** for transactions and snapshots, **defuss-storage 0.4.1** for bytes, and **defuss-dson 1.5.1** for native JavaScript values. Use DataView directly when your application owns a resident array and only needs to filter, project or aggregate it. Use defuss-db when the collection must survive a restart, keep compound indexes current across writes, or rank results by full-text, vector or hybrid search. [Search indexes](docs/SEARCH.md) · [Ordered indexes](docs/ORDERED.md)
+It uses **defuss-dataview 0.9.0** for queries, **defuss-dbsonl 0.9.0** for transactions and snapshots, **defuss-storage 0.4.1** for bytes, and **defuss-dson 1.5.1** for native JavaScript values. Use DataView directly when your application owns a resident array and only needs to filter, project or aggregate it. Use defuss-db when the collection must survive a restart, keep compound indexes current across writes, or rank results by full-text, vector or hybrid search. [Search indexes](docs/SEARCH.md) · [Ordered indexes](docs/ORDERED.md)
 
 Enable history per collection. An effective date selects the document that applied then. A recorded revision reproduces what the database knew before a correction. Queries, indexes and search can read the same time slice. [Document history](docs/HISTORY.md)
 
@@ -112,7 +112,24 @@ const report = await orders.aggregate({
 });
 ```
 
-Measures: `count`, `sum`, `avg`, `min`, `max`, `sumBigInt`. `count(expr)` excludes null/undefined. Scalar empty-input aggregates return one row (`count = 0`, sums/averages/min/max `null`); grouped empty input returns no rows. Number sums use DataView's compensated arithmetic by default; nonfinite numeric inputs throw unless `invalidNumbers: 'skip'` is explicit.
+Group keys can bucket and normalize values: `dateTrunc` and `datePart` in UTC or an IANA time zone, `lower`, `upper`, `trim`, `substring`, `concat`, `length`, `cond`, `floor`, `ceil`, `round` and `abs`; `epochMs` turns a Date into milliseconds, so `q.sub(q.epochMs(end), q.epochMs(start))` is a duration. `each` makes one group per distinct array element, as MongoDB's `$unwind`, and must be a whole group key.
+
+```ts
+const monthly = await orders.aggregate({
+  groupBy: {
+    month: q.dateTrunc(q.field('createdAt'), 'month', { timeZone: 'Europe/Berlin' }),
+    country: q.lower(q.field('country')), // 'DE' and 'de' are one group
+  },
+  measures: {
+    buyers: q.countDistinct(q.field('customer')),
+    median: q.median(q.field('amount')),
+    p95: q.percentile(q.field('amount'), 0.95),
+  },
+  orderBy: [{ field: 'month', direction: 'asc' }],
+});
+```
+
+Measures: `count`, `sum`, `avg`, `min`, `max`, `sumBigInt`, `countDistinct`, `distinct`, `percentile` and `median`. `count(expr)` excludes null/undefined. Scalar empty-input aggregates return one row (`count = 0`, sums/averages/min/max `null`); grouped empty input returns no rows. Number sums use DataView's compensated arithmetic by default; nonfinite numeric inputs throw unless `invalidNumbers: 'skip'` is explicit.
 
 For a page and totals from the **same snapshot and matching input**, use `view()`:
 
@@ -177,6 +194,24 @@ Equality indexes support one or multiple fields. Unique indexes include null and
 The planner recognizes primary-key equality and short IN lists, complete equality tuples, and ordered indexes with a fixed leading prefix, a range on the next field, or a compatible sort. The complete DataView predicate still runs on candidate documents. `explain()` reports the chosen access path. Use `access: 'scan'` to compare results. [Planner details](docs/ORDERED.md)
 
 Creating/dropping an index is atomic and subject to transaction limits. For large builds, explicitly raise `maxTransactionOperations` and `maxTransactionBytes` when opening the database, or declare indexes before ingesting. No partially built index becomes visible.
+
+## Timestamps, deletion and restore
+
+```ts
+import type { Timestamped } from 'defuss-db';
+
+const notes = await db.ensureCollection<Timestamped<{ id: string; text: string }>>('notes', {
+  $trackHistory: true,
+  $timestamps: true,
+});
+await notes.insert({ id: 'n1', text: 'draft' });         // _createdAt and _updatedAt: one Date per transaction
+await notes.update('n1', { text: 'final' });             // _createdAt stays, _updatedAt advances
+await notes.delete('n1');
+const [tombstone] = await notes.history('n1');           // { from: Date, until: null, document: undefined }
+await notes.restore('n1');                               // the deleted version, as a new version
+```
+
+`$timestamps` maintains both fields as Dates, which index, filter, sort and group by calendar like any other Date. In a tracked collection `_updatedAt` equals the `from` of the version each write records. A delete in a tracked collection leaves a tombstone with its effective time, and `restore(id)` brings the deleted version back without hiding deleted documents in every query, as a soft-delete field would. [Timestamps](docs/API.md#timestamps), [Deletion and restore](docs/HISTORY.md#deletion-and-restore)
 
 ## Full-text, vector and hybrid search
 

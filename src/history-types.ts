@@ -12,6 +12,11 @@ export interface HistoryWriteOptions extends HistoryReadOptions {
 }
 export interface CollectionOptions {
   $trackHistory?: boolean;
+  /**
+   * Maintain `_createdAt` and `_updatedAt` Dates on every write; persistent once set.
+   * VERIFIED: tests/timestamps.test.ts: `$timestamps: false` later raises SCHEMA_MISMATCH.
+   */
+  $timestamps?: boolean;
   historyBatchSize?: number;
   signal?: AbortSignal;
 }

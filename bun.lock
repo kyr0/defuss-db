@@ -6,7 +6,7 @@
       "name": "defuss-db",
       "dependencies": {
         "defuss-brotli": "0.3.0",
-        "defuss-dataview": "0.7.0",
+        "defuss-dataview": "0.9.0",
         "defuss-dbsonl": "0.9.0",
         "defuss-dson": "1.5.1",
         "defuss-lexicalsearch": "0.4.0",
@@ -438,7 +438,7 @@
 
     "defuss-brotli": ["defuss-brotli@0.3.0", "", { "bin": { "defuss-brotli": "dist/cli.js" } }, "sha512-maseMpFnl5lCBt0dZeyMmHpGUjtmV7sq6WcyjNM7EBwOQd+uX+tPyu1j5fvlqDPJpuawp3WltotjIR+lyocd/A=="],
 
-    "defuss-dataview": ["defuss-dataview@0.7.0", "", {}, "sha512-+XhJ5BeLid53JG5RikWeoa3SASGDphBnq4kZJCbWVWDLyK8yoH5m4wVgdBr/Ge5mpzW/GAq8/FviSIzcUD5RYg=="],
+    "defuss-dataview": ["defuss-dataview@0.9.0", "", {}, "sha512-EQxo8BdXGHCqbE2uNbciPy45WcjKIt+Xn4fpKSI0ewVyoR8dXSrF6Ujw42EmQKgyXrcA8PTH0gPZI50VUGUgKw=="],
 
     "defuss-db": ["defuss-db@2.0.2", "", { "dependencies": { "@libsql/client": "^0.15.7", "defuss-env": "^1.0.2", "dexie": "^4.0.11", "fake-indexeddb": "^6.0.1", "mongodb": "^6.16.0" } }, "sha512-HR4IfBOd7MYMwt68GBi+aEn+HyoV+eKfeTCn34kBKI8KejvqldZRvwr0S3i6Y77WjJwE5niuBc4BEsZswNrdeA=="],
 

@@ -586,7 +586,12 @@ export async function importRecords(tx: Writer, prepared: ReturnType<typeof capt
           `Collection ${record.collection} has another schema.`,
         );
       if (!exists)
-        await saveSchema(tx, record.collection, { version: 1, indexes: [], searchIndexes: [] });
+        await saveSchema(tx, record.collection, {
+          version: 1,
+          indexes: [],
+          searchIndexes: [],
+          ...(schema.timestamps ? { timestamps: true as const } : {}),
+        });
       schemas.set(record.collection, { schema, fresh: !exists });
       lastCollection = record.collection;
     } else if (record.type === 'document') {
@@ -609,7 +614,17 @@ export async function importRecords(tx: Writer, prepared: ReturnType<typeof capt
         skipped++;
         continue;
       }
-      await putDocument(tx, record.collection, record.document, options.conflicts !== 'replace');
+      // Archived timestamps are kept, so a restore does not move them to the import time.
+      // VERIFIED: tests/timestamps.test.ts imports an archive and reads the documents back unchanged.
+      await putDocument(
+        tx,
+        record.collection,
+        record.document,
+        options.conflicts !== 'replace',
+        undefined,
+        undefined,
+        'keep',
+      );
       imported++;
     } else if (record.type === 'history') {
       sawDocument = true;

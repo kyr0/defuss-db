@@ -64,8 +64,19 @@ export async function assertPinnedRuntime(report) {
     `${report.runtime} samples must come from the pinned ${pinned}`,
   );
 }
+/**
+ * True while the CHANGELOG's newest entry is `## Unreleased`. Main then keeps the last release's version and its
+ * measured evidence, while dependency pins may move ahead; the next release measures again. This avoids publishing
+ * numbers measured mid-development on a shared, loaded host. VERIFIED: human decision 2026-11-21.
+ */
+export async function unreleased() {
+  return /^## Unreleased\b/.test(
+    ((await readFile('CHANGELOG.md', 'utf8')).match(/^## .*$/m) ?? [''])[0],
+  );
+}
 export async function loadReports(directory) {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+  const between = await unreleased();
   return Promise.all(
     ['Node', 'Bun'].map(async (runtime) => {
       const report = JSON.parse(
@@ -74,7 +85,7 @@ export async function loadReports(directory) {
       assert.equal(report.runtime, runtime);
       await assertPinnedRuntime(report);
       assert.equal(report.version, pkg.version);
-      assert.equal(report.dataviewVersion, pkg.dependencies['defuss-dataview']);
+      if (!between) assert.equal(report.dataviewVersion, pkg.dependencies['defuss-dataview']);
       assert.equal(report.warmups, 2);
       assert.equal(report.repeats, 7);
       assert.equal(report.historyFixture.documents, 256);

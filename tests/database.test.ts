@@ -595,6 +595,43 @@ describe('transactions and snapshots', () => {
     await db.close();
     await expect(c.find()).rejects.toMatchObject({ code: 'CLOSED' });
   });
+  it('aggregates one collection and reads another by its group keys in one snapshot', async () => {
+    type Order = { id: number; customer: string; amount: number };
+    type Customer = { id: string; name: string };
+    const db = await memory();
+    await db.collection<Customer>('customers').insertMany([
+      { id: 'a', name: 'Ada' },
+      { id: 'b', name: 'Bo' },
+    ]);
+    await db.collection<Order>('orders').insertMany([
+      { id: 1, customer: 'a', amount: 5 },
+      { id: 2, customer: 'b', amount: 7 },
+      { id: 3, customer: 'a', amount: 4 },
+    ]);
+    const snapshot = await db.snapshot();
+    // Writes after the snapshot change neither read.
+    await db.collection<Order>('orders').insert({ id: 4, customer: 'b', amount: 100 });
+    await db.collection<Customer>('customers').update('a', { name: 'Ada L.' });
+    const orders = snapshot.collection<Order>('orders'),
+      q = orders.q;
+    const totals = await orders.aggregate(
+      {
+        groupBy: { customer: q.field('customer') },
+        measures: { revenue: q.sum(q.field('amount')) },
+        orderBy: [{ field: 'revenue', direction: 'desc' }],
+      },
+      { limit: 10 },
+    );
+    const customers = await snapshot
+      .collection<Customer>('customers')
+      .getMany(totals.rows.map((row) => row.customer));
+    expect(totals.rows.map((row, i) => [customers[i]?.name, row.revenue])).toEqual([
+      ['Ada', 9],
+      ['Bo', 7],
+    ]);
+    await snapshot.close();
+    await db.close();
+  });
   it('updates/deletes matching rows atomically and rejects budget overruns', async () => {
     const { c, db } = await seeded();
     await c.createIndex({ name: 'city', fields: ['city'] });

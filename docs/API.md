@@ -4,6 +4,16 @@
 
 Use `await db.ensureCollection<T>(name, { $trackHistory: true })`. Calls on `collection.at(date)` share an effective instant. Add `{ $asOfRevision: receipt.revision }` to reproduce the database's earlier answer. `history(id)` lists effective segments and `audit(id)` lists recorded changes. [API, correction boundaries, search and backup](HISTORY.md)
 
+## Timestamps
+
+`await db.ensureCollection<Timestamped<T>>(name, { $timestamps: true })` makes every write set `_createdAt` and `_updatedAt` as Dates. Use `Timestamped<T>` from the package as the document type; it removes both fields from the insert and patch types. A document type that keeps its own `_createdAt` in an ordinary collection still writes it. One transaction stamps all its documents with one time. In a tracked collection that time is the history clock, so `_updatedAt` equals the `from` of the version the write records. `_createdAt` survives updates, replacements and `restore()`. `_updatedAt` never moves back for one document, even after a write from a host whose clock ran ahead. Indexes may name both fields; an ordered index on `_updatedAt` stays current under patches that do not name it.
+
+Callers omit both fields or pass their stored values unchanged, so a read document can go back through `put()`. Other values raise `INVALID_DOCUMENT`. Timestamped collections take current writes only; `at(date).put()` raises `HISTORY_READ_ONLY`, because a backdated version would leave the stamps of later versions wrong. The setting is persistent; `$timestamps: false` on a timestamped collection raises `SCHEMA_MISMATCH`.
+
+Turning timestamps on for a collection that holds documents stamps them in batches of up to 128 per transaction, with the time of their batch, since their creation time is unknown. A document that already holds both fields as Dates, `_createdAt` not after `_updatedAt`, keeps them; one that holds only a valid `_createdAt` Date, or the pair in the wrong order, keeps its `_createdAt`. Writes between batches stamp themselves. An interrupted pass keeps a cursor; the next `ensureCollection` with `$timestamps: true`, from any process, resumes it, and once it has finished the call reads one key. Stamping runs before history activation, so the baseline seeds stamped documents. Archive imports keep the stamps they carry. VERIFIED: tests/timestamps.test.ts.
+
+DSON stores a Date in 17 bytes, as many as an epoch-millisecond number. Dates work in ordered indexes, range filters, `min`/`max`, `dateTrunc` and `datePart`. For durations, `q.epochMs` turns a Date into epoch milliseconds: `q.sub(q.epochMs(q.field('_updatedAt')), q.epochMs(q.field('_createdAt')))` is the time between a document's creation and its last write, and `avg`, `max` or `percentile` over it aggregate durations. `sub` on two Dates still raises a TypeError, so a forgotten `epochMs` never gives `NaN`.
+
 
 All methods use the same APIs on memory, files and OPFS. See generated `.d.mts`/`.d.cts` declarations for exact generic result inference.
 
@@ -37,6 +47,7 @@ Server `storage.io` accepts the Storage adapter's optional synchronous read mode
 | Method | Result / behavior |
 | --- | --- |
 | `collection<T>(name)` | Typed live collection; no I/O merely to obtain it |
+| `ensureCollection<T>(name, options?)` | Persist `$trackHistory` and `$timestamps`, then return the collection; idempotent, and both settings are permanent |
 | `collections()` | Persisted collection names, including now-empty collections |
 | `transaction(callback, options?)` | `{ result, revision, storedEntries }`; callback runs once |
 | `snapshot()` | Read-only `DatabaseSnapshot`, with `revision`, `collection<T>`, `close` |
@@ -63,6 +74,7 @@ Write options accept `ifRevision` for whole-store compare-and-swap and `signal`.
 | `put(document, options?)` | Insert or replace whole document with required ID; return ID |
 | `update(id, patchOrCallback, options?)` | Shallow own-property patch or complete replacement callback; return whether ID existed |
 | `delete(id, options?)` | Return whether ID existed |
+| `restore(id, options?)` | Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted |
 | `updateMany(request, patchOrCallback, options?)` | Atomic bounded set update; return affected document count |
 | `deleteMany(request?, options?)` | Atomic bounded set deletion; return affected document count |
 | `createIndex(definition, options?)` | Atomic equality or ordered build. Set `order` to one direction per field. An identical declaration is idempotent; mismatched existing name rejects |
@@ -104,6 +116,26 @@ Write options accept `ifRevision` for whole-store compare-and-swap and `signal`.
 
 Projection descriptors contain `select: { alias: Expr }`, optional `filters/where`, and `orderBy: [{ expr, direction }]`. Aggregate descriptors contain optional `groupBy`, required `measures`, optional `having` over result aliases, and output-alias `orderBy`. View descriptors contain `select`, `totals` and row-expression ordering. These are DataView descriptors, not a separate SQL dialect.
 
+Expressions include calendar buckets (`dateTrunc`, `datePart`, in UTC or an IANA time zone), text (`lower`, `upper`, `trim`, `substring`, `concat`, `length`), `cond` and rounding (`floor`, `ceil`, `round`, `abs`). The group key `each(expr)` unwinds arrays: a document joins one group per distinct element and none for an empty array. Measures are `count`, `sum`, `avg`, `min`, `max`, `sumBigInt`, `countDistinct`, `distinct`, `percentile` and `median`; each takes an optional `where`. Query workers answer a full-scan aggregate when every measure merges: all of them do except `sum` and `avg` outside `numberMode: 'exact'`. DataView's COMPUTE_SEMANTICS.md defines each result, including time zone transitions and percentile interpolation.
+
+There is no join. To combine collections, read them in one `db.snapshot()`: aggregate one collection, then fetch the documents its group keys name with `getMany` on the other. VERIFIED: both reads see the same revision, and the second reads only the documents the groups name (tests/database.test.ts 'aggregates one collection and reads another by its group keys in one snapshot').
+
+```ts
+const snapshot = await db.snapshot();
+try {
+  const orders = snapshot.collection<Order>('orders'), q = orders.q;
+  const totals = await orders.aggregate({
+    groupBy: { customer: q.field('customer') }, // a customer ID
+    measures: { revenue: q.sum(q.field('amount')) },
+    orderBy: [{ field: 'revenue', direction: 'desc' }],
+  }, { limit: 10 });
+  const customers = await snapshot.collection<Customer>('customers')
+    .getMany(totals.rows.map((row) => row.customer)); // in the order of totals.rows
+} finally {
+  await snapshot.close();
+}
+```
+
 `ComputeOptions`: `count`, `batchSize`, `maxBatchBytes`, `maxRowBytes`, `maxScannedRows`, `maxWorkingBytes`, `maxGroups`, `maxOutputRows`, `maxOutputBytes`, `yieldEveryBatches`, `profile`, `sizeOf`, `sizeOfOutput`, `signal`. Custom `sizeOf` sees public documents. Custom `sizeOfOutput` sees actual public output rows, including whole documents for `find/query/stream`. Estimators must be pure and stable; they account memory and do not serialize values.
 
 Default grouping/working-state capacity is 64 MiB and 100,000 groups; collected output is limited to 100,000 rows and 64 MiB. Use streaming for larger row output and explicit budgets for large sorts/groups. Streaming does not make an unbounded sort or grouping bounded without a cap.
@@ -116,7 +148,7 @@ Default ordering without `sorters/orderBy` follows typed storage keys. It is not
 
 ## Errors
 
-`DatabaseError` codes: `DUPLICATE_KEY`, `SCHEMA_MISMATCH`, `INVALID_DOCUMENT`, `INVALID_INDEX_VALUE`, `CORRUPT`, `INVALID_CURSOR`, `STALE_CURSOR`, `CLOSED`, `BUSY`, `UNFINISHED_TRANSACTION`. Input validation can also throw `TypeError`/`RangeError`; strict DSON errors remain intact.
+`DatabaseError` codes: `DUPLICATE_KEY`, `SCHEMA_MISMATCH`, `INVALID_DOCUMENT`, `INVALID_INDEX_VALUE`, `CORRUPT`, `INVALID_CURSOR`, `STALE_CURSOR`, `CLOSED`, `BUSY`, `UNFINISHED_TRANSACTION`, and for history `HISTORY_ACTIVATING`, `HISTORY_NOT_ENABLED`, `HISTORY_UNAVAILABLE`, `HISTORY_READ_ONLY`, `HISTORY_FUTURE_WRITE`, `HISTORY_RANGE`. Input validation can also throw `TypeError`/`RangeError`; strict DSON errors remain intact.
 
 DBSONL errors (`CONFLICT`, `COMMIT_UNCERTAIN`, `LIMIT_EXCEEDED`, `QUEUE_FULL`, `ABORTED`, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. `COMMIT_UNCERTAIN` means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption.
 

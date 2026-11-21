@@ -92,3 +92,10 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-21T04:26:36Z s=19560c1d DONE fp=c77110e3b7b9 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/PERFORMANCE.md(+24)
 2026-11-21T04:35:32Z s=19560c1d DONE fp=4445a1228946 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/PERFORMANCE.md(+30)
 2026-11-21T04:35:32Z s=19560c1d FINDING website/index.html hero (tabs + 3 panels, caption), website/examples/orders.{browser,server,memory}.ts (orders.ts removed), scripts/site.mjs variantLines/withExamples, docs/assets/site.js hero rotation, docs/assets/site.css hero tabs/progress/db-diff, scripts/e2e-site.mjs hero steps, regenerated docs/index.html learn=test: scripts/e2e-site.mjs hero steps; scripts/site.mjs variant alignment assertion
+2026-11-21T19:58:47Z s=19560c1d FAIL tests.e2e.1,release.version-sync,docs.performance-evidence
+2026-11-21T20:08:59Z s=19560c1d DONE fp=c86849684c62 cov=93.1% paths=ARCH.md,CHANGELOG.md,README.md,bun.lock(+25)
+2026-11-21T20:08:59Z s=19560c1d FINDING src/mutations.ts:enableTimestamps + stamp() keep branch learn=test: tests/timestamps.test.ts 'keep archived timestamps...' fails without the fix and passes with it.
+2026-11-21T20:08:59Z s=19560c1d FINDING src/collection.ts:TransactionCollection.restore learn=test: tests/timestamps.test.ts restore fork case fails without the fallback.
+2026-11-21T20:08:59Z s=19560c1d FINDING src/collection.ts:TransactionCollection.restore learn=test: restore tests cover a tracked collection without timestamps.
+2026-11-21T20:08:59Z s=19560c1d FINDING src/database.ts:ensureCollection learn=test: tests/timestamps.test.ts resume test checks exactly 128 stamped, verify while pending, resume, CORRUPT on an unstamped raw doc.
+2026-11-21T20:08:59Z s=19560c1d FINDING src/workload-report.mjs:loadReports learn=verifier: rule docs.performance-evidence (site-evidence --check) and release.version-sync enforce the state.

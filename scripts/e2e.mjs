@@ -67,6 +67,7 @@ assert.deepEqual((await c.getMany([1,99,2])).map(x=>x?.id),[1,undefined,2]);
 await c.createIndex({name:'orderedAmount',fields:['amount'],order:['asc']});
 assert.equal((await c.pageByIndex('orderedAmount',{limit:1})).rows[0].amount,5);
 const packed=await db.export(); await (await import('node:fs/promises')).writeFile((process.versions.bun?'bun':'node')+'.dfdb.br',packed); const restored=await openMemory(); await restored.import(packed); assert.equal((await restored.collection('items').get(1)).at.getTime(),123); await restored.verify(); await restored.close(); await c.count({}, {cache:true}); await c.count({}, {cache:true}); await c.count({}, {cache:true}); assert.ok(db.queryCacheStats().hits);
+const stamped=await openMemory();const notes=await stamped.ensureCollection('notes',{$trackHistory:true,$timestamps:true});await notes.insert({id:'n',text:'a'});const created=(await notes.get('n'))._createdAt;assert.ok(created instanceof Date);await notes.delete('n');assert.equal((await notes.history('n'))[0].document,undefined);assert.equal(await notes.restore('n'),true);const back=await notes.get('n');assert.equal(back._createdAt.getTime(),created.getTime());assert.ok(back._updatedAt>=created);const nq=notes.q;const ages=await notes.aggregate({measures:{age:nq.max(nq.sub(nq.epochMs(nq.field('_updatedAt')),nq.epochMs(nq.field('_createdAt'))))}});assert.equal(ages.rows[0].age,back._updatedAt-back._createdAt);await stamped.verify();await stamped.close();
 const automatic=await openMemory();const ac=automatic.collection('rows');await ac.insertMany(Array.from({length:256},(_,id)=>({id,n:id})));await ac.count();await ac.count();assert.equal(await ac.count(),256);assert.equal(automatic.queryCacheStats().hits,1);await automatic.close();
 await db.close(); const disk=await openDirectory('./data'); await disk.collection('test').put({id:'x',n:1n}); await disk.close();
 const reopened=await openDirectory('./data'); assert.equal((await reopened.collection('test').get('x')).n,1n); await reopened.verify(); await reopened.close();
@@ -74,9 +75,9 @@ const par=await openDirectory('./par-'+(process.versions.bun?'bun':'node'),{para
 const off=await openDirectory('./par-'+(process.versions.bun?'bun':'node'),{parallel:false}); assert.equal((await off.stats()).parallel,undefined); await off.close();`;
   await writeFile(join(consumer, 'consumer.mjs'), sample);
   await command(process.execPath, ['consumer.mjs'], consumer);
-  results.checks.push('Node packed ESM + directory + parallel aggregates in worker threads');
+  results.checks.push('Node packed ESM + directory + timestamps, durations and restore + parallel aggregates in worker threads');
   await command('bun', ['consumer.mjs'], consumer);
-  results.checks.push('Bun packed ESM + directory + parallel aggregates in worker threads');
+  results.checks.push('Bun packed ESM + directory + timestamps, durations and restore + parallel aggregates in worker threads');
   await writeFile(
     join(consumer, 'consumer.cjs'),
     `const assert=require('node:assert/strict'); const db=require('defuss-db'); const server=require('defuss-db/server'); const browser=require('defuss-db/browser'); assert.equal(typeof server.openDirectory,'function'); assert.equal(typeof browser.openOPFS,'function'); (async()=>{const d=await db.openMemory();await d.collection('test').insert({id:1});assert.equal(await d.collection('test').count(),1);await d.collection('test').createSearchIndex({name:'words',kind:'lexical',text:{fields:{text:{path:'text'}}}});await d.collection('test').put({id:2,text:'search'});assert.equal((await d.collection('test').search('words','search')).hits[0].id,2);const backup=await d.export();const restored=await db.openMemory();await restored.import(backup);assert.equal(await restored.collection('test').count(),2);await restored.close();await d.close();const native=await server.openDirectory('./data-cjs');await native.collection('cjs').put({id:'x',at:new Date(123)});assert.equal((await native.collection('cjs').get('x')).at.getTime(),123);await native.close();const par=await server.openDirectory('./par-cjs-'+(process.versions.bun?'bun':'node'),{parallel:{workers:2,minRows:10}});const pc=par.collection('rows');await pc.insertMany(Array.from({length:100},(_,id)=>({id})));await pc.count({},{cache:false});while((await par.stats()).parallel.state==='starting')await new Promise(r=>setTimeout(r,5));assert.equal(await pc.count({},{cache:false}),100);assert.equal((await par.stats()).parallel.queries,1);await par.close()})().catch(error=>{console.error(error);process.exitCode=1});`,
@@ -87,7 +88,7 @@ const off=await openDirectory('./par-'+(process.versions.bun?'bun':'node'),{para
   results.checks.push('Bun packed CommonJS all entries + parallel count');
   await writeFile(
     join(consumer, 'types.mts'),
-    `import {openMemory,type Document,type IndexPage} from 'defuss-db';
+    `import {openMemory,type Document,type IndexPage,type Timestamped} from 'defuss-db';
 interface Row extends Document {id:bigint;name:string;amount:number}
 const db=await openMemory();const c=db.collection<Row>('rows');const q=c.q;
 const rows=await c.select({select:{title:q.field('name'),doubled:q.mul(q.field('amount'),q.literal(2))}});
@@ -100,6 +101,11 @@ await tracked.at(historic).put({id:1n,name:'price',amount:5});
 const readonly=tracked.at(historic,{$asOfRevision:1});const past:Row|undefined=await readonly.get(1n);void past;
 // @ts-expect-error a collection bound to a recorded cutoff is read-only
 readonly.delete(1n);
+const notes=await db.ensureCollection<Timestamped<{id:string;text:string}>>('notes',{$timestamps:true});
+const note=await notes.get('n');const updated:Date|undefined=note?._updatedAt;void updated;const restored:Promise<boolean>=notes.restore('n');void restored.catch(()=>{});
+// @ts-expect-error maintained timestamps cannot be inserted
+void notes.insert({id:'m',text:'b',_createdAt:new Date()}).catch(()=>{});
+const own=db.collection<{id:string;_createdAt:Date}>('own');void own.insert({id:'o',_createdAt:new Date()}).catch(()=>{});void own.update('o',{_createdAt:new Date()}).catch(()=>{});
 const title:string=rows.rows[0]!.title;const value:number|null=rows.rows[0]!.doubled;void title;void value;
 // @ts-expect-error projections exclude unselected fields
 rows.rows[0]!.amount;

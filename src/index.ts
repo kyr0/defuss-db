@@ -32,6 +32,9 @@ export type {
   WriteOptions,
   TransactionResult,
   AccessPlan,
+  Timestamped,
+  TimestampField,
+  Replacement,
 } from './types.js';
 export { createMemoryBackend, DbsonlError } from 'defuss-dbsonl';
 export { forRows } from 'defuss-dataview/compute';

@@ -1,4 +1,4 @@
-import { point, validateWriteTime } from './history-store.js';
+import { listHistory, point, validateWriteTime } from './history-store.js';
 import { transactionSchema } from './schema-cache.js';
 import { timeScope, type TimeScope, type HistoryWriteOptions } from './history-types.js';
 import { encode, decode } from 'defuss-dson/binary';
@@ -11,6 +11,7 @@ import {
   dropIndex,
   putDocument,
   previousDocument,
+  UPDATED_AT,
 } from './mutations.js';
 import { createSearchIndex, dropSearchIndex } from './search-mutations.js';
 import { normalizeSearchIndex } from './search-config.js';
@@ -25,6 +26,7 @@ import type {
   NewDocument,
   PrimaryKey,
   ReadContext,
+  Replacement,
   QueryOptions,
   TransactionResult,
   Updater,
@@ -169,8 +171,8 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
     return this[capturedWrite](rows, true, writeScope(options, this.period));
   }
   /** Replace or insert a whole document. No merge; use update() for shallow patches. */
-  put(value: T, options?: HistoryWriteOptions): Promise<PrimaryKey> {
-    const row = captureDocument<T>(value, this.limits, false);
+  put(value: Replacement<T>, options?: HistoryWriteOptions): Promise<PrimaryKey> {
+    const row = captureDocument<T>(value as T, this.limits, false);
     return this[capturedWrite]([row], false, writeScope(options, this.period)).then(
       (ids) => ids[0]!,
     );
@@ -228,6 +230,47 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
     primary(id);
     const period = writeScope(options, this.period);
     return this.scope.run(true, () => deleteDocument(this.tx, this.name, id, period));
+  }
+  /**
+   * Tracked collections: writes back the version a current delete removed, as a new version. Its `_createdAt` stays;
+   * `_updatedAt` is the restore. Returns false when the document is live or was never deleted.
+   * VERIFIED: tests/timestamps.test.ts restores after a same-millisecond insert and delete, and after a full-history
+   * archive import.
+   */
+  restore(id: PrimaryKey): Promise<boolean> {
+    const token = primary(id);
+    if (this.period)
+      throw new DatabaseError('HISTORY_READ_ONLY', 'restore() writes the current version.');
+    return this.scope.run(true, async () => {
+      const { schema } = await transactionSchema(this.tx, this.name);
+      if (!schema.history)
+        throw new DatabaseError('HISTORY_NOT_ENABLED', 'restore() needs a tracked collection.');
+      if ((await this.tx.get(documentKey(this.name, id))).found) return false;
+      const [deleted] = await listHistory<T>(this.tx, this.name, token, undefined, false, {
+        limit: 1,
+      });
+      if (!deleted || deleted.document !== undefined || deleted.until !== null) return false;
+      // The document visible at the delete's instant as known before the delete was recorded, which also finds a
+      // version inserted in the same millisecond (its effective interval is empty). An archive import records the
+      // delete and that version in one revision; then the instant before the delete holds the version.
+      const at = deleted.from.getTime();
+      let before = await point(this.tx, this.name, token, at, { revision: deleted.revision - 1 });
+      if (!before.found) before = await point(this.tx, this.name, token, at - 1);
+      if (!before.found) return false;
+      // A timestamped collection stamps the restore; elsewhere _updatedAt is the caller's own field.
+      const { [UPDATED_AT]: _updated, ...stripped } = before.value as Record<string, unknown>;
+      const image = schema.timestamps ? stripped : before.value;
+      await putDocument(
+        this.tx,
+        this.name,
+        image as unknown as T,
+        true,
+        undefined,
+        undefined,
+        'keep',
+      );
+      return true;
+    });
   }
   /** The whole update is atomic; exceeding transaction/query budgets rejects it without partial publication. */
   updateMany(
@@ -413,8 +456,8 @@ export class Collection<T extends Document = Document> extends ReadCollection<T>
       }
     })();
   }
-  put(value: T, options?: WriteOptions): Promise<PrimaryKey> {
-    const copy = captureDocument<T>(value, this.limits, false);
+  put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey> {
+    const copy = captureDocument<T>(value as T, this.limits, false);
     return this.write((tx) => tx[capturedWrite]([copy], false).then((ids) => ids[0]!), options);
   }
   update(id: PrimaryKey, updater: Updater<T>, options?: WriteOptions): Promise<boolean> {
@@ -424,6 +467,16 @@ export class Collection<T extends Document = Document> extends ReadCollection<T>
   delete(id: PrimaryKey, options?: WriteOptions): Promise<boolean> {
     primary(id);
     return this.write((tx) => tx.delete(id), options);
+  }
+  /** See TransactionCollection.restore(). */
+  restore(
+    id: PrimaryKey,
+    options?: Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>,
+  ): Promise<boolean> {
+    primary(id);
+    if (this.period)
+      throw new DatabaseError('HISTORY_READ_ONLY', 'restore() writes the current version.');
+    return this.write((tx) => tx.restore(id), options);
   }
   updateMany(
     request: FindRequest,

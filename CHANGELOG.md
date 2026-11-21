@@ -1,6 +1,15 @@
 # Changelog
 
-## 3.0.0 (unreleased)
+## Unreleased
+
+On main, planned as 3.1.0. The version moves when its benchmarks are measured.
+
+- Calendar, text and distinct aggregates from defuss-dataview 0.8.0 and 0.9.0: `dateTrunc` and `datePart` in UTC or an IANA time zone, `epochMs` for durations between Dates, string functions, `cond` and rounding for group keys, `each` for one group per array element (as MongoDB's `$unwind`), and `countDistinct`, `distinct`, `percentile` and `median` measures. Query workers merge them, so a monthly aggregate with distinct buyers and a median runs in worker threads.
+- Opt-in timestamps: `ensureCollection(name, { $timestamps: true })` sets `_createdAt` and `_updatedAt` as Dates on every write, from one time per transaction (in tracked collections the history clock, so `_updatedAt` equals the version's `from`). Existing documents are stamped in resumable batches; `verify()` checks the stamps.
+- `restore(id)` in tracked collections writes back the version a delete removed, as a new version.
+- defuss-dataview 0.9.0.
+
+## 3.0.0 (2026-11-21)
 
 First release of the standalone rewrite over defuss-dataview, defuss-dbsonl, defuss-storage and defuss-dson. Nothing was released between 2.0.2 and 3.0.0; this release does not read stores or archives written by 2.x or by development builds.
 

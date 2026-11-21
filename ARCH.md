@@ -25,7 +25,8 @@ Keys partition this store:
 | Prefix | Meaning |
 | --- | --- |
 | `!defuss-db-format` | `{ format: 'defuss-db', version: 5, id: UUID }` |
-| `s:<collection>` | Versioned schema with equality, ordered and search-index definitions; written only by DDL |
+| `s:<collection>` | Versioned schema with equality, ordered and search-index definitions, history and `timestamps`; written only by DDL |
+| `c:<collection>` | Next document key to stamp while `$timestamps` stamps existing documents; absent once done |
 | `p:<collection>:<index>:<typed-id>` | Projected search text/vector input |
 | `g:<collection>:<index>` | Search generation UUID, document count and estimated input bytes |
 | `d:<collection>:<typed-id>` | DSON document |

@@ -61,6 +61,12 @@ A transaction orders assertions at the same effective millisecond by its recorde
 
 `history(id)` returns effective segments newest start first with `from`, exclusive `until` (null for an open segment), `document`, `revision` and `ordinal`. A tombstone has an undefined document. `audit(id)` returns original assertions newest recorded change first. Each includes `kind`, its originally asserted interval and `recorded: {storeId, revision}`. Internally generated restoration boundaries appear in the effective listing. Both operations accept `{ limit, signal, $asOfRevision }`. The effective date of a bound collection does not trim the listed timeline.
 
+## Deletion and restore
+
+A deleted document's newest `history(id)` segment is an open tombstone: `document` is undefined, `until` is null, and `from` is the deletion's effective time as a Date. A backdated `at(t).delete(id)` records `t`. `audit(id)` lists the same change with `kind: 'delete'` and the revision that recorded it. Untracked collections keep no record of a delete.
+
+`restore(id)` writes back the version the current delete removed, as a new version at the transaction's time, so the timeline keeps the deletion. It reads that version as the store knew it before the delete was recorded, which also finds a version inserted in the same millisecond as its delete. It returns false when the document is live or has no tombstone, and raises `HISTORY_NOT_ENABLED` on an untracked collection. A soft-delete field would instead leave deleted documents in every scan, index and query, and each query would have to exclude them. VERIFIED: tests/timestamps.test.ts.
+
 ## Backup, recovery and retention
 
 ```ts

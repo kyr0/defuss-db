@@ -7,6 +7,7 @@ import {
   checkedClock,
 } from './history-store.js';
 import { saveSchema, transactionSchema } from './schema-cache.js';
+import { CREATED_AT, enableTimestamps, stampingKey, UPDATED_AT } from './mutations.js';
 import { touchCollection, versionKey } from './collection-version.js';
 import { timeScope, type TimeScope, type CollectionOptions } from './history-types.js';
 import { ensureFormat, storeIdentity } from './format.js';
@@ -40,6 +41,7 @@ import {
   FORMAT_KEY,
   assertDocument,
   documentKey,
+  documentPrefix,
   indexKey,
   name,
   primary,
@@ -210,14 +212,28 @@ export class Database {
   ): Promise<Collection<T>> {
     this.check();
     name(collection);
-    const requested = options.$trackHistory;
+    const requested = options.$trackHistory,
+      stamped = options.$timestamps;
     if (requested !== undefined && typeof requested !== 'boolean')
       throw new TypeError('$trackHistory must be boolean.');
+    if (stamped !== undefined && typeof stamped !== 'boolean')
+      throw new TypeError('$timestamps must be boolean.');
     const signal = options.signal,
       batch = options.historyBatchSize;
     signal?.throwIfAborted();
     if (batch !== undefined && (!requested || !Number.isSafeInteger(batch) || batch < 1))
       throw new RangeError('historyBatchSize requires tracking and a positive integer.');
+    // Stamping first lets a history baseline seed stamped documents instead of recording a second version of each.
+    // VERIFIED: tests/timestamps.test.ts, tracked collections: `_updatedAt` equals the history `from`.
+    if (stamped !== undefined)
+      await enableTimestamps(
+        this.store,
+        collection,
+        stamped,
+        // As history activation: each stamped document stages about six operations.
+        Math.min(128, Math.max(1, Math.floor((this.limits.maxTransactionOperations - 3) / 6))),
+        signal,
+      );
     try {
       if (batch !== undefined)
         await activateBatches(this.store, collection, this.limits, batch, signal);
@@ -409,6 +425,8 @@ export class Database {
       };
       let documents = 0,
         indexEntries = 0;
+      // Timestamped collections whose existing documents are still being stamped.
+      const stamping = new Map<string, boolean>();
       // A collection has an r: marker once written and a stored schema once it has DDL.
       const stored = new Set<string>();
       for await (const row of snapshot.scan()) {
@@ -453,6 +471,17 @@ export class Database {
           stored.add(row.key.slice(2));
           continue;
         }
+        if (row.key.startsWith('c:')) {
+          const collection = row.key.slice(2);
+          name(collection);
+          if (
+            !(await schemaFor(collection)).timestamps ||
+            typeof row.value !== 'string' ||
+            !row.value.startsWith(documentPrefix(collection))
+          )
+            throw new DatabaseError('CORRUPT', 'Invalid timestamp stamping cursor.');
+          continue;
+        }
         if (row.key.startsWith('r:')) {
           const collection = row.key.slice(2);
           name(collection);
@@ -468,6 +497,26 @@ export class Database {
           if (documentKey(collection, row.value.id) !== row.key)
             throw new DatabaseError('CORRUPT', 'Document key and id disagree.');
           const schema = await schemaFor(collection);
+          if (schema.timestamps) {
+            let pending = stamping.get(collection);
+            if (pending === undefined)
+              stamping.set(
+                collection,
+                (pending = (await snapshot.get(stampingKey(collection))).found),
+              );
+            const doc = row.value as unknown as Record<string, unknown>,
+              created = doc[CREATED_AT],
+              updated = doc[UPDATED_AT];
+            if (
+              !pending &&
+              !(
+                created instanceof Date &&
+                updated instanceof Date &&
+                created.getTime() <= updated.getTime()
+              )
+            )
+              throw new DatabaseError('CORRUPT', 'Missing or invalid document timestamps.');
+          }
           for (const index of schema.indexes) {
             const pointer = await snapshot.get(indexKey(collection, index, row.value));
             if (!pointer.found || pointer.value !== primary(row.value.id))

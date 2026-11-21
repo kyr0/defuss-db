@@ -205,19 +205,28 @@ export function readSchema(value: unknown): Schema {
     new Set(searchIndexes.map((index) => index.name)).size !== searchIndexes.length
   )
     throw new DatabaseError('CORRUPT', 'Invalid search index definitions.');
+  if (schema.timestamps !== undefined && schema.timestamps !== true)
+    throw new DatabaseError('CORRUPT', 'Invalid timestamps setting.');
+  const stamped = schema.timestamps ? { timestamps: true as const } : {};
   if (schema.activating !== undefined) {
     const m = schema.activating;
     if (!m || !Number.isSafeInteger(m.from) || typeof m.after !== 'string' || schema.history)
       throw new DatabaseError('CORRUPT', 'Invalid pending history baseline.');
-    return { version: 1, indexes, searchIndexes, activating: { from: m.from, after: m.after } };
+    return {
+      version: 1,
+      indexes,
+      searchIndexes,
+      activating: { from: m.from, after: m.after },
+      ...stamped,
+    };
   }
   if (schema.history !== undefined) {
     const start = schema.history?.coverageFrom;
     if (start !== null && (!Number.isSafeInteger(start) || Math.abs(start!) > 8640000000000000))
       throw new DatabaseError('CORRUPT', 'Invalid history coverage.');
-    return { version: 1, indexes, searchIndexes, history: { coverageFrom: start } };
+    return { version: 1, indexes, searchIndexes, history: { coverageFrom: start }, ...stamped };
   }
-  return { version: 1, indexes, searchIndexes };
+  return { version: 1, indexes, searchIndexes, ...stamped };
 }
 /** DSON cloning captures caller-owned values before the first await, including cycles and shared buffers. */
 export function capture<T>(value: T, limits: MutationLimits): T {

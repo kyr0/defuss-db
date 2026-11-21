@@ -12,10 +12,32 @@ export type PrimaryKey = string | number | bigint;
 export interface Document {
   id: PrimaryKey;
 }
+/** The fields a collection opened with `$timestamps: true` maintains. */
+export type TimestampField = '_createdAt' | '_updatedAt';
+declare const maintained: unique symbol;
+/**
+ * A document of a timestamped collection: defuss-db sets both Dates on every write. A type-only brand marks it, so a
+ * document type that keeps its own `_createdAt` in an ordinary collection still writes that field.
+ * VERIFIED: the types consumer in scripts/e2e.mjs rejects an inserted `_createdAt` on Timestamped<T> and accepts one on an
+ * ordinary type, against the packed declarations.
+ */
+export type Timestamped<T extends Document> = T & {
+  _createdAt: Date;
+  _updatedAt: Date;
+  readonly [maintained]: true;
+};
+type Stamped = { readonly [maintained]: true };
+type Written<T> = T extends Stamped ? TimestampField | typeof maintained : never;
 export type NewDocument<T extends Document> = string extends T['id']
-  ? Omit<T, 'id'> & { id?: T['id'] }
+  ? Omit<T, 'id' | Written<T>> & { id?: T['id'] }
+  : T extends Stamped
+    ? Omit<T, Written<T>>
+    : T;
+/** A whole document for put(): in a timestamped collection the timestamps may be omitted or keep their stored values. */
+export type Replacement<T extends Document> = T extends Stamped
+  ? Omit<T, Written<T>> & Partial<Pick<T, Extract<keyof T, TimestampField>>>
   : T;
-export type Patch<T extends Document> = Partial<Omit<T, 'id'>>;
+export type Patch<T extends Document> = Partial<Omit<T, 'id' | Written<T>>>;
 export type Updater<T extends Document> = Patch<T> | ((current: T) => T | Promise<T>);
 export type IndexDirection = 'asc' | 'desc';
 export type OrderedValue =
@@ -64,6 +86,8 @@ export interface IndexDefinition {
 export interface Schema {
   version: 1;
   history?: HistorySettings;
+  /** `_createdAt` and `_updatedAt` maintained on every write. */
+  timestamps?: true;
   activating?: { from: number; after: string };
   indexes: IndexDefinition[];
   searchIndexes: SearchIndexDefinition[];

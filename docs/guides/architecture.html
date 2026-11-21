@@ -17,7 +17,11 @@
 </tr>
 <tr>
 <td><code>s:&lt;collection&gt;</code></td>
-<td>Versioned schema with equality, ordered and search-index definitions; written only by DDL</td>
+<td>Versioned schema with equality, ordered and search-index definitions, history and <code>timestamps</code>; written only by DDL</td>
+</tr>
+<tr>
+<td><code>c:&lt;collection&gt;</code></td>
+<td>Next document key to stamp while <code>$timestamps</code> stamps existing documents; absent once done</td>
 </tr>
 <tr>
 <td><code>p:&lt;collection&gt;:&lt;index&gt;:&lt;typed-id&gt;</code></td>

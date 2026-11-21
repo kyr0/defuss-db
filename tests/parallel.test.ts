@@ -80,6 +80,45 @@ describe('parallel aggregates', () => {
     expect((await db.stats()).parallel!.queries).toBeGreaterThanOrEqual(3);
   });
 
+  it('merge calendar buckets, distinct counts and percentiles from worker partials, equal to one thread', async () => {
+    const path = await seeded();
+    const db = await open(path);
+    // n hours after 2024-03-29T00:00Z: 3,000 hours cross the Berlin DST change of 2024-03-31.
+    const at = q.add(q.literal(Date.UTC(2024, 2, 29)), q.mul(q.field('n'), q.literal(3_600_000)));
+    const descriptor = {
+      groupBy: {
+        month: q.dateTrunc(at, 'month', { timeZone: 'Europe/Berlin' }),
+        weekday: q.datePart(at, 'weekday', { timeZone: 'Europe/Berlin' }),
+      },
+      measures: {
+        days: q.countDistinct(q.dateTrunc(at, 'day', { timeZone: 'Europe/Berlin' })),
+        groups: q.distinct(q.field('group')),
+        median: q.median(q.field('price')),
+        p90: q.percentile(q.field('n'), 0.9),
+      },
+      orderBy: [
+        { field: 'month', direction: 'asc' as const },
+        { field: 'weekday', direction: 'asc' as const },
+      ],
+    };
+    const merged = await db
+      .collection<Item>('items')
+      .aggregate(descriptor, undefined, { cache: false });
+    expect(merged.summary.strategy).toBe('merge');
+    const expected = await single(path, (one) =>
+      one.collection<Item>('items').aggregate(descriptor, { limit: 100 }, { cache: false }),
+    );
+    expect(merged.rows).toEqual((expected as typeof merged).rows);
+    // The first Berlin month starts at local midnight (UTC+1) and holds Friday the 29th to Sunday the 31st.
+    expect(merged.rows[0]).toMatchObject({
+      month: new Date(Date.UTC(2024, 1, 29, 23)),
+      weekday: 5,
+      days: 1,
+      groups: [0, 1, 2, 3, 4],
+    });
+    expect(merged.rows.reduce((sum, row) => sum + row.days, 0)).toBe(126);
+  });
+
   it('keep other aggregates in one thread', async () => {
     const path = await seeded();
     const db = await open(path);
@@ -120,10 +159,14 @@ describe('parallel aggregates', () => {
     cleanup.push(() => db.close());
     expect((await db.stats()).parallel).toMatchObject({ state: 'idle', starts: 0, minRows: 1000 });
     // The first aggregate does not wait for the workers it starts.
-    const first = await db.collection<Item>('items').aggregate(grouped('exact'), undefined, { cache: false });
+    const first = await db
+      .collection<Item>('items')
+      .aggregate(grouped('exact'), undefined, { cache: false });
     expect(first.summary.strategy).not.toBe('merge');
     expect(await started(db)).toMatchObject({ state: 'ready', starts: 1 });
-    const merged = await db.collection<Item>('items').aggregate(grouped('exact'), undefined, { cache: false });
+    const merged = await db
+      .collection<Item>('items')
+      .aggregate(grouped('exact'), undefined, { cache: false });
     expect(merged.summary.strategy).toBe('merge');
     expect(merged.rows).toEqual(first.rows);
     const off = await openDirectory(path, { parallel: false });
@@ -135,7 +178,9 @@ describe('parallel aggregates', () => {
     const db = await open(await seeded());
     // Each part exceeds the group budget in its worker; the one-thread run reports the same limit.
     await expect(
-      db.collection<Item>('items').aggregate(grouped('exact'), undefined, { cache: false, maxGroups: 1 }),
+      db
+        .collection<Item>('items')
+        .aggregate(grouped('exact'), undefined, { cache: false, maxGroups: 1 }),
     ).rejects.toMatchObject({ code: 'LIMIT_EXCEEDED' });
     expect((await db.stats()).parallel).toMatchObject({ fallbacks: 1 });
   });
