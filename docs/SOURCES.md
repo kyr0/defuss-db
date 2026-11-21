@@ -9,7 +9,7 @@ Source inspection used these GitHub revisions on 2026-11-17:
 | defuss-storage | 0.3.1 | [`3fff26113662`](https://github.com/kyr0/defuss-storage/tree/3fff26113662ecc49ca21dc4f75ff66d0473d23b) |
 | defuss-dson | 1.5.0 | [`4a6a3af645ac`](https://github.com/kyr0/defuss-dson/tree/4a6a3af645acd10233139c75c59a61d59c3a1c4c) |
 
-Runtime dependencies are pinned to published defuss-dataview 0.7.0, defuss-dbsonl 0.8.0, defuss-storage 0.4.1 and defuss-dson 1.5.1. The DSON source repository inspected reported 1.5.0; the installed and tested runtime is 1.5.1, required by DBSONL. `bun.lock` records resolved transitive versions and integrity hashes. The repository named `defuss-dbjsonl` publishes the binary package `defuss-dbsonl`.
+Runtime dependencies are pinned to published defuss-dataview 0.7.0, defuss-dbsonl 0.9.0, defuss-storage 0.4.1 and defuss-dson 1.5.1. The DSON source repository inspected reported 1.5.0; the installed and tested runtime is 1.5.1, required by DBSONL. `bun.lock` records resolved transitive versions and integrity hashes. The repository named `defuss-dbjsonl` publishes the binary package `defuss-dbsonl`.
 
 Search integrations inspected and pinned on 2026-11-17:
 

@@ -137,17 +137,17 @@ for (const mongo of mongoReports) {
       ': index pages, range counts or the full-scan aggregate no longer take about as long as on MongoDB or less',
   );
   assert(
-    about(ratioAt('update-one')) && ratioAt('update-concurrent') < 1,
+    about(ratioAt('update-one')) &&
+      about(ratioAt('insert-batch')) &&
+      ratioAt('update-concurrent') < 1,
     mongo.runtime +
-      ': a flushed single-document update no longer takes about as long as a journaled one, or concurrent updates no longer less',
+      ': a flushed update or 64-document commit no longer takes about as long as a journaled one, or concurrent updates no longer less',
   );
-  const loads = gap(['insert-batch', 'bulk-load']);
+  const load = ratioAt('bulk-load');
   assert(
-    loads[0] > 1 &&
-      loads[1] ===
-        Math.max(...mongoOperations.filter(([, , , ref]) => ref).map(([w]) => ratioAt(w))),
-    mongo.runtime +
-      ': batch inserts are no longer slower, or bulk loads no longer furthest behind: update the landing page copy',
+    load > 1 &&
+      load === Math.max(...mongoOperations.filter(([, , , ref]) => ref).map(([w]) => ratioAt(w))),
+    mongo.runtime + ': bulk loads are no longer furthest behind: update the landing page copy',
   );
 }
 // The scale card's claim: reads by ID and index pages cost about the same at the smallest and largest size.

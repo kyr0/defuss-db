@@ -98,9 +98,16 @@ export async function loadMongoReports(directory) {
           `${runtime} ${size} compaction`,
         );
       }
+      // Every size ran the untimed warm-up scans. Only the largest must show a filled page cache, the one the
+      // performance page quotes: DBSONL 0.9 keeps the index pages of commits since its last checkpoint in the writing
+      // handle's memory, not in its cache. VERIFIED: the 10,000-document store, below minBytes and never compacted,
+      // reported 0 cache pages after its warm-up, the 100,000-document one 9,092.
+      const largest = Math.max(...report.sizes);
       for (const size of report.sizes) {
         assert.ok(
-          report.warm?.find((w) => w.size === size && w.defussCacheBytes > 0),
+          report.warm?.find(
+            (w) => w.size === size && (size !== largest || w.defussCacheBytes > 0),
+          ),
           `${runtime} ${size} warm caches`,
         );
         assert.ok(

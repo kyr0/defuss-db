@@ -25,7 +25,7 @@ All methods use the same APIs on memory, files and OPFS. See generated `.d.mts`/
 | `maxTransactionOperations` | 10,000 |
 | `maxPendingOperations` | 256 |
 | `maxPendingBytes` | 128 MiB |
-| `maxCacheBytes` | 64 MiB, counted in encoded page bytes; with DBSONL 0.8's compact pages `maxCachePages` (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached |
+| `maxCacheBytes` | 64 MiB, counted in encoded page bytes; with DBSONL's compact pages `maxCachePages` (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached. DBSONL 0.9 also holds up to `maxCachePages` index pages of commits since its last checkpoint in memory |
 | `maxCachePages` | 16,384 |
 
 Operation counts include physical schema/index entries, not just documents. For example, a document plus two indexes consumes three distinct staged keys; each changed collection consumes one revision key per transaction, and initial schema creation consumes another. The underlying engine additionally checks encoded framing sizes. Index builds can need one entry per indexed document plus metadata.

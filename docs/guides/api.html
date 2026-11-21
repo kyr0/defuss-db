@@ -62,7 +62,7 @@
 </tr>
 <tr>
 <td><code>maxCacheBytes</code></td>
-<td align="right">64 MiB, counted in encoded page bytes; with DBSONL 0.8&#39;s compact pages <code>maxCachePages</code> (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached</td>
+<td align="right">64 MiB, counted in encoded page bytes; with DBSONL&#39;s compact pages <code>maxCachePages</code> (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached. DBSONL 0.9 also holds up to <code>maxCachePages</code> index pages of commits since its last checkpoint in memory</td>
 </tr>
 <tr>
 <td><code>maxCachePages</code></td>

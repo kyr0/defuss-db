@@ -4,7 +4,7 @@ The release suite ran on Linux x64 on 2026-11-18 and on macOS arm64 (Apple M5 Ma
 
 | Check | Evidence |
 | --- | --- |
-| Unit/integration requirements | 127 tests using real memory and native file storage |
+| Unit/integration requirements | 133 tests using real memory and native file storage |
 | Temporal invariants | Native commit receipts after a disjoint commit, ordinal ordering, half-open intervals, historical predicate writes, tombstones, snapshot visibility, stable cursors and historical BM25/vector/hybrid scores against a rebuilt reference corpus. The deterministic cell oracle compares 1,152 recorded/effective observations. |
 | Temporal storage | Interruption and resumption across handles, baseline publication under tight transaction limits, failure rollback, archive lineage through two forks, zero-payload tombstones and one-seek point reads across a 256-version timeline. |
 | Packed history | Node and Bun directory reopen after compaction, real Chromium OPFS reopen, and full history archives crossing between server and OPFS with source-qualified receipts. |
@@ -32,7 +32,7 @@ The release suite ran on Linux x64 on 2026-11-18 and on macOS arm64 (Apple M5 Ma
 
 The browser test ran under a same-origin CSP on localhost with `script-src 'self' 'wasm-unsafe-eval'` for Brotli WASM, without JavaScript `unsafe-eval`. The execution environment required the serverless headless shell with single-process browser mode; it still uses real dedicated workers, OPFS and Web Locks. This validates competing workers, not separate browser processes. The release's e2e script also supports a normal Playwright browser. Browser launch arguments are recorded in `output/e2e-results.json`.
 
-Coverage is measured by the Node integration suite; it does not fabricate browser coverage. The final run measured 92.94% line coverage and 87.54% branch coverage. The exact values are in `output/coverage/coverage-summary.json`. TypeScript checks and oxlint run with warnings treated as failures.
+Coverage is measured by the Node integration suite; it does not fabricate browser coverage. The final run measured 92.99% line coverage and 87.69% branch coverage. The exact values are in `output/coverage/coverage-summary.json`. TypeScript checks and oxlint run with warnings treated as failures.
 
 Not established by these runs: physical power loss, disk-full fault injection, Windows native execution, Firefox/WebKit OPFS behavior, network filesystems, hostile writers, multi-origin browser storage, or distributed use. On macOS a 4 KiB write plus defuss-storage flush took about 4 ms under Node.js and under Bun ([MongoDB comparison](PERFORMANCE.md#compared-with-mongodb-on-one-machine)): under both runtimes it asks the drive to empty its write cache (`F_FULLFSYNC`). Server and browser durability differ as reported by their backends. SIGKILL tests establish process-interruption behavior for exercised timings, not an exhaustive crash-point proof.
 

@@ -61,7 +61,7 @@
   "dependencies": {
     "defuss-brotli": "0.3.0",
     "defuss-dataview": "0.7.0",
-    "defuss-dbsonl": "0.8.0",
+    "defuss-dbsonl": "0.9.0",
     "defuss-dson": "1.5.1",
     "defuss-lexicalsearch": "0.4.0",
     "defuss-search": "0.5.0",
@@ -72,7 +72,7 @@
     "@types/node": "24.10.0",
     "@vitest/coverage-v8": "4.1.12",
     "defuss-shadcn": "0.9.14",
-    "esbuild": "0.27.4",
+    "esbuild": "0.28.2",
     "fflate": "0.8.2",
     "marked": "17.0.1",
     "mongodb": "7.8.0",

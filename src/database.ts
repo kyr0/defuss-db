@@ -567,7 +567,9 @@ export class Database {
  * every full scan reloaded, re-checksummed and re-decoded them; with room for them a warm aggregate took about 45%
  * less time, a read by ID about 58% less and a bulk load 12 to 16% less. DBSONL 0.8 charges its compact pages a
  * tenth of the bytes, so the page bound applies first: the 6,455 pages of that collection compacted charged 4.1 MiB
- * instead of 43.6 MiB and held 12.8 MiB of heap instead of 16.9 MiB, about 2 KiB per page.
+ * instead of 43.6 MiB and held 12.8 MiB of heap instead of 16.9 MiB, about 2 KiB per page. DBSONL 0.9's format 5
+ * also holds the pages of commits since its last checkpoint in memory, at most `maxCachePages` of them and at most
+ * the 16 MiB of log that start a checkpoint.
  */
 const PAGE_CACHE = { maxCacheBytes: 64 * 1024 * 1024, maxCachePages: 16_384 };
 /** What a worker needs to open its own handle of this store. */
