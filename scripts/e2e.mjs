@@ -75,17 +75,21 @@ const par=await openDirectory('./par-'+(process.versions.bun?'bun':'node'),{para
 const off=await openDirectory('./par-'+(process.versions.bun?'bun':'node'),{parallel:false}); assert.equal((await off.stats()).parallel,undefined); await off.close();`;
   await writeFile(join(consumer, 'consumer.mjs'), sample);
   await command(process.execPath, ['consumer.mjs'], consumer);
-  results.checks.push('Node packed ESM + directory + timestamps, durations and restore + parallel aggregates in worker threads');
+  results.checks.push(
+    'Node packed ESM + directory + timestamps, durations and restore + parallel aggregates in worker threads',
+  );
   await command('bun', ['consumer.mjs'], consumer);
-  results.checks.push('Bun packed ESM + directory + timestamps, durations and restore + parallel aggregates in worker threads');
+  results.checks.push(
+    'Bun packed ESM + directory + timestamps, durations and restore + parallel aggregates in worker threads',
+  );
   await writeFile(
     join(consumer, 'consumer.cjs'),
-    `const assert=require('node:assert/strict'); const db=require('defuss-db'); const server=require('defuss-db/server'); const browser=require('defuss-db/browser'); assert.equal(typeof server.openDirectory,'function'); assert.equal(typeof browser.openOPFS,'function'); (async()=>{const d=await db.openMemory();await d.collection('test').insert({id:1});assert.equal(await d.collection('test').count(),1);await d.collection('test').createSearchIndex({name:'words',kind:'lexical',text:{fields:{text:{path:'text'}}}});await d.collection('test').put({id:2,text:'search'});assert.equal((await d.collection('test').search('words','search')).hits[0].id,2);const backup=await d.export();const restored=await db.openMemory();await restored.import(backup);assert.equal(await restored.collection('test').count(),2);await restored.close();await d.close();const native=await server.openDirectory('./data-cjs');await native.collection('cjs').put({id:'x',at:new Date(123)});assert.equal((await native.collection('cjs').get('x')).at.getTime(),123);await native.close();const par=await server.openDirectory('./par-cjs-'+(process.versions.bun?'bun':'node'),{parallel:{workers:2,minRows:10}});const pc=par.collection('rows');await pc.insertMany(Array.from({length:100},(_,id)=>({id})));await pc.count({},{cache:false});while((await par.stats()).parallel.state==='starting')await new Promise(r=>setTimeout(r,5));assert.equal(await pc.count({},{cache:false}),100);assert.equal((await par.stats()).parallel.queries,1);await par.close()})().catch(error=>{console.error(error);process.exitCode=1});`,
+    `const assert=require('node:assert/strict'); const db=require('defuss-db'); const server=require('defuss-db/server'); const browser=require('defuss-db/browser'); const mongo=require('defuss-db/mongo'); assert.equal(typeof server.openDirectory,'function'); assert.equal(typeof browser.openOPFS,'function'); (async()=>{const d=await db.openMemory();await d.collection('test').insert({id:1});assert.equal(await d.collection('test').count(),1);assert.deepEqual(await mongo.findMongo(d.collection('test'),'{ id: { $gte: 1 } }'),[{id:1}]);assert.deepEqual(await mongo.aggregateMongo(d.collection('test'),'[{ $count: "n" }]'),[{n:1}]);assert.deepEqual((await db.analyzeSchema(d.collection('test'))).schema.required,['id']);await d.collection('test').createSearchIndex({name:'words',kind:'lexical',text:{fields:{text:{path:'text'}}}});await d.collection('test').put({id:2,text:'search'});assert.equal((await d.collection('test').search('words','search')).hits[0].id,2);const backup=await d.export();const restored=await db.openMemory();await restored.import(backup);assert.equal(await restored.collection('test').count(),2);await restored.close();await d.close();const native=await server.openDirectory('./data-cjs');await native.collection('cjs').put({id:'x',at:new Date(123)});assert.equal((await native.collection('cjs').get('x')).at.getTime(),123);await native.close();const par=await server.openDirectory('./par-cjs-'+(process.versions.bun?'bun':'node'),{parallel:{workers:2,minRows:10}});const pc=par.collection('rows');await pc.insertMany(Array.from({length:100},(_,id)=>({id})));await pc.count({},{cache:false});while((await par.stats()).parallel.state==='starting')await new Promise(r=>setTimeout(r,5));assert.equal(await pc.count({},{cache:false}),100);assert.equal((await par.stats()).parallel.queries,1);await par.close()})().catch(error=>{console.error(error);process.exitCode=1});`,
   );
   await command(process.execPath, ['consumer.cjs'], consumer);
-  results.checks.push('Node packed CommonJS all entries + parallel count');
+  results.checks.push('Node packed CommonJS all entries (mongo, analyzeSchema) + parallel count');
   await command('bun', ['consumer.cjs'], consumer);
-  results.checks.push('Bun packed CommonJS all entries + parallel count');
+  results.checks.push('Bun packed CommonJS all entries (mongo, analyzeSchema) + parallel count');
   await writeFile(
     join(consumer, 'types.mts'),
     `import {openMemory,type Document,type IndexPage,type Timestamped} from 'defuss-db';

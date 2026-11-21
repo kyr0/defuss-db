@@ -41,6 +41,16 @@
         "default": "./dist/browser.cjs"
       }
     },
+    "./mongo": {
+      "import": {
+        "types": "./dist/mongo.d.mts",
+        "default": "./dist/mongo.mjs"
+      },
+      "require": {
+        "types": "./dist/mongo.d.cts",
+        "default": "./dist/mongo.cjs"
+      }
+    },
     "./parallel-worker": {
       "import": "./dist/parallel-worker.mjs"
     }

@@ -146,6 +146,28 @@ Default ordering without `sorters/orderBy` follows typed storage keys. It is not
 
 `explain().access.kind` can be `scan`, `primary`, `primary-in`, `equality`, `range` or `ordered`. Ordered/range plans expose the index name, length of the fixed equality prefix, and range field when present. `primary-in` and bounded `range` plans report their point-key count. Explaining a bounded range may probe index pointers.
 
+## MongoDB syntax and schemas
+
+`defuss-db/mongo` is a separate entry, so an application that never reads MongoDB syntax never loads it. Every function takes any collection: a `Collection`, a `ReadCollection` bound with `at(date)` or a `TransactionCollection`.
+
+| Function | Result |
+| --- | --- |
+| `findMongo(collection, filter?, { sort, projection, skip, limit }?)` | Projected documents. Each document argument is an object or its text. |
+| `aggregateMongo(collection, pipeline)` | MongoDB's result documents: `{ _id, ...accumulators }`, or `[{ [name]: n }]` for `$count` (none when nothing matched). |
+| `mongoRequest(q, filter?, sort?)` | `{ filters, where?, sorters? }` for `find`, `query`, `count` or `explain`. |
+| `translatePipeline(stages)` / `aggregateDescriptor(plan, q)` | The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor. |
+| `parseDocument(text, what?)`, `parsePipeline(text)` | Shell or Extended JSON text as values: `ISODate()` and `{ $date }` become a Date, `NumberLong()` and `{ $numberLong }` a BigInt. |
+| `stringify(value, space?)`, `revive(value)` | Values as Extended JSON text and back. |
+| `translateFilter(doc, q)`, `translateSort(doc)`, `project(doc, projection)` | The parts of `findMongo`. |
+
+Filters: `$eq $ne $gt $gte $lt $lte $in` on a top-level field become `filters`, which an index answers; `$nin $exists $not`, conditions on a dot path, `$and $or $nor` become one `where` expression. `$regex` accepts `^prefix`, `suffix$` or plain text on a top-level field. A projection includes or excludes fields (dot paths too); the id stays unless `{ id: 0 }`.
+
+Matching follows MongoDB's rules: `null` matches a null or missing field, `$exists` tells them apart, and a comparison matches only values of its operand's type, so `{ $gt: 4 }` matches no string or Date. The type rule adds one bound to the range, which an ordered index still answers. VERIFIED: tests/mongo.test.ts holds the ids MongoDB 9.0.8 returned for the same documents and filters. Two rules differ from MongoDB. An array field compares as one value, so `{ tags: 'a' }` does not match `['a', 'b']`; group by its elements with `$unwind`. A sort puts null and missing values last in ascending order, where MongoDB puts them first. BigInts (`NumberLong`) and numbers never compare equal.
+
+Pipelines: `$match` (several are ANDed), `$unwind` (only as a group key: one group per element), `$group` (`_id`: a field, a document of fields, `$toLower`, `$toUpper`, `$year`, `$dateTrunc`, `$dateToString` with `%Y`, `%Y-%m`, `%Y-%m-%d` or `%Y-%m-%dT%H`, both with an optional IANA `timezone`, and weeks only with `startOfWeek: 'monday'`, since MongoDB's weeks otherwise start on Sunday; `$sum`, `$count`, `$avg`, `$min`, `$max`, `$addToSet`), `$size` of an `$addToSet` in `$set` / `$addFields` / `$project`, `$sort` by one key or accumulator, `$limit` and the `$count` stage. Any other stage or operator throws a `QueryError` naming the stage.
+
+`analyzeSchema(collection, { sample, at, $asOfRevision, maxDepth, examples, title }?)` (main entry) answers `{ schema, sampled, total, at }`. It reads at most `sample` documents (default 1,000): all of a smaller collection, else eight windows at even offsets, since default order follows storage keys and ids often follow insertion time. With `at` it reads the collection as it was then; a collection without history throws `HISTORY_NOT_ENABLED`. `inferSchema(docs, options?)` is the same inference over documents you hold. The schema is JSON Schema draft 2020-12: `type`, `properties`, `required` (properties every sampled object holds), `items`, `anyOf` where one place holds an object or array beside other types, and `examples` (up to three distinct scalars). A property some objects lack carries `x-presence`, the share that hold it. DSON values keep a JSON type and name their own in `x-dson`: a Date is `{ type: 'string', format: 'date-time', 'x-dson': 'date' }`, a BigInt an integer, binary a base64 string, a Map an object of `additionalProperties`, a Set an array of `uniqueItems`. A value that contains itself is a `$comment`, not an endless schema.
+
 ## Errors
 
 `DatabaseError` codes: `DUPLICATE_KEY`, `SCHEMA_MISMATCH`, `INVALID_DOCUMENT`, `INVALID_INDEX_VALUE`, `CORRUPT`, `INVALID_CURSOR`, `STALE_CURSOR`, `CLOSED`, `BUSY`, `UNFINISHED_TRANSACTION`, and for history `HISTORY_ACTIVATING`, `HISTORY_NOT_ENABLED`, `HISTORY_UNAVAILABLE`, `HISTORY_READ_ONLY`, `HISTORY_FUTURE_WRITE`, `HISTORY_RANGE`. Input validation can also throw `TypeError`/`RangeError`; strict DSON errors remain intact.

@@ -10,6 +10,14 @@ export { Collection, TransactionCollection } from './collection.js';
 export { ReadCollection } from './query.js';
 export type { BoundQuery } from './query.js';
 export { DatabaseError } from './errors.js';
+export { analyzeSchema, inferSchema, JSON_SCHEMA_DIALECT } from './json-schema.js';
+export type {
+  AnalyzedSchema,
+  AnalyzeSchemaOptions,
+  InferOptions,
+  JsonSchema,
+  SchemaReadable,
+} from './json-schema.js';
 export type { DatabaseErrorCode } from './errors.js';
 export type {
   PrimaryKey,

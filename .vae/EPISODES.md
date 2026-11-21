@@ -99,3 +99,10 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-21T20:08:59Z s=19560c1d FINDING src/collection.ts:TransactionCollection.restore learn=test: restore tests cover a tracked collection without timestamps.
 2026-11-21T20:08:59Z s=19560c1d FINDING src/database.ts:ensureCollection learn=test: tests/timestamps.test.ts resume test checks exactly 128 stamped, verify while pending, resume, CORRUPT on an unstamped raw doc.
 2026-11-21T20:08:59Z s=19560c1d FINDING src/workload-report.mjs:loadReports learn=verifier: rule docs.performance-evidence (site-evidence --check) and release.version-sync enforce the state.
+2026-11-21T14:38:31Z s=19560c1d FAIL release.version-sync
+2026-11-21T20:21:43Z s=19560c1d DONE fp=9884aba70f8e cov=93.4% paths=CHANGELOG.md,README.md,docs/API.md,docs/guides/api.html(+10)
+2026-11-21T20:21:43Z s=19560c1d FINDING src/mongo-query.ts:translateFilter/condition learn=test: tests/mongo.test.ts 'MongoDB matching rules' holds the ids MongoDB returned.
+2026-11-21T20:21:43Z s=19560c1d FINDING src/mongo-pipeline.ts:translatePipeline $dateTrunc learn=test: tests/mongo.test.ts calendar-keys test (MongoDB values) and refusal cases fail on the original translator.
+2026-11-21T20:21:43Z s=19560c1d FINDING src/mongo-pipeline.ts:keyOutput $dateToString learn=test: same test.
+2026-11-21T20:21:43Z s=19560c1d FINDING src/mongo-pipeline.ts:aggregateDescriptor; tests/mongo.test.ts grouping probe learn=none: YAGNI cleanup; no recurrence mechanism.
+2026-11-21T20:21:43Z s=19560c1d FINDING docs/API.md MongoDB syntax learn=none: needs a dataview any-element expression and a nullish sort option; follow-up for the user.

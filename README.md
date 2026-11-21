@@ -256,6 +256,26 @@ Archives preserve native DSON graphs and collection/index definitions. Buffered 
 
 Query caching is enabled by default: at least 128 scanned candidates, at most 25% as many output rows, segmented LRU with second-use admission, and bounded byte/count budgets. Tiny primary-key reads bypass its bookkeeping. Set `queryCache: { mode: 'manual' }` when opening to cache only queries that request it, or `queryCache: false` to disable result and plan caching. Keys include the collection's committed version, descriptor, page and resource options. Every hit opens a snapshot, reports its current revision and returns an independent DSON value. Transactions and streams bypass result caching. See [cache configuration and trade-offs](docs/CACHE.md). Updates avoid a redundant document read; integrity audits reuse snapshot-local schemas. Measured costs and limits are in [performance](docs/PERFORMANCE.md).
 
+## MongoDB queries, pipelines and inferred schemas
+
+```ts
+import { analyzeSchema } from 'defuss-db';
+import { aggregateMongo, findMongo } from 'defuss-db/mongo';
+
+const paid = await findMongo(orders, "{ status: 'paid', amount: { $gt: 100 } }", {
+  sort: { createdAt: -1 }, projection: { customer: 1, amount: 1 }, limit: 20,
+});
+const byCountry = await aggregateMongo(orders, [
+  { $match: { status: 'paid' } },
+  { $group: { _id: '$country', orders: { $sum: 1 }, revenue: { $sum: '$amount' } } },
+  { $sort: { revenue: -1 } },
+]); // [{ _id: 'DE', orders: 412, revenue: 81230 }, ...]
+const { schema } = await analyzeSchema(orders, { sample: 1000 });
+const before = await analyzeSchema(prices, { at: new Date('2026-01-01') }); // a tracked collection
+```
+
+`defuss-db/mongo` reads MongoDB's filter, sort and projection documents - as objects, or as text in the shell's syntax (unquoted keys, single quotes, `ISODate()`, `NumberLong()`) or Extended JSON - and translates them into the collection's own request, with MongoDB's rules for null, missing fields and types (arrays compare as one value, and null values sort last): top-level conditions with a plain operator become `filters`, which an index answers, the rest one `where` expression. `aggregateMongo` turns a pipeline into one aggregate and answers in MongoDB's shape; a stage that has no place in it (`$lookup`, a `$match` after the `$group`) is refused by name. `analyzeSchema` infers a JSON Schema (draft 2020-12) from a sample spread over the whole collection, or over the collection as it was at a date. See [MongoDB syntax and schemas](docs/API.md#mongodb-syntax-and-schemas).
+
 ## Node, Bun, browser and memory
 
 | Environment | Factory | Persistence and coordination |

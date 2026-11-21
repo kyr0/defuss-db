@@ -198,6 +198,22 @@ console.log(cached.rows, db.queryCacheStats());
 </code></pre>
 <p>Archives preserve native DSON graphs and collection/index definitions. Buffered and streaming APIs support memory, Node/Bun files and OPFS; limits, cancellation, merge conflicts, and a checksummed frame format are documented in <a href="archive.html">import/export</a>. Atomic imports must fit the configured transaction budget. Browser compression needs CSP <code>script-src &#39;self&#39; &#39;wasm-unsafe-eval&#39;</code>.</p>
 <p>Query caching is enabled by default: at least 128 scanned candidates, at most 25% as many output rows, segmented LRU with second-use admission, and bounded byte/count budgets. Tiny primary-key reads bypass its bookkeeping. Set <code>queryCache: { mode: &#39;manual&#39; }</code> when opening to cache only queries that request it, or <code>queryCache: false</code> to disable result and plan caching. Keys include the collection&#39;s committed version, descriptor, page and resource options. Every hit opens a snapshot, reports its current revision and returns an independent DSON value. Transactions and streams bypass result caching. See <a href="cache.html">cache configuration and trade-offs</a>. Updates avoid a redundant document read; integrity audits reuse snapshot-local schemas. Measured costs and limits are in <a href="performance.html">performance</a>.</p>
+<h2 id="mongodb-queries-pipelines-and-inferred-schemas">MongoDB queries, pipelines and inferred schemas</h2>
+<pre><code class="language-ts">import { analyzeSchema } from &#39;defuss-db&#39;;
+import { aggregateMongo, findMongo } from &#39;defuss-db/mongo&#39;;
+
+const paid = await findMongo(orders, &quot;{ status: &#39;paid&#39;, amount: { $gt: 100 } }&quot;, {
+  sort: { createdAt: -1 }, projection: { customer: 1, amount: 1 }, limit: 20,
+});
+const byCountry = await aggregateMongo(orders, [
+  { $match: { status: &#39;paid&#39; } },
+  { $group: { _id: &#39;$country&#39;, orders: { $sum: 1 }, revenue: { $sum: &#39;$amount&#39; } } },
+  { $sort: { revenue: -1 } },
+]); // [{ _id: &#39;DE&#39;, orders: 412, revenue: 81230 }, ...]
+const { schema } = await analyzeSchema(orders, { sample: 1000 });
+const before = await analyzeSchema(prices, { at: new Date(&#39;2026-01-01&#39;) }); // a tracked collection
+</code></pre>
+<p><code>defuss-db/mongo</code> reads MongoDB&#39;s filter, sort and projection documents - as objects, or as text in the shell&#39;s syntax (unquoted keys, single quotes, <code>ISODate()</code>, <code>NumberLong()</code>) or Extended JSON - and translates them into the collection&#39;s own request, with MongoDB&#39;s rules for null, missing fields and types (arrays compare as one value, and null values sort last): top-level conditions with a plain operator become <code>filters</code>, which an index answers, the rest one <code>where</code> expression. <code>aggregateMongo</code> turns a pipeline into one aggregate and answers in MongoDB&#39;s shape; a stage that has no place in it (<code>$lookup</code>, a <code>$match</code> after the <code>$group</code>) is refused by name. <code>analyzeSchema</code> infers a JSON Schema (draft 2020-12) from a sample spread over the whole collection, or over the collection as it was at a date. See <a href="api.html#mongodb-syntax-and-schemas">MongoDB syntax and schemas</a>.</p>
 <h2 id="node-bun-browser-and-memory">Node, Bun, browser and memory</h2>
 <table>
 <thead>
