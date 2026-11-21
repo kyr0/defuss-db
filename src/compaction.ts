@@ -1,7 +1,7 @@
 import type { Dbsonl } from 'defuss-dbsonl';
 
 export interface AutoCompactOptions {
-  /** No automatic compaction below this many committed bytes. Default 8 MiB. */
+  /** No automatic compaction below this many committed bytes. Default 1 MiB. */
   minBytes?: number;
   /** Under sustained writes, compact once committed bytes reach this multiple of the live size. Default 4. */
   growth?: number;
@@ -24,15 +24,21 @@ interface Attempt {
   copying: boolean;
 }
 
-const DEFAULTS: Settings = { minBytes: 8 * 1024 * 1024, growth: 4, idleMs: 1000 };
+// VERIFIED: with a floor of 8 MiB a 10,000-document store with one ordered index (3 MiB on DBSONL 0.9) was never
+// copied, so its values stayed in commit order and an index range count took 1.42 ms instead of 0.20 ms after
+// compact(); a copy costs about 10 ms per MiB (0.25 to 0.34 s for 28 MiB).
+const DEFAULTS: Settings = { minBytes: 1024 * 1024, growth: 4, idleMs: 1000 };
 // An idle copy runs once garbage reaches half the live size.
 const IDLE_GROWTH = 1.5;
-// An idle copy also runs once the file has doubled since it was packed, even with little garbage: then at least half
-// of it lies in commit order instead of key order, and range reads go to scattered frames. VERIFIED: a 100,000-document
-// load with one ordered index on DBSONL 0.9 left 1.12 times its packed size, so the garbage trigger never ran; an index
-// range count then took 19 ms instead of 0.64 ms after compact(), and a full-scan aggregate 120 ms instead of 80 ms
-// (85 instead of 21 ms with query workers). Copying at each doubling copies at most twice the final size in all.
-const IDLE_DOUBLING = 2;
+// An idle copy also runs once the file has grown by half since it was packed, even with little garbage: then a third
+// of it or more lies in commit order instead of key order, and range reads there go to scattered frames. VERIFIED: a
+// 100,000-document load with one ordered index on DBSONL 0.9 left 1.12 times its packed size, so the garbage trigger
+// never ran; an index range count then took 19 ms instead of 0.64 ms after compact(), and a full-scan aggregate 120 ms
+// instead of 80 ms (85 instead of 21 ms with query workers). Waiting for the file to double was measured too coarse: under
+// Node.js a 10,000-document load ended at 2.9 MiB without doubling the size of its one copy during the load, and its
+// range count took 1.32 ms against 0.38 ms under Bun, whose run did copy again. Copying at each 1.5-fold growth copies at most three times
+// the final size in all.
+const IDLE_REORDER = 1.5;
 // Below this many bytes a store's fixed bytes overstate its bytes per entry, so such a size is used unscaled.
 // VERIFIED: a packed in-memory store with 3 entries took 690 bytes, 230 per entry; from 23 entries on it took
 // 112 to 125 bytes per entry, so at 64 KiB the fixed bytes are about 1%.
@@ -61,9 +67,9 @@ export function compactionDue(
   return committedBytes >= Math.max(settings.minBytes, settings.growth * liveBytes);
 }
 
-/** Pure policy: an idle copy that restores key order pays off once the file doubled since it was packed. */
+/** Pure policy: an idle copy that restores key order pays off once the file grew by half since it was packed. */
 export function layoutDue(committedBytes: number, packedBytes: number, minBytes: number): boolean {
-  return committedBytes >= Math.max(minBytes, IDLE_DOUBLING * packedBytes);
+  return committedBytes >= Math.max(minBytes, IDLE_REORDER * packedBytes);
 }
 
 /** The packed size a connection knows, with the stored entries it held when that size was measured. */
@@ -94,7 +100,7 @@ export function liveBytes(packed: Packed, entries: number): number {
  * filled the memory backend's 256 MiB file limit.
  *
  * Two triggers share one background copy, both measured against liveBytes(). After `idleMs` without a commit
- * of this connection, an optimistic copy runs once the file is 1.5 times its live size or twice its packed size; it never blocks writers and is dropped when one
+ * of this connection, an optimistic copy runs once the file is 1.5 times its live size or its packed size; it never blocks writers and is dropped when one
  * commits. Under sustained writes an optimistic copy never installs (VERIFIED: DBSONL returns CONFLICT once a
  * writer published meanwhile), so at `growth` times the live size the copy switches to exclusive mode after
  * one interrupted attempt and writers queue until it is installed. That bounds the file. Compacting at a

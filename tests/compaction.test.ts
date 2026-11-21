@@ -115,7 +115,7 @@ describe('automatic compaction', () => {
     expect(stats.autoCompaction.runs).toBe(0);
   });
 
-  it('compacts an idle store whose file doubled since it was packed, though it holds little garbage', async () => {
+  it('compacts an idle store whose file grew by half since it was packed, though it holds little garbage', async () => {
     const db = track(await openMemory({ autoCompact: { minBytes: 64 * 1024, growth: 1000, idleMs: 50 } }));
     const items = db.collection<{ id: number; note: string }>('items');
     const batch = (from: number) =>
@@ -125,11 +125,11 @@ describe('automatic compaction', () => {
     await db.collect();
     const packed = (await db.stats()).committedBytes;
     // Appends in key order, one commit each: almost no garbage, so the garbage trigger (1.5 times the live size,
-    // which is three times the packed size here) stays quiet, but the file grows past twice its packed size.
+    // which is three times the packed size here) stays quiet, but the file grows past 1.5 times its packed size.
     await batch(1000);
     await batch(2000);
     const grown = (await db.stats()).committedBytes;
-    expect(grown).toBeGreaterThan(2 * packed);
+    expect(grown).toBeGreaterThan(1.5 * packed);
     expect(grown).toBeLessThan(1.5 * 3 * packed);
     expect((await settled(db)).autoCompaction).toMatchObject({ runs: 1, failures: 0 });
     // The copy reclaims nothing here; it reorders. Its size is the new packed size, so idling again copies nothing.
@@ -179,10 +179,10 @@ describe('automatic compaction', () => {
     await expect(openMemory({ autoCompact: { idleMs: 0.5 } })).rejects.toThrow(RangeError);
   });
 
-  it('restores key order once the file doubled since it was packed, not below minBytes', () => {
-    expect(layoutDue(199, 100, 0)).toBe(false);
-    expect(layoutDue(200, 100, 0)).toBe(true);
-    expect(layoutDue(200, 100, 300)).toBe(false);
+  it('restores key order once the file grew by half since it was packed, not below minBytes', () => {
+    expect(layoutDue(149, 100, 0)).toBe(false);
+    expect(layoutDue(150, 100, 0)).toBe(true);
+    expect(layoutDue(150, 100, 300)).toBe(false);
   });
 
   it('becomes due at minBytes or at growth times the packed size, whichever is larger', () => {

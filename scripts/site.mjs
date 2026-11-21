@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { readFile, writeFile, readdir, mkdir, rm, cp } from 'node:fs/promises';
 import { basename, dirname, relative, resolve, posix } from 'node:path';
 import { marked } from 'marked';
@@ -40,14 +41,44 @@ async function example(name) {
   const lines = (await read('website/examples/' + name)).trimEnd().split('\n');
   return { lang, lines: lines.map((line) => highlight(line, lang)) };
 }
+/**
+ * Variants of one example, named `<base>.<variant>.ts` (orders.browser.ts, orders.server.ts, orders.memory.ts), must
+ * align line by line and differ in at most two lines, the import and the line that opens the database, as the hero
+ * caption says. Returns, per file, the line indexes where its group differs, which the window highlights.
+ */
+async function variantLines(names) {
+  const groups = Map.groupBy(
+    names.filter((name) => name.split('.').length === 3),
+    (name) => name.split('.')[0],
+  );
+  const differing = new Map();
+  for (const [base, members] of groups) {
+    const texts = await Promise.all(
+      members.map(async (name) => (await read('website/examples/' + name)).trimEnd().split('\n')),
+    );
+    assert(
+      texts.every((lines) => lines.length === texts[0].length),
+      `${base} variants must align line by line`,
+    );
+    const at = new Set(texts[0].flatMap((line, i) => (texts.some((t) => t[i] !== line) ? [i] : [])));
+    assert(at.size <= 2, `${base} variants may differ only in the import and the open line`);
+    for (const name of members) differing.set(name, at);
+  }
+  return differing;
+}
 /** @@CODE:file@@ becomes the per-line markup of a mockup-code window; @@SNIPPET:file@@ a highlighted block. */
 async function withExamples(html) {
-  for (const [token, kind, name] of html.matchAll(/@@(CODE|SNIPPET):([\w.-]+)@@/g)) {
+  const tokens = [...html.matchAll(/@@(CODE|SNIPPET):([\w.-]+)@@/g)];
+  const differing = await variantLines(tokens.filter(([, kind]) => kind === 'CODE').map(([, , name]) => name));
+  for (const [token, kind, name] of tokens) {
     const { lines } = await example(name);
+    const marked = differing.get(name) ?? new Set();
     html = html.replace(
       token,
       kind === 'CODE'
-        ? lines.map((line) => '<pre><code>' + line + '</code></pre>').join('\n')
+        ? lines
+            .map((line, i) => `<pre${marked.has(i) ? ' class="db-diff"' : ''}><code>${line}</code></pre>`)
+            .join('\n')
         : '<pre class="db-snippet"><code>' + lines.join('\n') + '</code></pre>',
     );
   }

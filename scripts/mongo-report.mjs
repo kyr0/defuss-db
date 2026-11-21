@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { formatMs } from '../docs/assets/bench-format.js';
 import { assertPinnedRuntime } from './workload-report.mjs';
+import { pairedRatio, verdict } from './bench-stats.mjs';
 
 // [workload, label, defuss-db systems, MongoDB reference system for the ratio]
 export const mongoOperations = [
@@ -74,6 +75,7 @@ export async function loadMongoReports(directory) {
       assert.equal(report.mongodbDriver, pkg.devDependencies.mongodb);
       assert.equal(report.repeats, 7);
       assert.equal(report.warmups, 2);
+      assert.equal(report.fixture.loadRounds, 5);
       assert.ok(
         report.sizes.length > 0 && report.server.version && report.flushProbe?.medianMs > 0,
       );
@@ -85,6 +87,11 @@ export async function loadMongoReports(directory) {
             const r = mongoLookup(report, size, workload, system);
             assert.ok(r, `${runtime} ${size} ${workload} ${system}`);
             assert.ok(r.samplesMs.every((n) => Number.isFinite(n) && n > 0));
+            // Sample i of every system comes from round i, which pairs them for comparison().
+            assert.equal(
+              r.samplesMs.length,
+              workload === 'bulk-load' ? report.fixture.loadRounds : report.repeats,
+            );
             assert.equal(
               r.medianMs,
               [...r.samplesMs].sort((a, b) => a - b)[Math.floor(r.samplesMs.length / 2)],
@@ -120,10 +127,27 @@ export async function loadMongoReports(directory) {
   );
 }
 
-const ratio = (defuss, mongo) =>
-  defuss <= mongo
-    ? `${(mongo / defuss).toFixed(1)}× faster`
-    : `${(defuss / mongo).toFixed(1)}× slower`;
+/**
+ * The faster defuss-db path by median against the MongoDB reference, as the paired time ratio with its 95% confidence
+ * interval and verdict (scripts/bench-stats.mjs).
+ */
+export function comparison(report, size, workload) {
+  const [, , systems, reference] = mongoOperations.find(([w]) => w === workload);
+  const best = systems
+    .map((system) => mongoLookup(report, size, workload, system))
+    .reduce((a, b) => (b.medianMs < a.medianMs ? b : a));
+  const paired = pairedRatio(best.samplesMs, mongoLookup(report, size, workload, reference).samplesMs);
+  return { system: best.system, ...paired, verdict: verdict(paired) };
+}
+const factor = (x) => (x < 2 ? x.toFixed(2) : x.toFixed(1));
+/** "8.4× faster (95% CI 7.2–9.7×)", "1.21× slower (95% CI 1.01–1.46×)" or "no clear difference (…)". */
+export function relativeText({ ratio, low, high, verdict }) {
+  if (verdict === 'faster')
+    return `${factor(1 / ratio)}× faster (95% CI ${factor(1 / high)}–${factor(1 / low)}×)`;
+  if (verdict === 'slower')
+    return `${factor(ratio)}× slower (95% CI ${factor(low)}–${factor(high)}×)`;
+  return `no clear difference (95% CI ${factor(low)}–${factor(high)}× the time)`;
+}
 
 /** One row per workload and size: formatted cells for both pages. */
 export function mongoRows(report) {
@@ -134,7 +158,6 @@ export function mongoRows(report) {
     for (const [workload, label, defussSystems, reference] of mongoOperations) {
       const get = (system) => mongoLookup(report, size, workload, system)?.medianMs;
       const defuss = defussSystems.map(get);
-      const best = Math.min(...defuss);
       rows.push({
         size,
         workload,
@@ -143,7 +166,9 @@ export function mongoRows(report) {
         mongodb: get('mongodb') === undefined ? 'n/a' : formatMs(get('mongodb')),
         journaled:
           get('mongodb-journaled') === undefined ? 'n/a' : formatMs(get('mongodb-journaled')),
-        ratio: !reference ? 'no MongoDB equivalent' : ratio(best, get(reference)),
+        ratio: !reference
+          ? 'no MongoDB equivalent'
+          : relativeText(comparison(report, size, workload)),
       });
     }
   return rows;
@@ -158,7 +183,8 @@ const pathNames = {
 };
 /**
  * What the landing page's comparison charts plot: per runtime and size, each workload that has a MongoDB counterpart
- * with the faster defuss-db path's median and the reference MongoDB median. scripts/check-site.mjs recomputes it.
+ * with the faster defuss-db path's median, the reference MongoDB median, and their paired time ratio with its 95%
+ * confidence interval and verdict. scripts/check-site.mjs recomputes it.
  */
 export function mongoChartData(reports) {
   return reports.map((report) => ({
@@ -168,20 +194,21 @@ export function mongoChartData(reports) {
     rows: report.sizes.flatMap((size) =>
       mongoOperations
         .filter(([, , , reference]) => reference)
-        .map(([workload, label, systems, reference]) => {
-          const paths = systems.map((system) => ({
-            system,
-            ms: mongoLookup(report, size, workload, system).medianMs,
-          }));
-          const best = paths.reduce((a, b) => (b.ms < a.ms ? b : a));
+        .map(([workload, label, , reference]) => {
+          const c = comparison(report, size, workload);
           return {
             size,
             workload,
             label,
-            defussMs: best.ms,
-            defussPath: pathNames[best.system],
+            defussMs: mongoLookup(report, size, workload, c.system).medianMs,
+            defussPath: pathNames[c.system],
             mongoMs: mongoLookup(report, size, workload, reference).medianMs,
             mongoPath: pathNames[reference],
+            ratio: c.ratio,
+            low: c.low,
+            high: c.high,
+            rounds: c.rounds,
+            verdict: c.verdict,
           };
         }),
     ),

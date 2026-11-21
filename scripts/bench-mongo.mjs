@@ -42,6 +42,8 @@ const fixture = {
   loadBatch: 256,
   writeBatch: 64,
   concurrentWriters: 32,
+  // Bulk loads per system and size; the paired rounds give the load ratio its confidence interval.
+  loadRounds: 5,
 };
 const report = {
   version: pkg.version,
@@ -132,13 +134,17 @@ async function compare(size) {
 
     // defuss-db's background compaction must finish before MongoDB loads or anything is read, so neither
     // competes with it for the CPU. The report keeps how long it ran after the last commit.
-    const settle = async (n) => {
-      const start = performance.now();
-      let stats = await db.stats();
+    const idle = async (store) => {
+      let stats = await store.stats();
       while (['running', 'waiting'].includes(stats.autoCompaction.state)) {
         await new Promise((resolve) => setTimeout(resolve, 20));
-        stats = await db.stats();
+        stats = await store.stats();
       }
+      return stats;
+    };
+    const settle = async (n) => {
+      const start = performance.now();
+      const stats = await idle(db);
       const settleMs = performance.now() - start;
       report.compaction.push({
         size: n,
@@ -148,29 +154,26 @@ async function compare(size) {
       });
       log('INFO', 'compaction settled', { size: n, ms: settleMs.toFixed(0) });
     };
-    // Bulk load: one durable commit per batch on both systems, measured once.
-    for (const [system, insert] of [
-      ['defuss-db', (batch) => events.insertMany(batch)],
-      [
-        'mongodb-journaled',
-        (batch) => mongo.insertMany(batch.map(toMongo), { ...journaled, ordered: true }),
-      ],
-    ]) {
+    // Bulk load: one durable commit per batch on both systems. This first round fills the stores the other workloads
+    // read; the later rounds run after them (below).
+    const loads = { 'defuss-db': [], 'mongodb-journaled': [] };
+    const load = async (system, insert) => {
       const start = performance.now();
       for (let offset = 0; offset < size; offset += fixture.loadBatch)
         await insert(rows.slice(offset, offset + fixture.loadBatch));
       const ms = performance.now() - start;
-      report.results.push({
-        size,
-        workload: 'bulk-load',
-        system,
-        iterations: 1,
-        medianMs: ms,
-        samplesMs: [ms],
-      });
-      log('INFO', 'loaded', { size, system, ms: ms.toFixed(1) });
-      if (system === 'defuss-db') await settle(size);
-    }
+      loads[system].push(ms);
+      log('INFO', 'loaded', { size, system, round: loads[system].length, ms: ms.toFixed(1) });
+    };
+    const loaders = (store, collection) => ({
+      'defuss-db': (batch) => store.insertMany(batch),
+      'mongodb-journaled': (batch) =>
+        collection.insertMany(batch.map(toMongo), { ...journaled, ordered: true }),
+    });
+    const first = loaders(events, mongo);
+    await load('defuss-db', first['defuss-db']);
+    await settle(size);
+    await load('mongodb-journaled', first['mongodb-journaled']);
     assert.equal(await events.count(), size);
     assert.equal(await mongo.countDocuments(), size);
     // Reads run on warm caches: each system scans the whole collection and walks the whole compound index once,
@@ -440,6 +443,42 @@ async function compare(size) {
       })),
     ]);
     await db.verify();
+    // The remaining bulk-load rounds, after every other workload so they cannot disturb one: each loads a fresh store
+    // and a fresh collection, and the system that loads first alternates, as in measure().
+    for (let round = 1; round < fixture.loadRounds; round++) {
+      const path = join(temp, `load-${size}-${round}`);
+      const store = await openDirectory(path, { parallel: false });
+      const collection = client.db(dbName).collection(`load_${size}_${round}`);
+      try {
+        const target = store.collection('events');
+        await target.createIndex({
+          name: 'tenant_score',
+          fields: ['tenant', 'score'],
+          order: ['asc', 'desc'],
+        });
+        await collection.createIndex({ tenant: 1, score: -1 }, { name: 'tenant_score' });
+        const insert = loaders(target, collection);
+        for (const system of round % 2
+          ? ['mongodb-journaled', 'defuss-db']
+          : ['defuss-db', 'mongodb-journaled']) {
+          await load(system, insert[system]);
+          if (system === 'defuss-db') await idle(store);
+        }
+      } finally {
+        await store.close();
+        await collection.drop().catch(() => {});
+        await rm(path, { recursive: true, force: true });
+      }
+    }
+    for (const [system, samplesMs] of Object.entries(loads))
+      report.results.push({
+        size,
+        workload: 'bulk-load',
+        system,
+        iterations: 1,
+        medianMs: median(samplesMs),
+        samplesMs,
+      });
   } finally {
     await db.close();
     await mongo.drop().catch(() => {});

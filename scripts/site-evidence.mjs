@@ -92,12 +92,14 @@ md.push(
   '',
   'A defuss-db write returns after its commit is flushed to the storage device. MongoDB with the default write concern (`w: 1`) acknowledges a write before its journal is flushed. With `j: true` it waits for the journal flush, which makes it the durability match for defuss-db writes. Read operations have no journal column. The last column compares defuss-db reads with MongoDB `w: 1` and defuss-db writes with MongoDB `j: true`.',
   '',
+  `Each run measures both systems in the same rounds, back to back and in alternating order, so load from other processes on the host hits both alike: ${mongoNode.repeats} rounds after ${mongoNode.warmups} warmups, and ${mongoNode.fixture.loadRounds} for bulk loads, each into a fresh store and collection. The last column gives the geometric mean of the per-round time ratios with its 95% confidence interval (Student's t on the log ratios). It names a faster or slower system only when the whole interval lies on one side of 1, and reads "no clear difference" otherwise. The interval covers the variation within one run, not between runs on a host under different load.`,
+  '',
 );
 for (const report of mongo) {
   md.push(
     `### ${report.runtime === 'Node' ? 'Node.js' : report.runtime} ${report.runtimeVersion.replace(/^v/, '')}`,
     '',
-    '| Operation | Documents | defuss-db (ms) | MongoDB `w: 1` (ms) | MongoDB `j: true` (ms) | defuss-db compared with MongoDB |',
+    '| Operation | Documents | defuss-db median (ms) | MongoDB `w: 1` median (ms) | MongoDB `j: true` median (ms) | defuss-db compared with MongoDB |',
     '| --- | ---: | ---: | ---: | ---: | --- |',
   );
   for (const r of mongoRows(report))
@@ -112,7 +114,7 @@ md.push(
   `The top-20 row lists two defuss-db read paths: the query API first, then \`pageByIndex()\`. The full-scan aggregate row lists one thread first, then ${node.parallel.at(-1).workers} query worker threads (\`openDirectory(path, { parallel: true })\`, with exact sums so the partial results merge). Each comparison uses the faster path.` +
     ' The repeated aggregate reuses the defuss-db result cache, which a later commit to the collection invalidates; MongoDB has no result cache to compare with.',
   '',
-  'The defuss-db load includes the background compaction that ran while it loaded. Reads start after the compaction that follows the last commit has finished: ' +
+  'The defuss-db load includes the background compaction that ran while it loaded. Reads start after the compaction that follows the first load round has finished: ' +
     node.compaction
       .map(
         (c) =>

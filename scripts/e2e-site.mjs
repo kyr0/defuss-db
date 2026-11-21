@@ -85,6 +85,26 @@ try {
   await page.goto(origin + '/index.html', { waitUntil: 'networkidle' });
   const step = (name) => results.interactions.push(name);
 
+  // Hero editor: the variants rotate on their own until the visitor picks one.
+  const heroSelected = () =>
+    page.locator('.db-hero-tabs [role="tab"][aria-selected="true"]').getAttribute('id');
+  const firstVariant = await heroSelected();
+  await page.waitForFunction(
+    (id) => document.querySelector('.db-hero-tabs [role="tab"][aria-selected="true"]').id !== id,
+    firstVariant,
+    { timeout: 5000 },
+  );
+  await page.click('#tab-hero-memory');
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(4000);
+  assert.equal(await heroSelected(), 'tab-hero-memory', 'a picked variant stays selected');
+  assert.ok(await page.locator('#panel-hero-memory').isVisible(), 'memory variant panel');
+  assert.match(
+    await page.locator('#panel-hero-memory pre.db-diff').first().textContent(),
+    /openMemory/,
+  );
+  step('hero editor variants rotate until picked');
+
   const caption = () => page.locator('#bench-context').textContent();
   const before = await caption();
   await page.click('.toggle-group[data-key="runtime"] button[data-value="Bun"]');
@@ -140,6 +160,18 @@ try {
   step('embedded playground and restart');
   assert.deepEqual(problems, [], 'landing page interactions');
   await page.screenshot({ path: join(out, 'index-desktop.png'), fullPage: false });
+
+  const still = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const calm = await still.newPage();
+  await calm.goto(origin + '/index.html');
+  await calm.waitForTimeout(3500);
+  assert.equal(
+    await calm.locator('.db-hero-tabs [role="tab"][aria-selected="true"]').getAttribute('id'),
+    'tab-hero-browser',
+    'reduced motion keeps the first variant',
+  );
+  await still.close();
+  step('hero editor does not rotate under reduced motion');
 
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const mobile = await phone.newPage();

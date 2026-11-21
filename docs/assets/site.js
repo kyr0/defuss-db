@@ -78,6 +78,23 @@ for (const group of document.querySelectorAll('.db-vs-controls .toggle-group')) 
 document
   .querySelector('[data-show-server]')
   .addEventListener('click', () => $('tab-server').click());
+// Hero editor: one example for the browser, a server and memory. While the rotation runs, the selected tab's bar fills
+// in 3 s (site.css) and its animationend selects the next tab with a synthetic click. A reader's own click or key on
+// the tabs stops the rotation; hovering the window or focusing its code pauses it. Reduced motion never starts it.
+const heroTabs = document.querySelector('.db-hero-tabs');
+const heroTriggers = [...heroTabs.querySelectorAll('[role="tab"]')];
+const stopHero = () => delete heroTabs.dataset.auto;
+heroTabs.addEventListener('click', (event) => {
+  if (event.isTrusted && event.target.closest('[role="tab"]')) stopHero();
+});
+heroTabs.addEventListener('keydown', (event) => {
+  if (event.target.closest('[role="tab"]')) stopHero();
+});
+heroTabs.addEventListener('animationend', (event) => {
+  if (heroTabs.dataset.auto !== 'on' || !heroTriggers.includes(event.target)) return;
+  heroTriggers[(heroTriggers.indexOf(event.target) + 1) % heroTriggers.length].click();
+});
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) heroTabs.dataset.auto = 'on';
 // The MongoDB comparison: relative speed per operation on a log2 axis, then each operation's two medians on its own
 // linear scale. VERIFIED: the medians span 0.015 ms to 4.5 s (docs/benchmarks/mongodb-node.json), so one shared axis
 // would hide the small ones.
@@ -109,16 +126,18 @@ const shortNames = {
   'insert-batch': 'Insert 64',
   'bulk-load': 'Bulk load',
 };
-// The bar's side and color say which system was faster; its label says by how much.
-const relative = (r) => {
-  const factor = r.defussMs / r.mongoMs;
-  return (factor < 1 ? 1 / factor : factor).toFixed(1) + '×';
-};
+// Each bar is the paired time ratio of the run's rounds (scripts/bench-stats.mjs), its whisker the 95% confidence
+// interval. Side and color say which system was faster, and only when the whole interval agrees; the label says by
+// how much, or "same".
+const relative = (r) =>
+  r.verdict === 'same' ? 'same' : (r.ratio < 1 ? 1 / r.ratio : r.ratio).toFixed(1) + '×';
+const interval = (r) =>
+  `${r.ratio.toFixed(2)}× the time (95% CI ${r.low.toFixed(2)}–${r.high.toFixed(2)}, ${r.rounds} rounds)`;
 function displayMongo() {
   const report = mongo.find((r) => r.runtime === mongoChoice.runtime);
   const rows = report.rows.filter((r) => r.size === mongoChoice.size);
-  const faster = rows.filter((r) => r.defussMs < r.mongoMs).length;
-  const caption = `${report.runtime === 'Node' ? 'Node.js' : 'Bun'} ${report.runtimeVersion}, ${mongoChoice.size.toLocaleString('en-US')} documents: defuss-db was faster in ${faster} of ${rows.length} operations.`;
+  const count = (verdict) => rows.filter((r) => r.verdict === verdict).length;
+  const caption = `${report.runtime === 'Node' ? 'Node.js' : 'Bun'} ${report.runtimeVersion}, ${mongoChoice.size.toLocaleString('en-US')} documents: at 95% confidence defuss-db was faster in ${count('faster')} of ${rows.length} operations, slower in ${count('slower')}, and the runs could not tell the systems apart in ${count('same')}.`;
   $('mongo-caption').textContent = caption;
   const grid = $('mongo-grid');
   if (grid.children.length !== rows.length)
@@ -142,21 +161,24 @@ function displayMongo() {
     cell.querySelector('p').textContent = `defuss-db: ${r.defussPath} · ${r.mongoPath}`;
     cell.lastChild.setAttribute(
       'aria-label',
-      `${r.label}: defuss-db ${value(defuss, unit)}, ${r.mongoPath} ${value(other, unit)}`,
+      `${r.label}: defuss-db ${value(defuss, unit)}, ${r.mongoPath} ${value(other, unit)} (medians); defuss-db ${interval(r)}`,
     );
   });
   if (!chartReady) return;
   const ui = window.df$.shadcn.chart;
   const ratio = $('mongo-ratio');
-  const [a, b, ink, muted] = [
+  const [a, b, same, ink, muted] = [
     '--db-chart-a',
     '--db-chart-b',
+    '--db-chart-same',
     '--foreground',
     '--muted-foreground',
   ].map((token) => ui.color(ratio, token));
-  const logs = rows.map((r) => Math.log2(r.mongoMs / r.defussMs));
-  // One spare step on each side keeps the end labels inside the plot.
-  const reach = Math.ceil(Math.max(...logs.map(Math.abs))) + 1;
+  // Right of zero means defuss-db took less time.
+  const logs = rows.map((r) => -Math.log2(r.ratio));
+  const ends = rows.map((r) => [-Math.log2(r.high), -Math.log2(r.low)]);
+  // One spare step on each side keeps the labels beyond the whiskers inside the plot.
+  const reach = Math.ceil(Math.max(...ends.flat().map(Math.abs))) + 1;
   ui.mount(ratio, {
     aria: { enabled: true, label: { description: caption } },
     animation: false,
@@ -166,7 +188,7 @@ function displayMongo() {
       formatter: (p) => {
         const r = rows[p.dataIndex],
           [defuss, other, unit] = times(r);
-        return `${r.label}<br>defuss-db (${r.defussPath}): ${value(defuss, unit)}<br>${r.mongoPath}: ${value(other, unit)}`;
+        return `${r.label}<br>defuss-db (${r.defussPath}): ${value(defuss, unit)} median<br>${r.mongoPath}: ${value(other, unit)} median<br>defuss-db: ${interval(r)}`;
       },
     },
     xAxis: {
@@ -193,18 +215,54 @@ function displayMongo() {
       {
         type: 'bar',
         barMaxWidth: 16,
-        data: logs.map((v) => ({
+        data: logs.map((v, i) => ({
           value: v,
-          itemStyle: { color: v >= 0 ? a : b, borderRadius: v >= 0 ? [0, 4, 4, 0] : [4, 0, 0, 4] },
-          label: { position: v >= 0 ? 'right' : 'left' },
+          itemStyle: {
+            color: { faster: a, slower: b, same }[rows[i].verdict],
+            borderRadius: v >= 0 ? [0, 4, 4, 0] : [4, 0, 0, 4],
+          },
         })),
-        label: { show: true, color: ink, formatter: (p) => relative(rows[p.dataIndex]) },
         markLine: {
           silent: true,
           symbol: 'none',
           label: { show: false },
           lineStyle: { color: muted, type: 'solid' },
           data: [{ xAxis: 0 }],
+        },
+      },
+      {
+        // The 95% confidence interval as a whisker with end caps, and the label just beyond it.
+        type: 'custom',
+        silent: true,
+        z: 3,
+        data: rows.map((_, i) => [ends[i][0], ends[i][1], i]),
+        encode: { x: [0, 1], y: 2 },
+        renderItem: (params, api) => {
+          const [x0, y] = api.coord([api.value(0), api.value(2)]);
+          const [x1] = api.coord([api.value(1), api.value(2)]);
+          const right = logs[params.dataIndex] >= 0;
+          const style = { stroke: ink, lineWidth: 1.5 };
+          const cap = (x) => ({ type: 'line', shape: { x1: x, y1: y - 5, x2: x, y2: y + 5 }, style });
+          return {
+            type: 'group',
+            children: [
+              { type: 'line', shape: { x1: x0, y1: y, x2: x1, y2: y }, style },
+              cap(x0),
+              cap(x1),
+              {
+                type: 'text',
+                style: {
+                  text: relative(rows[params.dataIndex]),
+                  x: right ? Math.max(x0, x1) + 6 : Math.min(x0, x1) - 6,
+                  y,
+                  align: right ? 'left' : 'right',
+                  verticalAlign: 'middle',
+                  fill: ink,
+                  font: '12px "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif',
+                },
+              },
+            ],
+          };
         },
       },
     ],

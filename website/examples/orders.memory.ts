@@ -1,11 +1,10 @@
-import { openOPFS } from 'defuss-db/browser' // in a worker
-// Node.js, Bun: openDirectory() from 'defuss-db/server'
+import { openMemory } from 'defuss-db'
 interface Order {
   id: string; customer: string
   total: bigint; placedAt: Date
 }
 interface Stock { id: string; reserved: number }
-const db = await openOPFS({ namespace: 'shop' })
+const db = await openMemory()
 const orders = db.collection<Order>('orders')
 await orders.createIndex({
   name: 'byCustomer',

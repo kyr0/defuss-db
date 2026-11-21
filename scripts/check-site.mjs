@@ -3,7 +3,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve, extname } from 'node:path';
 import { loadReports, lookup, cardKeys, operations, formatMs } from './workload-report.mjs';
 import { feedCaption } from '../docs/assets/bench-format.js';
-import { loadMongoReports, mongoChartData, mongoLookup, mongoOperations } from './mongo-report.mjs';
+import { comparison, loadMongoReports, mongoChartData, mongoLookup } from './mongo-report.mjs';
 const root = resolve('docs'),
   paths = await readdir(root, { recursive: true }),
   html = paths.filter((p) => p.endsWith('.html')),
@@ -115,40 +115,18 @@ const embedded = index.match(
 );
 assert(embedded, 'MongoDB chart data missing');
 assert.deepEqual(JSON.parse(embedded[1]), mongoChartData(mongoReports), 'MongoDB chart data');
-// Each claim of the landing page's comparison paragraph, checked against the medians of both runtimes, because
-// the page shows either.
+// Each claim of the landing page's comparison paragraph, checked against the 95% confidence verdicts of both runtimes
+// at the largest size (scripts/bench-stats.mjs), because the page shows either.
 for (const mongo of mongoReports) {
-  const ratioAt = (workload) => {
-    const [, , systems, reference] = mongoOperations.find(([w]) => w === workload);
-    const best = Math.min(
-      ...systems.map((system) => mongoLookup(mongo, largest, workload, system).medianMs),
-    );
-    return best / mongoLookup(mongo, largest, workload, reference).medianMs;
-  };
-  const gap = (workloads) => workloads.map(ratioAt);
-  const about = (r) => r > 1 / 1.5 && r < 1.5;
-  assert(
-    ratioAt('point-get') < 0.5,
-    mongo.runtime + ': defuss-db is no longer clearly faster at reads by ID',
-  );
-  assert(
-    gap(['tenant-feed', 'range-count', 'group-totals']).every((r) => r < 1.5),
-    mongo.runtime +
-      ': index pages, range counts or the full-scan aggregate no longer take about as long as on MongoDB or less',
-  );
-  assert(
-    about(ratioAt('update-one')) &&
-      about(ratioAt('insert-batch')) &&
-      ratioAt('update-concurrent') < 1,
-    mongo.runtime +
-      ': a flushed update or 64-document commit no longer takes about as long as a journaled one, or concurrent updates no longer less',
-  );
-  const load = ratioAt('bulk-load');
-  assert(
-    load > 1 &&
-      load === Math.max(...mongoOperations.filter(([, , , ref]) => ref).map(([w]) => ratioAt(w))),
-    mongo.runtime + ': bulk loads are no longer furthest behind: update the landing page copy',
-  );
+  const at = (workload) => comparison(mongo, largest, workload);
+  const claim = (ok, message) => assert(ok, `${mongo.runtime}: ${message}: update the landing page copy`);
+  claim(at('point-get').verdict === 'faster', 'reads by ID are no longer faster at 95% confidence');
+  claim(at('update-concurrent').verdict === 'faster', 'concurrent updates are no longer faster');
+  for (const workload of ['tenant-feed', 'range-count', 'group-totals', 'update-one', 'insert-batch'])
+    claim(at(workload).verdict === 'same', `${workload} is now distinguishable from MongoDB`);
+  const load = at('bulk-load');
+  claim(load.verdict === 'slower' && load.ratio >= 1.15 && load.ratio <= 1.4, 'bulk loads are no longer about a quarter slower');
+  claim(mongo.flushProbe.medianMs > 3.5 && mongo.flushProbe.medianMs < 4.5, 'a flush no longer takes about 4 ms');
 }
 // The scale card's claim: reads by ID and index pages cost about the same at the smallest and largest size.
 const smallest = Math.min(...mongo.sizes);
