@@ -1,0 +1,304 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>API reference · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="api-reference">API reference</h1>
+<h2 id="historical-collections">Historical collections</h2>
+<p>Use <code>await db.ensureCollection&lt;T&gt;(name, { $trackHistory: true })</code>. Calls on <code>collection.at(date)</code> share an effective instant. Add <code>{ $asOfRevision: receipt.revision }</code> to reproduce the database&#39;s earlier answer. <code>history(id)</code> lists effective segments and <code>audit(id)</code> lists recorded changes. <a href="history.html">API, correction boundaries, search and backup</a></p>
+<p>All methods use the same APIs on memory, files and OPFS. See generated <code>.d.mts</code>/<code>.d.cts</code> declarations for exact generic result inference.</p>
+<h2 id="opening">Opening</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Entry</th>
+<th>Arguments</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>openMemory</code></td>
+<td><code>defuss-db</code></td>
+<td><code>OpenOptions?</code></td>
+</tr>
+<tr>
+<td><code>openDatabase</code></td>
+<td><code>defuss-db</code></td>
+<td>Coordinated DBSONL <code>Backend</code>, <code>OpenOptions?</code></td>
+</tr>
+<tr>
+<td><code>openDirectory</code></td>
+<td><code>defuss-db/server</code></td>
+<td>Root path, <code>OpenOptions &amp; { storage?: FileBackendOptions; parallel?: boolean | ParallelOptions }</code></td>
+</tr>
+<tr>
+<td><code>openOPFS</code></td>
+<td><code>defuss-db/browser</code></td>
+<td><code>OpenOptions &amp; { namespace?: string; storage?: OPFSStorageOptions without name }</code></td>
+</tr>
+</tbody></table>
+<p><code>OpenOptions</code>: <code>name</code> (default <code>default</code>), <code>create</code> (default <code>true</code>), <code>signal</code>, <code>queryCache</code> (automatic by default; false or cache configuration), <code>autoCompact</code> (on by default; false or <code>{ minBytes, growth, idleMs }</code>, see <a href="operations.html#reclaim-space">operations</a>), and DBSONL resource options. Existing storage opens with <code>create: false</code>. Logical database names follow DBSONL&#39;s lowercase 1–64-character name grammar. Collection/index names match <code>[A-Za-z][A-Za-z0-9_-]{0,63}</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Storage limit</th>
+<th align="right">Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>maxRecordBytes</code></td>
+<td align="right">16 MiB</td>
+</tr>
+<tr>
+<td><code>maxTransactionBytes</code></td>
+<td align="right">64 MiB</td>
+</tr>
+<tr>
+<td><code>maxTransactionOperations</code></td>
+<td align="right">10,000</td>
+</tr>
+<tr>
+<td><code>maxPendingOperations</code></td>
+<td align="right">256</td>
+</tr>
+<tr>
+<td><code>maxPendingBytes</code></td>
+<td align="right">128 MiB</td>
+</tr>
+<tr>
+<td><code>maxCacheBytes</code></td>
+<td align="right">64 MiB, counted in encoded page bytes; with DBSONL 0.8&#39;s compact pages <code>maxCachePages</code> (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached</td>
+</tr>
+<tr>
+<td><code>maxCachePages</code></td>
+<td align="right">16,384</td>
+</tr>
+</tbody></table>
+<p>Operation counts include physical schema/index entries, not just documents. For example, a document plus two indexes consumes three distinct staged keys; each changed collection consumes one revision key per transaction, and initial schema creation consumes another. The underlying engine additionally checks encoded framing sizes. Index builds can need one entry per indexed document plus metadata.</p>
+<p>Server <code>storage.io</code> accepts the Storage adapter&#39;s optional synchronous read mode; it can help dedicated database workers but can block the application&#39;s event loop. The default keeps the upstream asynchronous mode. <code>parallel</code> controls the query worker threads that answer mergeable full-scan aggregates and counts together. They are on by default; <code>false</code> turns them off, and <code>{ workers, minRows }</code> sets them, with <code>workers</code> default one fewer than the CPUs, at most 8, and <code>minRows</code> (documents the collection must hold) default 1,000. See <a href="operations.html#answer-aggregates-in-worker-threads">Answer aggregates in worker threads</a>. <code>storage</code> also takes DBSONL&#39;s scan pool and read options: <code>scanWorkers</code> (worker threads for large scans; default up to 4, one fewer than the CPUs; 0 turns the pool off), <code>scanThreshold</code> (rows a scan must cover before it runs in the pool; default 5,000) and <code>syncReadBytes</code> (reads up to this size are blocking calls; default 16 KiB; 0 sends every read through the thread pool, for network or slow storage). Memory factories reuse the same serialized storage path, not a special object-map database.</p>
+<h2 id="database">Database</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Result / behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>collection&lt;T&gt;(name)</code></td>
+<td>Typed live collection; no I/O merely to obtain it</td>
+</tr>
+<tr>
+<td><code>collections()</code></td>
+<td>Persisted collection names, including now-empty collections</td>
+</tr>
+<tr>
+<td><code>transaction(callback, options?)</code></td>
+<td><code>{ result, revision, storedEntries }</code>; callback runs once</td>
+</tr>
+<tr>
+<td><code>snapshot()</code></td>
+<td>Read-only <code>DatabaseSnapshot</code>, with <code>revision</code>, <code>collection&lt;T&gt;</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>export(options?)</code></td>
+<td><code>Uint8Array</code> Brotli archive; buffered, default 64 MiB compressed cap</td>
+</tr>
+<tr>
+<td><code>exportStream(options?)</code></td>
+<td>Pull-driven <code>AsyncGenerator&lt;Uint8Array&gt;</code> holding one snapshot</td>
+</tr>
+<tr>
+<td><code>import(input, options?)</code></td>
+<td>Atomic archive import and index rebuild; receipt with counts/revisions</td>
+</tr>
+<tr>
+<td><code>queryCacheStats()</code></td>
+<td>Result/plan/pending counters and accounted bytes, or undefined when disabled</td>
+</tr>
+<tr>
+<td><code>clearQueryCache()</code></td>
+<td>Clear results/history/plans and invalidate in-flight admissions</td>
+</tr>
+<tr>
+<td><code>stats()</code></td>
+<td>DBSONL metadata; <code>storedEntries</code> includes documents, schemas, indexes and marker; <code>autoCompaction</code> holds <code>state</code>, <code>runs</code>, <code>conflicts</code>, <code>failures</code> and <code>reclaimedBytes</code>; on directory stores, <code>parallel</code> holds <code>state</code> (<code>idle</code>, <code>starting</code>, <code>ready</code>, <code>failed</code>, <code>closed</code>), <code>workers</code>, <code>minRows</code>, <code>queries</code>, <code>fallbacks</code>, <code>starts</code> and, after a failed start, <code>error</code></td>
+</tr>
+<tr>
+<td><code>verify()</code></td>
+<td><code>{ revision, documents, indexEntries, collections }</code> after physical and logical audit</td>
+</tr>
+<tr>
+<td><code>compact(options?)</code></td>
+<td>Delegated DBSONL compaction; default optimistic, or <code>{ mode: &#39;exclusive&#39; }</code></td>
+</tr>
+<tr>
+<td><code>collect()</code></td>
+<td>Delegated reclamation of unpinned generations</td>
+</tr>
+<tr>
+<td><code>close()</code></td>
+<td>Idempotent close; database and snapshots support <code>Symbol.asyncDispose</code></td>
+</tr>
+</tbody></table>
+<p>Write options accept <code>ifRevision</code> for whole-store compare-and-swap and <code>signal</code>. Revisions are database-wide, not per collection. A transaction object exposes <code>revision</code> and <code>collection&lt;T&gt;</code>. A transaction collection has the same read APIs and the mutation APIs below, without an independent commit option.</p>
+<h2 id="collection-mutations">Collection mutations</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Semantics / result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>insert(document, options?)</code></td>
+<td>Reject existing ID; return ID; omitted ID generates UUID</td>
+</tr>
+<tr>
+<td><code>insertMany(documents, options?)</code></td>
+<td>One atomic bounded batch; return IDs</td>
+</tr>
+<tr>
+<td><code>insertBatches(iterable, options?)</code></td>
+<td>Async generator of <code>{ ids, revision, storedEntries }</code>; one atomic commit per input batch</td>
+</tr>
+<tr>
+<td><code>put(document, options?)</code></td>
+<td>Insert or replace whole document with required ID; return ID</td>
+</tr>
+<tr>
+<td><code>update(id, patchOrCallback, options?)</code></td>
+<td>Shallow own-property patch or complete replacement callback; return whether ID existed</td>
+</tr>
+<tr>
+<td><code>delete(id, options?)</code></td>
+<td>Return whether ID existed</td>
+</tr>
+<tr>
+<td><code>updateMany(request, patchOrCallback, options?)</code></td>
+<td>Atomic bounded set update; return affected document count</td>
+</tr>
+<tr>
+<td><code>deleteMany(request?, options?)</code></td>
+<td>Atomic bounded set deletion; return affected document count</td>
+</tr>
+<tr>
+<td><code>createIndex(definition, options?)</code></td>
+<td>Atomic equality or ordered build. Set <code>order</code> to one direction per field. An identical declaration is idempotent; mismatched existing name rejects</td>
+</tr>
+<tr>
+<td><code>createSearchIndex(definition, options?)</code></td>
+<td>Atomic lexical/vector/hybrid build; see <a href="search.html">Search</a></td>
+</tr>
+<tr>
+<td><code>dropSearchIndex(name, options?)</code></td>
+<td>Atomic removal of search inputs, state and definition</td>
+</tr>
+<tr>
+<td><code>dropIndex(name, options?)</code></td>
+<td>Atomic removal; return whether it existed</td>
+</tr>
+</tbody></table>
+<p><code>updateMany</code>/<code>deleteMany</code> accept DataView query resource options alongside write options. Their collected output caps cannot exceed the transaction limits. A callback update can be asynchronous; it executes once, receives the current decoded document, and must preserve its typed ID. Patches cannot contain <code>id</code>. Upsert-by-ID is <code>put</code>; there is no ambiguous selector-based upsert.</p>
+<p><code>IndexDefinition</code>: <code>{ name, fields: string[], unique?: boolean }</code>. Unique indexes treat missing/undefined and null as distinct values, each allowed at most once for a given compound tuple. Ordinary objects/arrays/Maps/Sets cannot be index components. No prefix/range index use is claimed.</p>
+<h2 id="collection-reads">Collection reads</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>get(id)</code></td>
+<td>Document or <code>undefined</code></td>
+</tr>
+<tr>
+<td><code>getMany(ids, { signal }?)</code></td>
+<td>Ordered documents/undefined; duplicate IDs preserved; one snapshot; at most 100,000 IDs</td>
+</tr>
+<tr>
+<td><code>searchIndexes()</code></td>
+<td>Persisted search definitions</td>
+</tr>
+<tr>
+<td><code>search(index, query, options?)</code></td>
+<td>Revision-bound scored hits; see <a href="search.html">Search</a></td>
+</tr>
+<tr>
+<td><code>has(id)</code></td>
+<td>Boolean</td>
+</tr>
+<tr>
+<td><code>find(request?, options?)</code></td>
+<td>Document array</td>
+</tr>
+<tr>
+<td><code>findOne(request?, options?)</code></td>
+<td>First matching document or <code>undefined</code>; effective limit is one</td>
+</tr>
+<tr>
+<td><code>query(request?, options?)</code></td>
+<td><code>{ rows, summary }</code></td>
+</tr>
+<tr>
+<td><code>pageIdsByIndex(index, options?)</code></td>
+<td>Keyset page of typed primary IDs. Returns <code>{ rows, nextCursor, revision }</code>. Accepts document-page cursors for the same scope and range.</td>
+</tr>
+<tr>
+<td><code>countByIndex(index, options?)</code></td>
+<td>Exact number of ordered index entries matching <code>prefix</code> and bounds. Optional <code>maxScannedEntries</code> rejects excessive work. Accepts an abort signal.</td>
+</tr>
+<tr>
+<td><code>pageByIndex(index, options?)</code></td>
+<td>Seek page of documents with <code>rows</code>, <code>nextCursor</code> and snapshot <code>revision</code>. <a href="ordered.html">Cursor contract</a></td>
+</tr>
+<tr>
+<td><code>stream(request?, options?)</code></td>
+<td>DataView <code>batch</code> / <code>complete</code> events</td>
+</tr>
+<tr>
+<td><code>count(selection?, options?)</code></td>
+<td>Exact count of matching documents</td>
+</tr>
+<tr>
+<td><code>select(descriptor, page?, options?)</code></td>
+<td>Typed projected rows and summary</td>
+</tr>
+<tr>
+<td><code>aggregate(descriptor, page?, options?)</code></td>
+<td>Typed grouped/scalar rows and summary</td>
+</tr>
+<tr>
+<td><code>view(descriptor, page?, options?)</code></td>
+<td>Typed projected rows, totals and summary</td>
+</tr>
+<tr>
+<td><code>prepareFind/Select/Aggregate/View</code></td>
+<td>Bound prepared plan: <code>evaluate</code>, <code>stream</code>, <code>explain</code></td>
+</tr>
+<tr>
+<td><code>explain(request?)</code></td>
+<td><code>{ revision, access, query }</code>; access selection for the inspected snapshot</td>
+</tr>
+<tr>
+<td><code>source()</code></td>
+<td>Document-level DataView <code>RecordSource&lt;T&gt;</code></td>
+</tr>
+<tr>
+<td><code>indexes()</code></td>
+<td>Fresh persisted equality and ordered definitions</td>
+</tr>
+<tr>
+<td><code>q</code></td>
+<td>DataView <code>forRows&lt;T&gt;()</code> builders and plan factories</td>
+</tr>
+</tbody></table>
+<p><code>FindRequest</code>: <code>filters</code>, <code>where</code>, <code>semantics</code>, <code>sorters</code>, <code>offset</code>, <code>limit</code>, <code>numberMode</code>, <code>invalidNumbers</code>, <code>access: &#39;auto&#39; | &#39;scan&#39;</code>. Filters support <code>eq</code>, <code>neq</code>, <code>gt</code>, <code>gte</code>, <code>lt</code>, <code>lte</code>, <code>in</code>, <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>. Filters are ANDed. <code>where</code> uses <code>q.and</code>, <code>q.or</code>, <code>q.not</code>, comparisons, arithmetic and nullish tests. Query fields use DataView&#39;s safe own-property rules, not prototype traversal. A <code>prepareFind</code> plan captures its default page; passing a page to <code>evaluate</code> replaces that default page.</p>
+<p>Projection descriptors contain <code>select: { alias: Expr }</code>, optional <code>filters/where</code>, and <code>orderBy: [{ expr, direction }]</code>. Aggregate descriptors contain optional <code>groupBy</code>, required <code>measures</code>, optional <code>having</code> over result aliases, and output-alias <code>orderBy</code>. View descriptors contain <code>select</code>, <code>totals</code> and row-expression ordering. These are DataView descriptors, not a separate SQL dialect.</p>
+<p><code>ComputeOptions</code>: <code>count</code>, <code>batchSize</code>, <code>maxBatchBytes</code>, <code>maxRowBytes</code>, <code>maxScannedRows</code>, <code>maxWorkingBytes</code>, <code>maxGroups</code>, <code>maxOutputRows</code>, <code>maxOutputBytes</code>, <code>yieldEveryBatches</code>, <code>profile</code>, <code>sizeOf</code>, <code>sizeOfOutput</code>, <code>signal</code>. Custom <code>sizeOf</code> sees public documents. Custom <code>sizeOfOutput</code> sees actual public output rows, including whole documents for <code>find/query/stream</code>. Estimators must be pure and stable; they account memory and do not serialize values.</p>
+<p>Default grouping/working-state capacity is 64 MiB and 100,000 groups; collected output is limited to 100,000 rows and 64 MiB. Use streaming for larger row output and explicit budgets for large sorts/groups. Streaming does not make an unbounded sort or grouping bounded without a cap.</p>
+<p>Summary fields are DataView&#39;s <code>ComputeSummary</code>. <code>revision</code> identifies the snapshot; <code>scannedRows</code> counts candidate documents seen by the query executor. <code>sourceRows</code> describes the candidate source, not necessarily the entire collection. <code>totalInputMatches</code> and <code>totalResultRows</code> may be <code>null</code> if execution legitimately stops early; <code>count: &#39;exact&#39;</code> requires exact result totals. <code>hasMore</code>, <code>sourceExhausted</code>, strategy and peak accounting remain explicit. A failed/cancelled stream does not emit a successful complete event; earlier batches may already have been consumed.</p>
+<p>Default ordering without <code>sorters/orderBy</code> follows typed storage keys. It is not insertion order or numeric ID order. Specify a deterministic tie-breaker such as <code>id</code> when pagination needs an explicit order. Use <code>pageByIndex</code> for keyset traversal in declared index order, including the storage-ID tie-breaker.</p>
+<p><code>explain().access.kind</code> can be <code>scan</code>, <code>primary</code>, <code>primary-in</code>, <code>equality</code>, <code>range</code> or <code>ordered</code>. Ordered/range plans expose the index name, length of the fixed equality prefix, and range field when present. <code>primary-in</code> and bounded <code>range</code> plans report their point-key count. Explaining a bounded range may probe index pointers.</p>
+<h2 id="errors">Errors</h2>
+<p><code>DatabaseError</code> codes: <code>DUPLICATE_KEY</code>, <code>SCHEMA_MISMATCH</code>, <code>INVALID_DOCUMENT</code>, <code>INVALID_INDEX_VALUE</code>, <code>CORRUPT</code>, <code>INVALID_CURSOR</code>, <code>STALE_CURSOR</code>, <code>CLOSED</code>, <code>BUSY</code>, <code>UNFINISHED_TRANSACTION</code>. Input validation can also throw <code>TypeError</code>/<code>RangeError</code>; strict DSON errors remain intact.</p>
+<p>DBSONL errors (<code>CONFLICT</code>, <code>COMMIT_UNCERTAIN</code>, <code>LIMIT_EXCEEDED</code>, <code>QUEUE_FULL</code>, <code>ABORTED</code>, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. <code>COMMIT_UNCERTAIN</code> means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption.</p>
+<h2 id="archives-and-result-caching">Archives and result caching</h2>
+<p>See <a href="archive.html">Archive API</a> for options, framing, budgets and merge behavior. Explicit snapshots support both export methods, but no import. See <a href="cache.html">Query cache</a> for default automatic qualification, <code>{ cache: false | true | &#39;auto&#39; | &#39;refresh&#39; }</code>, manual mode, LRU/SLRU settings, bounded compiled plans, concurrent misses, independent result ownership and revision keys.</p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

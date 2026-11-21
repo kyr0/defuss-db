@@ -1,0 +1,89 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document history · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="document-history">Document history</h1>
+<p>A tracked collection answers two questions independently. The <strong>effective date</strong> selects the document that applied at an instant. The <strong>recorded revision</strong> selects which committed changes the reader can know about. A retroactive correction creates a new commit and preserves the earlier answer.</p>
+<pre><code class="language-ts">import { openMemory } from &#39;defuss-db&#39;;
+
+const db = await openMemory();
+const prices = await db.ensureCollection&lt;{id:string; eur:number}&gt;(&#39;prices&#39;, { $trackHistory: true });
+const jan = new Date(&#39;2026-01-01T00:00:00Z&#39;);
+const feb = new Date(&#39;2026-02-01T00:00:00Z&#39;);
+const jan20 = new Date(&#39;2026-01-20T00:00:00Z&#39;);
+
+await prices.at(jan).put({ id: &#39;plan&#39;, eur: 20 });
+await prices.at(feb).put({ id: &#39;plan&#39;, eur: 30 });
+const before = (await db.stats()).revision;
+await prices.update(&#39;plan&#39;, { eur: 25 }, { $historic: new Date(&#39;2026-01-15T00:00:00Z&#39;) });
+
+await prices.get(&#39;plan&#39;);                              // { id: &#39;plan&#39;, eur: 30 }
+await prices.get(&#39;plan&#39;, { $historic: jan20 });        // { id: &#39;plan&#39;, eur: 25 }
+await prices.at(jan20, { $asOfRevision: before }).get(&#39;plan&#39;); // { id: &#39;plan&#39;, eur: 20 }
+await db.close();
+</code></pre>
+<h2 id="collection-lifecycle">Collection lifecycle</h2>
+<p><code>db.collection(name)</code> returns a handle immediately. <code>await db.ensureCollection(name, { $trackHistory: true })</code> persists the setting. Existing handles consult the schema on their next write. Tracking is opt-in per collection. Dollar-prefixed options are separate from document properties with the same names.</p>
+<p>A newly created tracked collection can accept a backdated first record. Activating an existing collection seeds its current documents at one effective instant. Earlier dates raise <code>HISTORY_UNAVAILABLE</code>, including for IDs whose existence cannot be established. Enabling history again is idempotent. Passing <code>$trackHistory: false</code> to an already tracked collection rejects the change.</p>
+<p>Activation first attempts one transaction. An existing collection that exceeds the transaction budget is seeded in batches. Pass <code>historyBatchSize</code> to request batching explicitly. Live reads continue during a staged baseline. Live writes and full-history exports for that collection report <code>HISTORY_ACTIVATING</code>. An aborted or interrupted build retains its continuation. Call the same <code>ensureCollection</code> again to resume. Every seed becomes visible at the same publication revision. The configured storage limits must admit a single seed and its metadata. Stop older writers, including browser tabs and existing processes, before activation. <a href="operations.html">Operating a store</a></p>
+<h2 id="writes-at-an-effective-instant">Writes at an effective instant</h2>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Effective behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ordinary write</td>
+<td>Uses the transaction&#39;s sampled time. All tracked writes in the transaction share that effective instant.</td>
+</tr>
+<tr>
+<td><code>at(t).put(doc)</code></td>
+<td>Writes a full image from <code>t</code> until the next boundary for that ID. An open-ended change also replaces the live document.</td>
+</tr>
+<tr>
+<td><code>insert</code>, <code>insertMany</code></td>
+<td>Require absence at the target date. An ID can be reinserted after deletion.</td>
+</tr>
+<tr>
+<td><code>update</code></td>
+<td>Runs the patch or callback against the visible document. A missing document returns false.</td>
+</tr>
+<tr>
+<td><code>delete</code></td>
+<td>Records a tombstone for the selected interval. A later version keeps its own effective date.</td>
+</tr>
+<tr>
+<td><code>{ $historic: t, $until: end }</code></td>
+<td>Ends the change at an exclusive upper bound. It must lie inside the selected slice or on its next boundary. At the end, the previous value or absence resumes.</td>
+</tr>
+<tr>
+<td><code>updateMany</code>, <code>deleteMany</code></td>
+<td>Select matching IDs from one historical transaction view and apply the changes atomically.</td>
+</tr>
+<tr>
+<td><code>db.transaction(fn, { $historic: t })</code></td>
+<td>Applies the date across collections in the transaction. Mutations and historical reads see earlier staged changes. Explicit transactions surface conflicts and invoke the callback once.</td>
+</tr>
+</tbody></table>
+<p>An effective boundary remains meaningful even if adjacent values compare equal. A Date represents an exact UTC millisecond and is captured at call time. A finite Date in the future can project the known open segment. A future write or exclusive end raises <code>HISTORY_FUTURE_WRITE</code>. Invalid dates and reversed or empty ranges are rejected. An explicit recorded cutoff is read-only. Qualify a different database&#39;s receipt as described below.</p>
+<p>A transaction orders assertions at the same effective millisecond by its recorded commit and within-transaction ordinal. Explicit snapshot readers also fix the maximum recorded cutoff. A requested cutoff beyond that snapshot raises <code>HISTORY_UNAVAILABLE</code>.</p>
+<h2 id="query-and-search">Query and search</h2>
+<p><code>at(date)</code> works for point and bulk reads, filters, sorts, projections, grouping, aggregates, totals, streams, prepared queries, ordered pages and all three search modes. Most callers can bind the collection once and reuse the existing API. Trailing read options accept <code>$historic</code> and <code>$asOfRevision</code>. Find descriptors also accept both fields.</p>
+<ul>
+<li>A historical point read seeks directly to the winning immutable assertion. It retrieves a second image only when a bounded correction left a restoration pointer. A previous recorded cutoff can require skipping newer facts.</li>
+<li>Collection scans emit at most one document per typed ID, including documents deleted from the live collection. Cold secondary indexes project the selected corpus and use the same physical ordering as live indexes. A historical continuation remembers its original effective date and recorded revision across later corrections, compaction and index removal.</li>
+<li>Lexical, vector and hybrid search build the upstream engine over the visible corpus. ID eligibility, predicates, corpus statistics and document hydration all use the same slice. Index lookup uses the definition known at the selected recorded revision. Incompatible historical values or an oversized historical corpus raise the index&#39;s validation error.</li>
+<li>Values in an ordinary unique index can have multiple historical owners. To require uniqueness across overlapping effective intervals, declare <code>{ name: &#39;sku&#39;, fields: [&#39;sku&#39;], temporalUnique: true }</code> on a tracked collection. The build validates existing history. Related writes check potentially overlapping historical owners in the same serializable transaction. This adds scan work only when the stronger constraint is declared.</li>
+<li>Result cache keys include effective time, collection history generation or recorded cutoff, collection and query settings. An unrelated collection commit can reuse a historical result. Historical secondary postings have a separate byte-bounded LRU with up to eight entries. Set <code>queryCache.maxTemporalIndexBytes</code> to change its default 8 MiB retention budget, or zero to disable retention. <code>queryCacheStats()</code> reports entries and bytes. A cold named index still needs the working memory required to build it.</li>
+</ul>
+<h2 id="timeline-and-audit">Timeline and audit</h2>
+<p><code>history(id)</code> returns effective segments newest start first with <code>from</code>, exclusive <code>until</code> (null for an open segment), <code>document</code>, <code>revision</code> and <code>ordinal</code>. A tombstone has an undefined document. <code>audit(id)</code> returns original assertions newest recorded change first. Each includes <code>kind</code>, its originally asserted interval and <code>recorded: {storeId, revision}</code>. Internally generated restoration boundaries appear in the effective listing. Both operations accept <code>{ limit, signal, $asOfRevision }</code>. The effective date of a bound collection does not trim the listed timeline.</p>
+<h2 id="backup-recovery-and-retention">Backup, recovery and retention</h2>
+<pre><code class="language-ts">const source = { storeId: db.storeId, revision: (await db.stats()).revision };
+const backup = db.exportStream({ history: &#39;full&#39; });
+const fork = await openMemory();
+await fork.import(backup);
+const restored = await fork.collection(&#39;prices&#39;).at(jan20, { $asOfRevision: source }).get(&#39;plan&#39;);
+</code></pre>
+<p>A full Brotli archive includes immutable assertions, schema history, tombstones and original receipts. Restore it into an empty database. The fork receives its own identity and local commit counter. Bare numbers address this local counter. A source-qualified receipt reproduces a source belief, including after another export and restore. Further local edits advance the fork independently. A full restore validates current documents against the reconstructed open segments and rebuilds secondary projections before publishing.</p>
+<p>Ordinary <code>export()</code> and <code>exportStream()</code> preserve latest data using the latest-only logical archive. Restoring a latest-only archive to an empty target creates ordinary collections. Use the full archive to carry history. <code>maxHistoryRecords</code> bounds full import/export independently of document and byte budgets. Import is a single atomic transaction and must fit the target&#39;s transaction limits.</p>
+<p>Logical deletion, <code>compact()</code> and <code>collect()</code> preserve committed history. There is no automatic expiry or public pruning operation. Size capacity for full DSON images and index keys per change. The tracked-writer clock is shared across tracked collections. Concurrent tracked transactions can conflict even when their documents differ. <a href="performance.html">Measured performance</a></p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

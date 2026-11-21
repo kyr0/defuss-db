@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "lib": ["es2022", "dom"],
+    "types": ["node"],
+    "paths": {
+      "defuss-db": ["../../src/index.ts"],
+      "defuss-db/server": ["../../src/server.ts"],
+      "defuss-db/browser": ["../../src/browser.ts"]
+    }
+  },
+  "include": ["*.ts"]
+}

@@ -1,0 +1,230 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>defuss-db 3.0.0 · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="defuss-db-300">defuss-db 3.0.0</h1>
+<p>An embedded document database for JavaScript. The same API stores collections in a dedicated browser worker (OPFS), in a Node.js 26+ or Bun 1.4.4+ directory, or in memory. It is an alternative to MongoDB for applications whose data lives on one machine: a transaction commits several collections together, a reader sees one snapshot, and a directory commit returns after it is flushed. defuss-db runs inside your process; it has no server and does not replicate, shard or federate. <a href="performance.html#compared-with-mongodb-on-one-machine">Compared with MongoDB</a></p>
+<p>It uses <strong>defuss-dataview 0.7.0</strong> for queries, <strong>defuss-dbsonl 0.8.0</strong> for transactions and snapshots, <strong>defuss-storage 0.4.1</strong> for bytes, and <strong>defuss-dson 1.5.1</strong> for native JavaScript values. Use DataView directly when your application owns a resident array and only needs to filter, project or aggregate it. Use defuss-db when the collection must survive a restart, keep compound indexes current across writes, or rank results by full-text, vector or hybrid search. <a href="search.html">Search indexes</a> · <a href="ordered.html">Ordered indexes</a></p>
+<p>Enable history per collection. An effective date selects the document that applied then. A recorded revision reproduces what the database knew before a correction. Queries, indexes and search can read the same time slice. <a href="history.html">Document history</a></p>
+<p>Compound ordered indexes support seek pagination. Live ID pages and range counts read index entries directly. Equality and ordered filters restrict eligible search hits before ranking. A per-collection cache can reuse compact query results across unrelated writes. Brotli archives carry native values between runtimes. <a href="operations.html">Operating a store</a> · <a href="performance.html">Measured performance</a></p>
+<pre><code class="language-sh">bun add defuss-db
+# or
+npm install defuss-db
+</code></pre>
+<h2 id="store-and-query">Store and query</h2>
+<pre><code class="language-ts">import { openDirectory } from &#39;defuss-db/server&#39;;
+import type { Document } from &#39;defuss-db&#39;;
+
+interface Order extends Document {
+  customer: string;
+  country: string;
+  amount: number;
+  paid: boolean;
+  createdAt: Date;
+}
+
+const db = await openDirectory(&#39;./data&#39;, { name: &#39;shop&#39; });
+const orders = db.collection&lt;Order&gt;(&#39;orders&#39;);
+await orders.createIndex({ name: &#39;country&#39;, fields: [&#39;country&#39;] });
+
+await orders.insert({
+  customer: &#39;Ada&#39;, country: &#39;DE&#39;, amount: 120, paid: true,
+  createdAt: new Date(), // DSON persists a Date, not an ISO string.
+});
+
+const result = await orders.query({
+  filters: [{ field: &#39;country&#39;, op: &#39;eq&#39;, value: &#39;DE&#39; }],
+  sorters: [{ field: &#39;amount&#39;, direction: &#39;desc&#39; }],
+  limit: 20,
+}, { count: &#39;exact&#39; });
+console.log(result.rows, result.summary.totalResultRows);
+await db.close();
+</code></pre>
+<p><code>find()</code> returns documents. <code>query()</code> returns documents and execution metadata. <code>stream()</code> yields bounded <code>batch</code> events followed by one <code>complete</code> event. Use <code>count: &#39;exact&#39;</code> when the query needs an exact pre-pagination total; otherwise an early stop can leave totals <code>null</code>.</p>
+<p>IDs are strings, finite numbers or bigints; <code>1</code>, <code>1n</code> and <code>&#39;1&#39;</code> differ. An omitted ID generates a UUID string. Numeric-only or literal-ID TypeScript models require an explicit ID. Collections are created lazily by their first write or index declaration.</p>
+<h2 id="seek-through-a-sorted-index">Seek through a sorted index</h2>
+<pre><code class="language-ts">await orders.createIndex({
+  name: &#39;countryByDate&#39;, fields: [&#39;country&#39;, &#39;createdAt&#39;], order: [&#39;asc&#39;, &#39;desc&#39;],
+});
+const first = await orders.pageByIndex(&#39;countryByDate&#39;, { prefix: [&#39;DE&#39;], limit: 20 });
+if (first.nextCursor) {
+  const next = await orders.pageByIndex(&#39;countryByDate&#39;, {
+    prefix: [&#39;DE&#39;], after: first.nextCursor, limit: 20,
+  });
+  console.log(next.rows);
+}
+</code></pre>
+<p>For multiple pages of an actively changing collection, use a single database snapshot. Live cursors detect intervening collection writes. The regular query API automatically uses a matching declared index for compatible filters and ordering. <a href="ordered.html">Ordered indexes and cursors</a></p>
+<p>For feeds of IDs, call <code>pageIdsByIndex</code> with the same index and options. A count needs only the interval. Both methods also work on pinned snapshots and inside transactions.</p>
+<pre><code class="language-ts">const ids = await orders.pageIdsByIndex(&#39;countryByDate&#39;, { prefix: [&#39;DE&#39;], limit: 20 });
+const count = await orders.countByIndex(&#39;countryByDate&#39;, {
+  prefix: [&#39;DE&#39;], gte: new Date(&#39;2026-01-01&#39;), maxScannedEntries: 50_000,
+});
+console.log(ids.rows, count);
+</code></pre>
+<h2 id="boolean-filters-computed-projections-and-grouping">Boolean filters, computed projections and grouping</h2>
+<p><code>collection.q</code> supplies typed DataView expressions. Ordinary <code>filters</code> are ANDed; <code>where</code> adds a Boolean expression and can combine <code>and</code>, <code>or</code>, <code>not</code>, comparisons and arithmetic. Dot paths use <code>q.path(&#39;address.city&#39;)</code> and own-property access.</p>
+<pre><code class="language-ts">const q = orders.q;
+const rows = await orders.select({
+  filters: [{ field: &#39;customer&#39;, op: &#39;startsWith&#39;, value: &#39;A&#39; }],
+  where: q.and(
+    q.eq(q.field(&#39;paid&#39;), q.literal(true)),
+    q.or(q.gt(q.field(&#39;amount&#39;), q.literal(100)),
+         q.eq(q.field(&#39;country&#39;), q.literal(&#39;AT&#39;))),
+  ),
+  select: {
+    customer: q.field(&#39;customer&#39;),
+    gross: q.mul(q.field(&#39;amount&#39;), q.literal(1.19)),
+  },
+  orderBy: [{ expr: q.field(&#39;amount&#39;), direction: &#39;desc&#39; }],
+}, { limit: 20 });
+
+const report = await orders.aggregate({
+  groupBy: { country: q.field(&#39;country&#39;) },
+  measures: {
+    orders: q.count(),
+    revenue: q.sum(q.field(&#39;amount&#39;)),
+    mean: q.avg(q.field(&#39;amount&#39;)),
+    paidRevenue: q.sum(q.field(&#39;amount&#39;), {
+      where: q.eq(q.field(&#39;paid&#39;), q.literal(true)),
+    }),
+  },
+  having: [{ field: &#39;revenue&#39;, op: &#39;gte&#39;, value: 100 }],
+  orderBy: [{ field: &#39;revenue&#39;, direction: &#39;desc&#39; }],
+});
+</code></pre>
+<p>Measures: <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>sumBigInt</code>. <code>count(expr)</code> excludes null/undefined. Scalar empty-input aggregates return one row (<code>count = 0</code>, sums/averages/min/max <code>null</code>); grouped empty input returns no rows. Number sums use DataView&#39;s compensated arithmetic by default; nonfinite numeric inputs throw unless <code>invalidNumbers: &#39;skip&#39;</code> is explicit.</p>
+<p>For a page and totals from the <strong>same snapshot and matching input</strong>, use <code>view()</code>:</p>
+<pre><code class="language-ts">const view = await orders.view({
+  select: { customer: q.field(&#39;customer&#39;), amount: q.field(&#39;amount&#39;) },
+  totals: { revenue: q.sum(q.field(&#39;amount&#39;)), orders: q.count() },
+  orderBy: [{ expr: q.field(&#39;amount&#39;), direction: &#39;desc&#39; }],
+}, { offset: 20, limit: 20 });
+console.log(view.rows, view.totals);
+</code></pre>
+<p><code>prepareFind</code>, <code>prepareSelect</code>, <code>prepareAggregate</code> and <code>prepareView</code> return reusable plans with <code>evaluate(page?, options?)</code>, <code>stream(page?, options?)</code>, and <code>explain()</code>. Each live execution sees a fresh committed snapshot. <code>collection.source()</code> exposes documents directly as a DataView <code>RecordSource</code> for other DataView plans.</p>
+<h2 id="streams-and-memory-limits">Streams and memory limits</h2>
+<pre><code class="language-ts">for await (const event of orders.stream({
+  filters: [{ field: &#39;paid&#39;, op: &#39;eq&#39;, value: true }],
+}, { batchSize: 256, maxBatchBytes: 1024 * 1024 })) {
+  if (event.type === &#39;batch&#39;) consume(event.rows);
+  else console.log(event.summary);
+}
+
+// Pull-driven ingestion: each supplied batch is an independent atomic transaction.
+for await (const receipt of orders.insertBatches(incomingBatches)) {
+  console.log(receipt.ids, receipt.revision);
+}
+</code></pre>
+<p>Full scans use DataView&#39;s native DBSONL batch adapter. No whole collection is loaded merely to start a query. Sorting, top-k candidates, grouping and collected outputs have explicit budgets. Exceeding a budget throws; it does not silently drop rows. Full sort/group spilling to disk is <strong>not implemented</strong>. A streamed grouping must finish its input scan before producing finalized groups.</p>
+<p>Ingestion backpressure is per batch. Earlier receipts remain committed if a later batch fails. <code>insertMany</code> is instead one bounded atomic transaction. <code>updateMany</code> and <code>deleteMany</code> collect a bounded target set before applying changes, so updating a queried index cannot change the iterator&#39;s candidate set.</p>
+<h2 id="transactions-indexes-and-snapshots">Transactions, indexes and snapshots</h2>
+<pre><code class="language-ts">await orders.createIndex({ name: &#39;customerCountry&#39;, fields: [&#39;customer&#39;, &#39;country&#39;], unique: true });
+
+const receipt = await db.transaction(async tx =&gt; {
+  const pending = tx.collection&lt;Order&gt;(&#39;orders&#39;);
+  const current = await pending.get(&#39;order-123&#39;);
+  if (current) await pending.update(current.id, { paid: true });
+  await tx.collection(&#39;audit&#39;).insert({ id: crypto.randomUUID() });
+  return &#39;recorded&#39;;
+});
+
+const snapshot = await db.snapshot();
+try {
+  const stable = snapshot.collection&lt;Order&gt;(&#39;orders&#39;);
+  console.log(await stable.count());
+  // All reads through stable use snapshot.revision, even while writers commit.
+} finally {
+  await snapshot.close();
+}
+</code></pre>
+<p>All collections, schema records and secondary indexes share one DBSONL commit. Transactions read their own writes. Callbacks run once. Concurrent changes can reject with <code>CONFLICT</code>; applications may explicitly retry operations whose side effects are safe to repeat. Await transaction operations sequentially and exhaust/close their streams before returning. An admitted write failure aborts the transaction even if its rejection is caught. No partial transaction is published.</p>
+<p>Equality indexes support one or multiple fields. Unique indexes include null and missing values; multiple absent values conflict. Index leaves support primitives, Dates and binary buffers/views, matching DataView value equality. Arrays, plain objects, Maps and Sets are stored normally but are not secondary-index keys. At most 64 indexes per collection; encoded keys must fit DBSONL&#39;s 4,096-code-unit limit.</p>
+<p>The planner recognizes primary-key equality and short IN lists, complete equality tuples, and ordered indexes with a fixed leading prefix, a range on the next field, or a compatible sort. The complete DataView predicate still runs on candidate documents. <code>explain()</code> reports the chosen access path. Use <code>access: &#39;scan&#39;</code> to compare results. <a href="ordered.html">Planner details</a></p>
+<p>Creating/dropping an index is atomic and subject to transaction limits. For large builds, explicitly raise <code>maxTransactionOperations</code> and <code>maxTransactionBytes</code> when opening the database, or declare indexes before ingesting. No partially built index becomes visible.</p>
+<h2 id="full-text-vector-and-hybrid-search">Full-text, vector and hybrid search</h2>
+<p>Search uses <strong>defuss-lexicalsearch 0.4.0</strong>, <strong>defuss-vectorsearch 0.4.0</strong> and <strong>defuss-search 0.5.0</strong>. Definitions, projected text/vectors and generation metadata persist atomically with documents on every backend. Queries use the same API on live collections, snapshots and transactions.</p>
+<pre><code class="language-ts">const articles = db.collection(&#39;articles&#39;);
+await articles.createSearchIndex({
+  name: &#39;discovery&#39;, kind: &#39;hybrid&#39;,
+  text: { fields: { title: { path: &#39;title&#39;, weight: 3, analyzer: &#39;en&#39; }, body: { path: &#39;body&#39; } } },
+  vector: { path: &#39;embedding&#39;, dimensions: 3, metric: &#39;cosine&#39; },
+});
+await articles.put({ id: &#39;local&#39;, title: &#39;Local databases&#39;, body: &#39;Transactional document search&#39;,
+  embedding: new Float32Array([1, 0.2, 0.1]), published: true });
+const results = await articles.search(&#39;discovery&#39;, { text: &#39;local database&#39;, vector: [0.9, 0.3, 0.1] }, {
+  filter: { filters: [{ field: &#39;published&#39;, op: &#39;eq&#39;, value: true }] },
+  limit: 10,
+  hybrid: { strategy: &#39;fusion&#39;, lexicalCandidates: 100, vectorCandidates: 100,
+    fusion: { method: &#39;rrf&#39;, weights: { lexical: 1, vector: 1 } } },
+});
+console.log(results.hits.map(hit =&gt; [hit.id, hit.score, hit.document]));
+</code></pre>
+<p>Declare <code>kind: &#39;lexical&#39;</code> with <code>text</code>, or <code>kind: &#39;vector&#39;</code> with <code>vector</code>, for individual engines. BM25, phrases, fuzzy/partial/literal queries, 20 language analyzers, exact cosine/dot scoring, optional TurboQuant refinement and hybrid fusion/cascades are supported. Embeddings are supplied by the application. Filtering happens before retrieval top-k. <code>getMany(ids)</code> batches point reads in a single snapshot.</p>
+<p>The first query of a changed index generation reconstructs its bounded in-memory engine from persisted inputs. Cached queries reuse it; writes changing only unrelated fields preserve that generation. Search is not a disk-resident ANN system. See <a href="search.html">search API, lifecycle and limits</a>.</p>
+<h2 id="brotli-archives-and-query-caching">Brotli archives and query caching</h2>
+<pre><code class="language-ts">const bytes = await db.export({ quality: 4 });
+await emptyTarget.import(bytes); // One atomic import, including rebuilt indexes.
+// Streaming: await target.import(source.exportStream()).
+
+const cached = await orders.query({
+  filters: [{ field: &#39;country&#39;, op: &#39;eq&#39;, value: &#39;DE&#39; }], limit: 20,
+}); // Automatic caching; cache: false disables it per query.
+console.log(cached.rows, db.queryCacheStats());
+</code></pre>
+<p>Archives preserve native DSON graphs and collection/index definitions. Buffered and streaming APIs support memory, Node/Bun files and OPFS; limits, cancellation, merge conflicts, and a checksummed frame format are documented in <a href="archive.html">import/export</a>. Atomic imports must fit the configured transaction budget. Browser compression needs CSP <code>script-src &#39;self&#39; &#39;wasm-unsafe-eval&#39;</code>.</p>
+<p>Query caching is enabled by default: at least 128 scanned candidates, at most 25% as many output rows, segmented LRU with second-use admission, and bounded byte/count budgets. Tiny primary-key reads bypass its bookkeeping. Set <code>queryCache: { mode: &#39;manual&#39; }</code> when opening to cache only queries that request it, or <code>queryCache: false</code> to disable result and plan caching. Keys include the collection&#39;s committed version, descriptor, page and resource options. Every hit opens a snapshot, reports its current revision and returns an independent DSON value. Transactions and streams bypass result caching. See <a href="cache.html">cache configuration and trade-offs</a>. Updates avoid a redundant document read; integrity audits reuse snapshot-local schemas. Measured costs and limits are in <a href="performance.html">performance</a>.</p>
+<h2 id="node-bun-browser-and-memory">Node, Bun, browser and memory</h2>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Factory</th>
+<th>Persistence and coordination</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Node.js / Bun</td>
+<td><code>openDirectory(path, options)</code> from <code>defuss-db/server</code></td>
+<td>defuss-storage files; DBSONL OS locks and directory fsync</td>
+</tr>
+<tr>
+<td>Browser dedicated worker</td>
+<td><code>openOPFS(options)</code> from <code>defuss-db/browser</code></td>
+<td>defuss-storage OPFS; origin-scoped Web Locks</td>
+</tr>
+<tr>
+<td>Any supported runtime</td>
+<td><code>openMemory(options)</code> from <code>defuss-db</code></td>
+<td>In-memory bytes, same DSON/storage/transaction path</td>
+</tr>
+<tr>
+<td>Custom coordinated backend</td>
+<td><code>openDatabase(backend, options)</code></td>
+<td>Explicit DBSONL Backend contract</td>
+</tr>
+</tbody></table>
+<pre><code class="language-ts">// Inside a dedicated Worker; HTTPS or localhost is required.
+import { openOPFS } from &#39;defuss-db/browser&#39;;
+const db = await openOPFS({ namespace: &#39;my-app&#39;, name: &#39;main&#39; });
+await db.collection(&#39;settings&#39;).put({ id: &#39;theme&#39;, value: &#39;dark&#39; });
+await db.close();
+</code></pre>
+<p>OPFS requires a dedicated worker with OPFS sync access handles and Web Locks; it cannot run on the browser main thread. See <a href="../examples/browser-worker.ts">worker example</a>. Namespace consistency is mandatory across workers/tabs using the same files. OPFS reports file-level durability because browser APIs expose no directory fsync. Node/Bun&#39;s native addon and filesystem requirements are inherited from DBSONL.</p>
+<p><code>openMemory()</code> creates an isolated backend. To share one memory store across connections or reopen it, retain <code>createMemoryBackend()</code> and pass it to <code>openDatabase()</code>.</p>
+<p>DSON preserves supported native values, undefined, NaN/infinities, cycles and shared references <strong>within a document</strong>. Top-level documents are plain objects. Functions, symbols, accessors and unsupported classes/host objects are rejected by the strict codec; this is not a universal JavaScript heap snapshot. Query equality compares Dates by time and binary values by visible bytes. Opaque objects use identity, not recursive structural equality.</p>
+<h2 id="operations-and-verification">Operations and verification</h2>
+<ul>
+<li><code>db.stats()</code> reports revision, storage-entry count, committed bytes, cache use and durability. <code>storedEntries</code> includes metadata and indexes; it is not a document count.</li>
+<li><code>db.verify()</code> audits physical records and both directions of declared indexes.</li>
+<li>Directory stores answer full-scan aggregates and counts in worker threads, each over one key range of the same snapshot; <code>parallel: false</code> turns them off. <a href="operations.html#answer-aggregates-in-worker-threads">Answer aggregates in worker threads</a></li>
+<li>Every commit appends copy-on-write pages. The database compacts in the background: without blocking writers after a second without commits, or by queuing writers once the file reaches four times its live size, estimated from its packed size and the stored entries. <code>autoCompact: false</code> disables it; <code>db.compact()</code> and <code>db.collect()</code> remain for manual control. Close long-lived snapshots when finished, because a pinned generation stays on disk. <a href="operations.html#reclaim-space">Reclaim space</a></li>
+<li><code>close()</code> is idempotent; database and snapshot also implement async disposal. Close active iterators and explicit snapshots when finished. An index-page continuation can resume after reopening the same store if its collection version still matches.</li>
+</ul>
+<pre><code class="language-sh">make setup       # Bun dependencies and Playwright Chromium
+make dev         # serve docs, API reference and the Ledger playground at http://127.0.0.1:4380 (PORT)
+make site        # regenerate the static docs/ site and validate local links
+make bench-workloads # same-backend index, scan and insert measurements on Node and Bun
+make bench-mongo     # same-machine comparison with the MongoDB at MONGODB_URL
+make bench-search    # lexical, vector and hybrid queries
+make verify          # typecheck, lint, tests, coverage, packaged consumers, Chromium OPFS and every site page
+make release         # complete source ZIP and installable package
+</code></pre>
+<p>See <a href="api.html">API</a>, <a href="architecture.html">architecture</a>, <a href="operations.html">operations</a>, <a href="validation.html">validation</a>, and <a href="performance.html">performance</a>. Apart from the optional MongoDB comparison at <code>MONGODB_URL</code>, no database server, public service or credentials are needed. Data is not encrypted; filesystem/origin access defines the trust boundary.</p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

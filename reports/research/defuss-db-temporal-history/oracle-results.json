@@ -1,0 +1,15 @@
+{
+  "seed": 20261118,
+  "trials": 48,
+  "attemptedTransactions": 2304,
+  "committedNonemptyTransactions": 1015,
+  "rolledBackTransactions": 1106,
+  "stagingCellComparisons": 141456,
+  "recordedCutoffCellComparisons": 51024,
+  "checkedOperationOutcomes": {
+    "range": 471,
+    "duplicate": 472,
+    "absent": 785,
+    "ok": 2162
+  }
+}

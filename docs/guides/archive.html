@@ -1,0 +1,117 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brotli import and export · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="brotli-import-and-export">Brotli import and export</h1>
+<p><code>export({history:&#39;full&#39;})</code> and its streaming equivalent write manifest 3, which records source lineage, history coverage, original DBSONL commit receipts and schema events. A full restore validates and rebuilds historical projections atomically in an empty target. Default exports write manifest 2 with current documents and ordinary index definitions. <a href="history.html">Full backup and restore</a></p>
+<p><code>Database.export()</code>, <code>Database.exportStream()</code> and <code>Database.import()</code> use <strong>defuss-brotli 0.3.0</strong> and binary defuss-dson. Explicit snapshots also expose both export methods. The portable archive contains collection schemas and documents; equality, ordered and lexical/vector/hybrid indexes are rebuilt on import. Native values, cycles and shared references <strong>within a document</strong> retain DSON semantics. No embedding model or custom analyzer function is serialized.</p>
+<pre><code class="language-ts">import { createReadStream, createWriteStream } from &#39;node:fs&#39;;
+import { pipeline } from &#39;node:stream/promises&#39;;
+import { openDirectory } from &#39;defuss-db/server&#39;;
+
+const source = await openDirectory(&#39;./source&#39;);
+await pipeline(source.exportStream({ quality: 4 }), createWriteStream(&#39;backup.dfdb.br&#39;));
+await source.close();
+
+const target = await openDirectory(&#39;./restored&#39;);
+const receipt = await target.import(createReadStream(&#39;backup.dfdb.br&#39;));
+console.log(receipt.imported, receipt.sourceRevision, receipt.revision);
+await target.verify();
+await target.close();
+</code></pre>
+<p>Browser workers use the same archive API on <code>openOPFS()</code> handles:</p>
+<pre><code class="language-ts">const bytes = await db.export({ collections: [&#39;documents&#39;], quality: 4 });
+// Store/download bytes as application/octet-stream, or pass a Blob/File stream directly.
+await restored.import(new Blob([bytes]).stream());
+</code></pre>
+<p>The byte-array method copies import input synchronously before its first await. Stream chunks are copied when pulled, so a producer may reuse a buffer after its next pull. Accepted import inputs: <code>Uint8Array</code>, synchronous/asynchronous iterables of byte arrays, and <code>ReadableStream&lt;Uint8Array&gt;</code>.</p>
+<h2 id="consistency-and-conflicts">Consistency and conflicts</h2>
+<ul>
+<li>Export holds one read snapshot from its first pull until completion, cancellation, error or <code>iterator.return()</code>. A later write or compaction does not change its contents. For a snapshot selected earlier, call <code>snapshot.export()</code> or <code>snapshot.exportStream()</code>. Close explicit snapshots yourself.</li>
+<li>Default import requires an empty database, apart from its format marker. <strong>The entire archive is one transaction.</strong> No document or schema becomes visible before the terminal frame, counts, indexes and commit validation succeed. Aborts, producer errors, duplicate keys, malformed data, capacity errors and concurrent conflicts roll back everything.</li>
+<li><code>mode: &#39;merge&#39;</code> permits an existing database, preserves unrelated collections and requires matching schemas for overlapping collections. <code>conflicts: &#39;error&#39;</code> (default), <code>&#39;skip&#39;</code>, or <code>&#39;replace&#39;</code> govern duplicate <strong>primary</strong> keys. Unique secondary-index constraints remain enforced for every policy. <code>replace</code> replaces a whole document; it does not clear the collection or database.</li>
+<li>Index rebuilding generates new search generations and the target has its own revision history. <code>sourceRevision</code> is provenance, not a request to set the target revision. Import callbacks are not silently retried; a consumed stream may not be replayable.</li>
+</ul>
+<h2 id="limits-and-memory">Limits and memory</h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th align="right">Default</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>quality</code></td>
+<td align="right">4</td>
+<td>Export; integer 0–11</td>
+</tr>
+<tr>
+<td><code>blockBytes</code></td>
+<td align="right">1 MiB</td>
+<td>Export target block size; minimum 1 KiB</td>
+</tr>
+<tr>
+<td><code>maxFrameBytes</code></td>
+<td align="right">32 MiB</td>
+<td>Both compressed and decoded frame sizes; configurable 1 KiB–256 MiB</td>
+</tr>
+<tr>
+<td><code>maxArchiveBytes</code></td>
+<td align="right">1 GiB</td>
+<td>Streaming export/import total compressed bytes</td>
+</tr>
+<tr>
+<td>buffered <code>export().maxArchiveBytes</code></td>
+<td align="right">64 MiB</td>
+<td>Buffered export total compressed bytes</td>
+</tr>
+<tr>
+<td><code>maxDecodedBytes</code></td>
+<td align="right">1 GiB</td>
+<td>Import total uncompressed frame bytes</td>
+</tr>
+<tr>
+<td><code>maxDocuments</code></td>
+<td align="right">1,000,000</td>
+<td>Both directions</td>
+</tr>
+<tr>
+<td><code>maxCollections</code></td>
+<td align="right">10,000</td>
+<td>Both directions</td>
+</tr>
+</tbody></table>
+<p>All methods accept <code>signal</code>. Export additionally accepts a unique list of existing collection names. Import also honors the target&#39;s DBSONL record, transaction-byte and transaction-operation limits, including derived index writes. Raise those limits explicitly for larger atomic imports.</p>
+<p>Streaming avoids assembling the whole archive in memory. It does <strong>not</strong> make transaction staging constant-space: import retains staged writes until commit. Export holds bounded encoded blocks plus a bounded native scan batch; object heap size can exceed encoded size. Import also holds the producer&#39;s current chunk. Buffered export retains all compressed chunks and allocates the final joined array. A single large document may exceed <code>blockBytes</code> but must fit <code>maxFrameBytes</code>, including its archive envelope. Very large datasets should use appropriately sized budgets or application-level collection archives; no partial-commit import mode is implied.</p>
+<h2 id="physical-framing-version-1">Physical framing, version 1</h2>
+<p>The file starts with eight bytes <code>44 46 44 42 42 52 01 00</code> (<code>DFDBBR</code>, version 1, reserved zero). Each frame has a 44-byte header:</p>
+<table>
+<thead>
+<tr>
+<th align="right">Offset</th>
+<th>Field</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">0</td>
+<td>sequence number, unsigned 32-bit little-endian, beginning at zero</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td>uncompressed payload length, unsigned 32-bit little-endian</td>
+</tr>
+<tr>
+<td align="right">8</td>
+<td>compressed payload length, unsigned 32-bit little-endian</td>
+</tr>
+<tr>
+<td align="right">12</td>
+<td>32-byte SHA-256 digest</td>
+</tr>
+</tbody></table>
+<p>The digest covers <code>previousDigest || first12HeaderBytes || compressedPayload</code>, starting with a zero-filled previous digest. Payloads are independent Brotli streams. Each decoded payload contains length-prefixed binary DSON records (<code>u32le length</code>, followed by the record bytes); records do not cross frame boundaries.</p>
+<p>Latest-only archives use logical manifest 2 and a full-history archive uses manifest 3; import rejects any other manifest. Export copies logical documents and index definitions. Import preserves the target store UUID, creates or updates collection revision markers transactionally, and rebuilds new collections&#39; equality, ordered and search indexes.</p>
+<p>Records begin with a manifest, then sorted unique collection schemas, documents sorted by <code>(collection, encodedPrimaryKey)</code>, and an end record with counts. A final zero-length frame with a valid chained digest is mandatory, followed immediately by EOF. Missing/reordered frames, trailing bytes and count mismatches are rejected. Length caps are checked before frame allocation/decompression, and the decoder&#39;s <code>maxOutputSize</code> is set to the declared bounded length.</p>
+<p>Checksums detect accidental corruption. They are <strong>not authentication, signatures or encryption</strong>. The archive is a framed container, not one standalone <code>.br</code> stream; use <code>db.import()</code>, not a generic whole-file Brotli decoder.</p>
+<h2 id="runtime-and-deployment">Runtime and deployment</h2>
+<p>Compression/decompression modules initialize lazily. ESM and CommonJS consumers both load the actual package with dynamic import. The standard upstream distribution embeds its WASM, so no separate WASM asset URL is required. Browser bundling can still include that embedded payload; this release does not promise a small archive-enabled bundle.</p>
+<p>Browser CSP must permit WASM compilation, e.g. <code>script-src &#39;self&#39; &#39;wasm-unsafe-eval&#39;</code>; JavaScript <code>unsafe-eval</code> is not required. OPFS still requires an appropriate secure worker context. Compression is synchronous within each block and can occupy its worker/event loop; use a dedicated worker for interactive applications. Multithreaded compression and background snapshot scheduling are not part of this API.</p>
+<p>A full archive restores immutable history and source receipts into an empty target. Use a source-qualified revision to reproduce an earlier recorded answer after restore. <a href="history.html">Full backup and restore</a></p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

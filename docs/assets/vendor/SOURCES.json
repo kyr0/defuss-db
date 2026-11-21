@@ -1,0 +1,183 @@
+{
+  "package": "defuss-shadcn",
+  "version": "0.9.14",
+  "commit": "e3ead7fb6eb152725686c9d7cac09fa78fe859de",
+  "license": "MIT",
+  "npmIntegrity": "sha512-4T3gbx+7xaQK9J36CNhOuA8wtKWRR+qF8qG32K5LOrgjEZTIp3eIQxgTJlsLaeYsH5BasGQM2isK+sOCiQC5VA==",
+  "css": [
+    "theme/utils/default-semantic-tokens.css",
+    "theme/utils/layout.css",
+    "theme/utils/sizing.css",
+    "theme/utils/accessibility.css",
+    "theme/utils/shapes.css",
+    "components/alert/alert.css",
+    "components/badge/badge.css",
+    "components/button/button.css",
+    "components/card/card.css",
+    "components/chart/chart.css",
+    "components/cta/cta.css",
+    "components/hero/hero.css",
+    "components/input/input.css",
+    "components/label/label.css",
+    "components/mockup-code/mockup-code.css",
+    "components/navigation-menu/navigation-menu.css",
+    "components/radial-progress/radial-progress.css",
+    "components/section-header/section-header.css",
+    "components/separator/separator.css",
+    "components/shader/shader.css",
+    "components/sheet/sheet.css",
+    "components/site-footer/site-footer.css",
+    "components/site-header/site-header.css",
+    "components/swap/swap.css",
+    "components/table/table.css",
+    "components/tabs/tabs.css",
+    "components/tacho/tacho.css",
+    "components/text-rotate/text-rotate.css",
+    "components/toggle/toggle.css",
+    "components/toggle-group/toggle-group.css"
+  ],
+  "js": [
+    "components/core.js",
+    "components/navigation-menu/navigation-menu.js",
+    "components/sheet/sheet.js",
+    "components/tabs/tabs.js",
+    "components/toggle/toggle.js",
+    "components/toggle-group/toggle-group.js",
+    "components/radial-progress/radial-progress.js",
+    "components/tacho/tacho.js",
+    "components/chart/chart.js",
+    "components/shader/shader.js"
+  ],
+  "fonts": [
+    {
+      "path": "fonts/bricolage-grotesque-400-800-latin.woff2",
+      "font": "Bricolage Grotesque",
+      "url": "https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGIInE.woff2",
+      "bytes": 76888,
+      "sha256": "a79fdb52d4a5c76552452f69202add96e287401fff03d3e8c0e38b4dcb5a99cd"
+    },
+    {
+      "path": "fonts/jetbrains-mono-400-latin.woff2",
+      "font": "JetBrains Mono",
+      "url": "https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwg.woff2",
+      "bytes": 31432,
+      "sha256": "83c005d49d8a6a50474c73a5a36ac0468076e9c4a29da7bdb14995d80560a5be"
+    }
+  ],
+  "referenceAssets": [
+    {
+      "path": "shadcn/theme/utils/default-semantic-tokens.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/theme/utils/default-semantic-tokens.css",
+      "sri": "sha384-FS4yDVVZ509c8YKOag4e40fTdwM0HU2xwCKl71yNXzYTCOUErbXCP+ZFeb94/u6C",
+      "bytes": 5096
+    },
+    {
+      "path": "shadcn/theme/utils/layout.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/theme/utils/layout.css",
+      "sri": "sha384-Mya+ag9dF9uZQEZk/3Dn09rnlOoXLyAh+okDwWz4dA9lhRTfAXcQZGqA8p3kvjWa",
+      "bytes": 10807
+    },
+    {
+      "path": "shadcn/theme/utils/sizing.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/theme/utils/sizing.css",
+      "sri": "sha384-Oowm0Qtn1y2I3wYEilhao1YS39fW7dUPVIKw1fwUNEhTPfB67YOoWYtJOpbHimgk",
+      "bytes": 117388
+    },
+    {
+      "path": "shadcn/theme/utils/accessibility.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/theme/utils/accessibility.css",
+      "sri": "sha384-it6tGYVMvpYs57padZ8J0NNE2O31xT3m7hHfGetbqO3nGWLYd+NP9EoMNyhz2B+E",
+      "bytes": 971
+    },
+    {
+      "path": "shadcn/theme/utils/shapes.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/theme/utils/shapes.css",
+      "sri": "sha384-aZOejDS3Wl7RTrk7xhF91OV7MwlLT5+HBFqsCgc1NJAObqjt5bamU3NxzVEdhZew",
+      "bytes": 66974
+    },
+    {
+      "path": "shadcn/components/all.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/components/all.css",
+      "sri": "sha384-SgjVRl6cf624AAuPwGA1D/f05+vCEQTAzdQG8yjkG4CqQvf0xaiMiPOTGB1/beS6",
+      "bytes": 1617540
+    },
+    {
+      "path": "shadcn/components/shader/shader.css",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/components/shader/shader.css",
+      "sri": "sha384-BJpxMob/uR3kaqyYmsSFTf9FBuOTMZk8z5rDn9v18xVgGbVt/Qn+k+SvxiJWS9C0",
+      "bytes": 9422
+    },
+    {
+      "path": "shadcn/components/all.js",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/components/all.js",
+      "sri": "sha384-Mq1xC+XFY/imVL24hx8azU48HFzatfOfXQgT7k9Y4MBZmRBG7TDiKCUcnwHGGzZa",
+      "bytes": 1139601
+    },
+    {
+      "path": "shadcn/components/shader/shader.js",
+      "url": "https://cdn.jsdelivr.net/gh/kyr0/defuss-shadcn@v0.9.14/dist/components/shader/shader.js",
+      "sri": "sha384-ii/hVHqhXyczuS5j5KWW+JLr75Blxl1KcjczeHFoNEPJayV3UJh2ZA/hKZnGUZ/j",
+      "bytes": 180298
+    },
+    {
+      "path": "charts/echarts.min.js",
+      "url": "https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js",
+      "sri": "sha384-C2iskrW/uPW46KzOjrvJIQo4YkV8lkD+QS0CrDN18IIPIpT/g2USu8bTP3nvmIAD",
+      "bytes": 1121883
+    }
+  ],
+  "files": {
+    "charts/echarts.min.js": {
+      "bytes": 1121883,
+      "sha256": "b66b25aeb4df84e33199dc21694014d336d222cbd9deb0e5a7c14bd6aa0d0fd0"
+    },
+    "defuss-shadcn.css": {
+      "bytes": 258360,
+      "sha256": "f46cdc34b3cd2cf1817f5ca6569e73df225b579c17db1434b36ae2c5aaec3576"
+    },
+    "defuss-shadcn.js": {
+      "bytes": 267800,
+      "sha256": "6e09b61d216cd1687a0e2f837d6de4daad3f0ef20e494e4047e3e35bac5e54a4"
+    },
+    "fonts/bricolage-grotesque-400-800-latin.woff2": {
+      "bytes": 76888,
+      "sha256": "a79fdb52d4a5c76552452f69202add96e287401fff03d3e8c0e38b4dcb5a99cd"
+    },
+    "fonts/bricolagegrotesque-OFL.txt": {
+      "bytes": 4403,
+      "sha256": "4b5a7d8f37f5602621c8a8d7358a6a2e71317e6c231c661e15aef0275d3e07ba"
+    },
+    "fonts/index.css": {
+      "bytes": 1129,
+      "sha256": "f10da12dc3cc199514690d7e6cefd482d4e2434f828f3fb37db4091c97f623ed"
+    },
+    "fonts/jetbrains-mono-400-latin.woff2": {
+      "bytes": 31432,
+      "sha256": "83c005d49d8a6a50474c73a5a36ac0468076e9c4a29da7bdb14995d80560a5be"
+    },
+    "fonts/jetbrainsmono-OFL.txt": {
+      "bytes": 4399,
+      "sha256": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d"
+    },
+    "licenses/DBSONL-MIT.txt": {
+      "bytes": 1069,
+      "sha256": "6265fec10f843f2aa8bf9f2a44bbf584dbb0dcbfef8a37a53dd04848f7ab4599"
+    },
+    "licenses/ECharts-LICENSE.txt": {
+      "bytes": 11990,
+      "sha256": "634293835b43a6dd2094fa39182a3d9a6b9ca43b7fdb9ac354e8037af2a3093a"
+    },
+    "licenses/ECharts-NOTICE.txt": {
+      "bytes": 168,
+      "sha256": "d491d358344f842685c1b1585970999db65fe30ecf7ef3867af8814f4016c016"
+    },
+    "licenses/Shadcn-MIT.txt": {
+      "bytes": 1285,
+      "sha256": "da27663355ddf1253a7348eaf46360b508ad7cb8950fe4e58166dec354de843a"
+    },
+    "licenses/LICENSE-d3": {
+      "bytes": 1475,
+      "sha256": "e1211892da0b0e0585b7aebe8f98c1274fba15bafe47fa1f4ee8a7a502c06304"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "version": "3.0.0",
+  "tests": 127,
+  "lines": 92.94,
+  "branches": 87.54,
+  "browser": "153.0.8010.12",
+  "browserScenarios": 8,
+  "browserAssertions": 62,
+  "examples": 18
+}

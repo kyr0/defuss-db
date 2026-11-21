@@ -1,0 +1,63 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Upstream provenance · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="upstream-provenance">Upstream provenance</h1>
+<p>Source inspection used these GitHub revisions on 2026-11-17:</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Source manifest version</th>
+<th>Revision</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>defuss-dataview</td>
+<td>0.6.0</td>
+<td><a href="https://github.com/kyr0/defuss-dataview/tree/3c1ae222b863b83afa26e97f61581cfb701251c2"><code>3c1ae222b863</code></a></td>
+</tr>
+<tr>
+<td>defuss-dbsonl</td>
+<td>0.6.0</td>
+<td><a href="https://github.com/kyr0/defuss-dbjsonl/tree/1b1e7a7ce1a62112a219092d4cc519ea6c99da7e"><code>1b1e7a7ce1a6</code></a></td>
+</tr>
+<tr>
+<td>defuss-storage</td>
+<td>0.3.1</td>
+<td><a href="https://github.com/kyr0/defuss-storage/tree/3fff26113662ecc49ca21dc4f75ff66d0473d23b"><code>3fff26113662</code></a></td>
+</tr>
+<tr>
+<td>defuss-dson</td>
+<td>1.5.0</td>
+<td><a href="https://github.com/kyr0/defuss-dson/tree/4a6a3af645acd10233139c75c59a61d59c3a1c4c"><code>4a6a3af645ac</code></a></td>
+</tr>
+</tbody></table>
+<p>Runtime dependencies are pinned to published defuss-dataview 0.7.0, defuss-dbsonl 0.8.0, defuss-storage 0.4.1 and defuss-dson 1.5.1. The DSON source repository inspected reported 1.5.0; the installed and tested runtime is 1.5.1, required by DBSONL. <code>bun.lock</code> records resolved transitive versions and integrity hashes. The repository named <code>defuss-dbjsonl</code> publishes the binary package <code>defuss-dbsonl</code>.</p>
+<p>Search integrations inspected and pinned on 2026-11-17:</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Version</th>
+<th>Git revision</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>defuss-lexicalsearch</td>
+<td>0.4.0</td>
+<td><a href="https://github.com/kyr0/defuss-lexicalsearch/tree/03c142d261074a2d112a61798eb674f4838457dc"><code>03c142d26107</code></a></td>
+</tr>
+<tr>
+<td>defuss-vectorsearch</td>
+<td>0.4.0</td>
+<td><a href="https://github.com/kyr0/defuss-vectorsearch/tree/cd344849ca6d43c4bfceaac3a6cb8a5e828b8f90"><code>cd344849ca6d</code></a></td>
+</tr>
+<tr>
+<td>defuss-search</td>
+<td>0.5.0</td>
+<td><a href="https://github.com/kyr0/defuss-search/tree/1b88fba4ec69a030477b9eda4d861eaae0761088"><code>1b88fba4ec69</code></a></td>
+</tr>
+</tbody></table>
+<p>Compression uses the installed/pinned <a href="https://www.npmjs.com/package/defuss-brotli/v/0.3.0">defuss-brotli 0.3.0 published package</a>, including its compressor/decompressor declarations and embedded WASM. The monorepo <code>packages/brotli/package.json</code> inspected reported 0.1.3, so that source version is not presented as the tested runtime. <code>bun.lock</code> records the published artifact integrity. The archive API exercises quality selection and the decompressor&#39;s <code>maxOutputSize</code> limit in Node, Bun and Chromium.</p>
+<h2 id="temporal-semantics">Temporal semantics</h2>
+<p>Defuss-db uses an effective date and a recorded revision. Each date-targeted correction extends to the next effective boundary for that document unless an earlier exclusive end is supplied. <a href="https://docs.xtdb.com/concepts/key-concepts.html">XTDB time dimensions</a> · <a href="https://mariadb.com/docs/server/reference/sql-structure/temporal-tables/application-time-periods">MariaDB application-time periods</a> · <a href="https://docs.datomic.com/reference/filters.html">Datomic database filters</a></p>
+<h2 id="website">Website</h2>
+<p>The site uses defuss-shadcn components, local fonts and licensed ECharts assets. The binary distribution lists its pinned packages in the manifest. <a href="https://github.com/kyr0/defuss-dbsonl/blob/main/docs/index.html">Reference template</a> · <a href="https://github.com/kyr0/defuss-vae/blob/main/plugin/references/PROSE.md">VAE prose reference</a></p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

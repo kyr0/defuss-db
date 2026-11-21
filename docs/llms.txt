@@ -1,0 +1,36 @@
+# defuss-db 3.0.0
+
+> Embedded TypeScript document database and single-machine alternative to MongoDB. One API for dedicated browser workers (OPFS), Node.js and Bun (directory) and memory. No server, replication, sharding or federation.
+
+Use openMemory() from defuss-db, openDirectory(path) from defuss-db/server, or openOPFS(options) from defuss-db/browser in a dedicated worker. A collection supports typed documents, DataView filters, sorts, projections, grouped aggregates, primary and compound indexes. Search engines accept lexical, vector and hybrid queries. Archives use defuss-brotli and preserve DSON values and indexes. Result caching is automatic for qualifying queries.
+
+Enable persistent document history with db.ensureCollection(name, {$trackHistory:true}). Use collection.at(date) or {$historic:date} for effective-time reads and edits. Add {$asOfRevision:revision} for read-only recorded time. history(id) lists effective segments and audit(id) lists recorded operations. export({history:'full'}) preserves historical facts and source receipts. Read the history guide for activation, corrections, temporal uniqueness, search and restoration.
+
+DataView supplies filtering, sorting, projection, grouping and aggregation. defuss-db adds typed persistent records, atomic transactions, snapshot isolation, B+tree access paths, time slices, ranked search and Brotli backups. The tenant feed benchmark contrasts a compound index with a collection scan on the same backend, returning identical documents. File storage is benchmarked against file storage. The separate resident-array experiment compares raw DataView exclusively with an in-memory database. See the performance guide for write costs, search latency and reopening a directory.
+
+The ordered read API is available on collections, snapshots and transactions. pageIdsByIndex(name,{prefix,limit,after}) returns {rows,nextCursor,revision}. countByIndex(name,{prefix,gte,lt,maxScannedEntries}) returns an exact interval count. Read the ordered index guide for bounds, ties, cursor validity and budgets.
+
+## Documentation
+
+- [readme](guides/readme.html)
+- [architecture](guides/architecture.html)
+- [api](guides/api.html)
+- [archive](guides/archive.html)
+- [cache](guides/cache.html)
+- [history](guides/history.html)
+- [operations](guides/operations.html)
+- [ordered](guides/ordered.html)
+- [performance](guides/performance.html)
+- [search](guides/search.html)
+- [sources](guides/sources.html)
+- [validation](guides/validation.html)
+
+## Distribution and evidence
+
+- [npm package](https://www.npmjs.com/package/defuss-db): `bun add defuss-db` or `npm install defuss-db`
+- [Same-machine MongoDB comparison, compound index and scan, ranked search, persistence and memory-only array measurements](guides/performance.html)
+- [MongoDB comparison raw samples, Node.js](benchmarks/mongodb-node.json)
+- [MongoDB comparison raw samples, Bun](benchmarks/mongodb-bun.json)
+- [Node.js raw samples](benchmarks/workloads-node.json)
+- [Bun raw samples](benchmarks/workloads-bun.json)
+- [Validation summary](benchmarks/validation.json)

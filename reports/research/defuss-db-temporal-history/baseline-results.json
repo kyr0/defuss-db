@@ -1,0 +1,41 @@
+{
+  "runtime": "v26.13.1",
+  "platform": "linux-x64",
+  "pinnedDuringCompaction": {
+    "oldPrice": 10,
+    "currentPrice": 30,
+    "dollarFieldsRoundTrip": true
+  },
+  "afterReopenAndLogicalRestore": {
+    "reopenedPrice": 30,
+    "restoredPrice": 30,
+    "restoredDocuments": 1
+  },
+  "lexicalCorpusChange": {
+    "priorIds": [
+      "removed",
+      "kept"
+    ],
+    "currentIds": [
+      "kept"
+    ],
+    "survivingId": "kept",
+    "priorScore": 0.22920424282668583,
+    "currentScore": 1.6739764335716716
+  },
+  "disjointCommit": {
+    "callbackBasis": 1,
+    "interveningRevision": 2,
+    "committedRevision": 3
+  },
+  "rangeReadConflict": {
+    "interveningKeyOutsideRange": true,
+    "error": "CONFLICT"
+  },
+  "compactedLiveKeyRetainsAssignedRevision": true,
+  "descendingDatePredecessor": {
+    "boundaryCount": 8,
+    "verifiedInstants": 18,
+    "includesBothDateExtremes": true
+  }
+}

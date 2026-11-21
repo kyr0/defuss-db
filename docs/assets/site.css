@@ -1,0 +1,404 @@
+
+    /* Deep teal and copper carry through the charts, controls and code examples. */
+    :root {
+      --background: oklch(0.985 0.004 183);
+      --foreground: oklch(0.22 0.025 189);
+      --card: oklch(1 0 0);
+      --muted: oklch(0.955 0.012 185);
+      --muted-foreground: oklch(0.43 0.027 188);
+      --border: oklch(0.885 0.016 185);
+      --primary: oklch(0.43 0.077 186);
+      --primary-foreground: oklch(0.99 0 0);
+      --ring: oklch(0.54 0.089 186);
+      --radius: 0.85rem;
+      --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --db-teal: #246b69;
+      --db-amber: #915627;
+      /* Chart marks; VERIFIED: dataviz validate_palette.js passes both pairs on their surfaces. */
+      --db-chart-a: #008c81;
+      --db-chart-b: #c2601a;
+      --db-teal-soft: color-mix(in oklch, var(--db-teal) 12%, transparent);
+      --db-amber-soft: color-mix(in oklch, var(--db-amber) 14%, transparent);
+      --db-ok: oklch(0.5 0.13 155);
+      --db-fail: oklch(0.55 0.2 27);
+    }
+    .dark {
+      --background: oklch(0.175 0.023 191);
+      --foreground: oklch(0.955 0.009 186);
+      --card: oklch(0.215 0.023 189);
+      --muted: oklch(0.265 0.024 188);
+      --muted-foreground: oklch(0.76 0.025 187);
+      --border: oklch(0.34 0.026 190);
+      --primary: oklch(0.80 0.092 179);
+      --primary-foreground: oklch(0.175 0.027 190);
+      --ring: oklch(0.80 0.092 179);
+      --db-teal: #86ccbd;
+      --db-amber: #e6b082;
+      --db-chart-a: #1c9e90;
+      --db-chart-b: #dd7429;
+      --db-ok: oklch(0.75 0.13 155);
+      --db-fail: oklch(0.72 0.16 27);
+    }
+    /* defuss-shadcn sizes its components for border-box; the page supplies that reset. */
+    *, ::before, ::after { box-sizing: border-box; }
+    /* iOS Safari enlarges text in landscape unless told not to; the layout sets its own sizes. */
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); }
+    code, kbd, pre { font-family: var(--font-mono); }
+    .db-main { display: flex; flex-direction: column; gap: clamp(3.5rem, 10vw, 7.5rem); padding-block-end: clamp(2rem, 6vw, 4rem); }
+    .db-section { width: 100%; max-width: 76rem; margin-inline: auto; padding-inline: 1rem; box-sizing: border-box; scroll-margin-top: 6rem; }
+    .db-display { letter-spacing: -0.03em; font-weight: 700; }
+    .db-h2 { margin: 0; font-size: clamp(1.75rem, 3.6vw, 2.5rem); line-height: 1.12; }
+    .db-lead { color: var(--muted-foreground); font-size: 1.0625rem; max-width: 46rem; text-wrap: pretty; }
+    .db-brand-mark { width: 1.5rem; height: 1.5rem; color: var(--primary); }
+
+    /* Hero: a masked grid, two blurred blobs and the code window over a voronoi shader. */
+    .db-hero { position: relative; isolation: isolate; overflow: clip; padding-block: clamp(6.5rem, 12vw, 9rem) 1rem; }
+    .db-hero-grid { position: absolute; inset: 0; z-index: -2; --shape-ink: color-mix(in oklch, var(--foreground) 7%, transparent); --shape-pattern: 30px;
+      mask-image: radial-gradient(60% 70% at 35% 35%, #000, #0000 78%); -webkit-mask-image: radial-gradient(60% 70% at 35% 35%, #000, #0000 78%); }
+    .db-blob { position: absolute; z-index: -1; aspect-ratio: 1; filter: blur(70px); opacity: 0.45; }
+    .db-blob-a { background: var(--db-teal); width: min(26rem, 50%); inset-block-start: 4%; inset-inline-start: -4%; }
+    .db-blob-b { background: var(--db-amber); width: min(18rem, 38%); inset-block-start: 30%; inset-inline-end: 2%; opacity: 0.3; }
+    .db-hero .mk-hero { max-width: 76rem; margin-inline: auto; padding-inline: 1rem; }
+    .mk-hero-title { font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.02; }
+    .mk-hero-title em { font-style: normal; color: var(--primary); }
+    .db-link { color: var(--primary); font-weight: 600; text-underline-offset: 3px; }
+    .db-dson .text-rotate { vertical-align: bottom; }
+    /* What DSON keeps and what defuss-dbsonl adds: two rotating lines that read as one pair. */
+    .db-pitch { display: grid; gap: 0.2rem; margin: 0.25rem 0 0.5rem; }
+    .db-dson { font-size: clamp(1.2rem, 2vw, 1.45rem); font-weight: 500; line-height: 1.4; margin: 0; }
+    .db-rotate { color: var(--db-amber); font-weight: 600; }
+    .db-footnote { font-size: 0.85rem; color: var(--muted-foreground); max-width: 34rem; }
+    .db-hero .mk-hero-media, .db-hero .mk-hero-copy { min-width: 0; }
+    .db-hero .mk-hero-media { aspect-ratio: auto; height: auto; overflow: visible; }
+    .db-window { max-width: 100%; margin: 0; box-sizing: border-box; position: relative; isolation: isolate; padding: clamp(0.9rem, 2.4vw, 1.6rem); border-radius: calc(var(--radius) * 2); overflow: hidden; }
+    .db-window .mockup-code { overflow-x: auto; max-width: 100%; box-shadow: 0 24px 60px -24px rgb(20 10 50 / 0.55); }
+    .db-window figcaption { margin-top: 0.75rem; color: #fff; font-size: 0.8rem; opacity: 0.9; }
+    .mockup-code .c { color: var(--muted-foreground); }
+    .mockup-code .k { color: var(--db-teal); }
+    .mockup-code .s { color: var(--db-amber); }
+
+    /* Feature cards: What you get, building blocks, tests and guarantees share one layout with large icons. */
+    .db-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.25rem; margin-top: 2rem; }
+    .db-feature { display: flex; flex-direction: column; gap: 0.55rem; padding: 1.5rem; background: var(--card); border: 1px solid var(--border);
+      border-radius: calc(var(--radius) * 1.4); transition: border-color 0.2s, translate 0.2s; }
+    .db-feature:hover { border-color: color-mix(in oklch, var(--db-teal) 45%, var(--border)); translate: 0 -2px; }
+    @media (prefers-reduced-motion: reduce) { .db-feature { transition: none; } .db-feature:hover { translate: none; } }
+    .db-feature h3 { margin: 0.45rem 0 0; font-size: 1.2rem; }
+    .db-feature p { margin: 0; color: var(--muted-foreground); font-size: 1.02rem; line-height: 1.55; text-wrap: pretty; }
+    .db-icon { width: 4rem; height: 4rem; display: grid; place-items: center; flex: none; background: var(--db-teal-soft); color: var(--primary);
+      box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--db-teal) 35%, transparent); }
+    .db-icon svg { width: 2.1rem; height: 2.1rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .db-features > :nth-child(even) .db-icon { background: var(--db-amber-soft); color: var(--db-amber); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--db-amber) 35%, transparent); }
+    .db-history-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; margin-block: 1.5rem; }
+    .db-history-terms > div { padding: 1.2rem 1.4rem; background: var(--card); border: 1px solid var(--border); border-inline-start: 3px solid var(--db-teal); border-radius: var(--radius); }
+    .db-history-terms > div + div { border-inline-start-color: var(--db-amber); }
+    .db-history-terms dt { font-weight: 700; }
+    .db-history-terms dd { margin: .45rem 0 0; line-height: 1.55; color: var(--muted-foreground); }
+    .db-history-note { max-width: 46rem; line-height: 1.55; }
+    .db-history-terms code, .db-history-note code { overflow-wrap: anywhere; font-size: .88em; }
+    #demo-history { scroll-margin-top: 6rem; }
+    .db-guarantees { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.25rem; }
+    .db-guarantees > :nth-child(even) .db-icon { background: var(--db-amber-soft); color: var(--db-amber); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--db-amber) 35%, transparent); }
+    .db-guarantees p { color: var(--foreground); }
+    .db-file { align-self: flex-start; margin-top: auto; padding: 0.2rem 0.55rem; border-radius: 6px; background: var(--muted); font-size: 0.82rem; color: var(--muted-foreground); }
+
+    .db-rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: 0.9rem; margin-top: 1.75rem; }
+    .db-ring { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.75rem; padding: 1.25rem 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 1.1rem 1.1rem 1.1rem 0.35rem; }
+    .db-ring .radial-progress { --size: 6rem; --thickness: 0.6rem; --progress-color: var(--db-teal); color: var(--db-teal); flex: none; font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .db-ring .radial-progress { -webkit-text-fill-color: var(--foreground); }
+    .db-ring:nth-child(even) .radial-progress { --progress-color: var(--db-amber); color: var(--db-amber); }
+    .db-ring span { color: var(--muted-foreground); font-size: 0.95rem; line-height: 1.4; }
+    /* Stack: dataview on top, this package, its two dependencies, the media. */
+    .db-stack { margin: 2rem 0 0; display: flex; flex-direction: column; gap: 1.6rem; max-width: 52rem; }
+    .db-layer { position: relative; display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.4); }
+    .db-layer .db-icon { width: 3.25rem; height: 3.25rem; }
+    .db-layer .db-icon svg { width: 1.7rem; height: 1.7rem; }
+    .db-layer strong { display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; }
+    .db-layer span:not(.badge):not(.db-icon) { display: block; color: var(--muted-foreground); }
+    .db-layer[data-kind="self"] { border-color: var(--db-teal); box-shadow: 0 0 0 4px var(--db-teal-soft); }
+    .db-layer[data-kind="app"] .db-icon { background: var(--db-amber-soft); color: var(--db-amber); }
+    .db-layer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; position: relative; }
+    .db-stack > :not(:first-child)::before, .db-layer-row > .db-layer::before { content: ""; position: absolute; inset-inline-start: 2.85rem; top: -1.6rem; width: 2px; height: 1.6rem; background: color-mix(in oklch, var(--db-teal) 55%, transparent); }
+    .db-layer-row::before { display: none; }
+    .db-media { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem; position: relative; }
+    .db-media::before { inset-inline-start: calc(50% + 0.5rem + 2.85rem) !important; }
+    @media (max-width: 40rem) { .db-media::before { inset-inline-start: 2.85rem !important; } }
+    .db-media li { padding: 0.45rem 0.9rem; border-radius: 999px; border: 1px dashed var(--border); background: var(--muted); font-size: 0.95rem; }
+    @media (max-width: 40rem) { .db-layer-row { grid-template-columns: 1fr; gap: 1.6rem; } }
+
+    /* Demos */
+    .db-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; }
+    .db-ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .db-ledger section { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 0.9rem; background: var(--muted); }
+    .db-ledger h4 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); }
+    .db-ledger dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.75rem; font-family: var(--font-mono); font-size: 0.95rem; }
+    .db-ledger dt { color: var(--muted-foreground); }
+    .db-ledger dd { margin: 0; text-align: end; font-weight: 600; }
+    .db-ledger section[data-kind="pin"] { background: var(--db-amber-soft); }
+    .db-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; min-height: 7.5rem; font-size: 0.9rem; }
+    .db-log li { padding: 0.35rem 0.6rem; border-radius: calc(var(--radius) * 0.6); background: var(--muted); border-inline-start: 3px solid var(--border); }
+    .db-log li[data-tone="ok"] { border-color: var(--db-ok); }
+    .db-log li[data-tone="fail"] { border-color: var(--db-fail); }
+    .db-big { font-family: var(--font-mono); font-size: 2.75rem; font-weight: 600; line-height: 1; }
+    .db-big small { font-size: 0.85rem; color: var(--muted-foreground); font-weight: 400; margin-inline-start: 0.5rem; }
+    .db-types td:last-child { font-weight: 600; }
+    .db-types tr[data-ok="true"] td:last-child { color: var(--db-ok); }
+    .db-types tr[data-ok="false"] td:last-child { color: var(--db-fail); }
+    .db-note { font-size: 0.85rem; min-height: 1.2em; }
+
+    /* Tables: cells never wrap, so a narrow screen scrolls the table sideways; even rows are tinted to keep a row in view. */
+    .table :is(.table-head, .table-cell) { white-space: nowrap; }
+    /* Mixed in sRGB: white carries hue 0 in oklch, which would tint the stripe pink. */
+    .table tbody .table-row:nth-child(even) { background: color-mix(in srgb, var(--db-teal) 7%, var(--card)); }
+
+
+    /* Section labels render as badges. */
+    .mk-section-header-eyebrow { display: inline-flex; align-items: center; margin-bottom: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 999px; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.01em; text-transform: none;
+      color: var(--primary); background: var(--db-teal-soft); border: 1px solid color-mix(in oklch, var(--db-teal) 30%, transparent); }
+
+    /* How it works: four steps in a row, a vertical list on phones. */
+    .db-flow { margin: 2rem 0 0; }
+    .db-flow-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.25rem; }
+    .db-flow-steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 1.1rem 0.75rem; text-align: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.4); }
+    .db-flow-steps li:not(:last-child)::after { content: ""; position: absolute; inset-inline-start: calc(100% + 0.55rem); top: 50%; width: 1.15rem; height: 2px; background: var(--db-teal); }
+    .db-flow-steps li:not(:last-child)::before { content: ""; position: absolute; inset-inline-start: calc(100% + 1.45rem); top: calc(50% - 4px); border: 5px solid transparent; border-inline-start: 7px solid var(--db-teal); }
+    .db-flow-steps li[data-kind="publish"] { border-color: var(--db-teal); box-shadow: 0 0 0 3px var(--db-teal-soft); }
+    .db-flow-n { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; margin-bottom: 0.35rem; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); font-weight: 700; font-size: 0.9rem; }
+    .db-flow-steps strong { font-size: 1.1rem; }
+    .db-flow-steps small { color: var(--muted-foreground); font-size: 0.92rem; }
+    .db-flow-crash { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-top: 1.25rem; color: var(--muted-foreground); font-size: 1rem; }
+    @media (max-width: 48rem) {
+      .db-flow-steps { grid-template-columns: 1fr; gap: 1.6rem; }
+      .db-flow-steps li:not(:last-child)::after { inset-inline-start: calc(50% - 1px); top: calc(100% + 0.3rem); width: 2px; height: 0.8rem; }
+      .db-flow-steps li:not(:last-child)::before { inset-inline-start: calc(50% - 5px); top: calc(100% + 1rem); border: 5px solid transparent; border-top: 7px solid var(--db-teal); }
+    }
+
+    /* Benchmarks: one tile per operation, Node.js and Bun side by side. */
+    .db-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: 1rem; margin-top: 2rem; }
+    .db-stat { padding: 1.2rem 1.35rem; background: var(--card); border: 1px solid var(--border); }
+    .db-stat h3 { margin: 0; font-size: 1.15rem; }
+    .db-stat-what { margin: 0.15rem 0 0.9rem; color: var(--muted-foreground); font-size: 0.95rem; }
+    .db-stat dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .db-stat dt { font-size: 0.82rem; color: var(--muted-foreground); }
+    .db-stat dd { margin: 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .db-details { margin-top: 1.5rem; padding: 1rem 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+    .db-details summary { cursor: pointer; font-weight: 600; }
+    .db-details p { color: var(--muted-foreground); font-size: 0.95rem; margin: 0.75rem 0 0; }
+    .db-details td { font-variant-numeric: tabular-nums; }
+
+    /* Footer with the consulting card */
+    .db-footer .mk-footer-inner { padding: clamp(3rem, 6vw, 4.5rem) 1rem 5rem; }
+    .db-footer-nav.mk-footer-nav { grid-template-columns: repeat(3, minmax(max-content, 1fr)) 1.8fr; }
+    @media (max-width: 64rem) { .db-footer-nav.mk-footer-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } .db-footer-nav > .mk-footer-col:last-child { grid-column: 1 / -1; } }
+    @media (max-width: 40rem) { .db-footer-nav.mk-footer-nav { grid-template-columns: minmax(0, 1fr); } }
+    .db-ad { --shape-round: 2rem; display: flex; flex-direction: column; gap: 0.875rem; padding: 1.25rem; border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+      background: linear-gradient(135deg, color-mix(in oklch, var(--db-teal) 16%, var(--card)), var(--card) 65%); }
+    .db-ad-head { display: flex; align-items: center; gap: 0.875rem; }
+    .db-ad-portrait { flex: none; width: 5rem; }
+    .db-ad-portrait img { display: block; width: 100%; height: auto; }
+    .db-ad-name { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--foreground); }
+    .db-ad-role { margin: 0; font-size: 0.9375rem; font-weight: 500; line-height: 1.5; color: var(--foreground); }
+    .db-ad .btn { align-self: flex-start; }
+
+
+    /* Performance band with wave edges */
+    .db-band { position: relative; isolation: isolate; padding-block: clamp(4rem, 8vw, 6rem); background: var(--muted); }
+    .db-band-pattern { position: absolute; inset: 0; z-index: -1; --shape-ink: color-mix(in oklch, var(--foreground) 6%, transparent); --shape-pattern: 22px; }
+    .db-scope { margin-top: 1rem; font-size: 0.9rem; color: var(--muted-foreground); max-width: 52rem; }
+    /* Redis comparison below the hero: headline figures, four gauges that follow the runtime and storage switches,
+       two dumbbell charts with all 16 pairings, then the tables. */
+    .db-vs-hits { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; margin-top: 2rem; }
+    .db-vs-hit { display: grid; align-content: start; gap: 0.5rem; padding: 1.15rem 1.3rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+    .db-vs-hit strong { font-size: clamp(2.3rem, 5vw, 3.2rem); line-height: 1; font-weight: 800; letter-spacing: -0.04em; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .db-vs-hit[data-kind="loss"] strong { color: var(--db-amber); }
+    .db-vs-hit span { color: var(--muted-foreground); line-height: 1.45; }
+    .db-vs-panel { margin-top: 1rem; padding: clamp(1rem, 3vw, 1.75rem); background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.4); }
+    .db-vs-controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; }
+    .db-vs-control { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; font-size: 0.9rem; color: var(--muted-foreground); }
+    .db-vs-gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 1.75rem 1rem; margin-top: 1.5rem; }
+    .db-vs-gauge { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; gap: 0.4rem; text-align: center; min-inline-size: 0; }
+    .db-vs-gauge .tacho { --tacho-size: 15rem; --tacho-optimum: var(--db-ok); --tacho-worst: var(--db-fail); }
+    .db-vs-gauge figcaption { display: grid; gap: 0.1rem; }
+    .db-vs-gauge figcaption strong { font-size: 1.05rem; }
+    .db-vs-gauge figcaption span { font-size: 0.9rem; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+    .db-vs-key { margin: 1.5rem 0 0; font-size: 0.9rem; color: var(--muted-foreground); max-width: 52rem; }
+    .db-vs-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 1rem; margin-top: 1rem; }
+    .db-vs-charts .chart-frame { min-inline-size: 0; margin: 0; }
+    .db-vs-chart { height: 27rem; }
+    .db-vs .db-details { margin-top: 1rem; }
+    .db-h3 { margin: clamp(2.5rem, 5vw, 3.5rem) 0 0; font-size: clamp(1.35rem, 2.6vw, 1.75rem); line-height: 1.2; }
+    .db-redis { margin-top: 1.25rem; background: var(--card); }
+    .db-redis + .db-redis { margin-top: 0.9rem; }
+    .db-redis th[scope="row"] { font-weight: 600; }
+
+    .db-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr)); gap: 1.25rem; margin-top: 2rem; }
+    .db-choice { display: flex; flex-direction: column; gap: 0.6rem; padding: 1.4rem 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.4); }
+    .db-choice h3 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--primary); }
+    .db-chosen { margin: 0; font-size: 1.2rem; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
+    .db-instead { margin: 0; color: var(--muted-foreground); font-size: 0.98rem; }
+    .db-choice dl { margin: 0.4rem 0 0; display: grid; gap: 0.6rem; padding-top: 0.9rem; border-top: 1px dashed var(--border); }
+    .db-choice dl div { display: grid; grid-template-columns: 3.4rem 1fr; gap: 0.75rem; align-items: baseline; }
+    .db-choice dt { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.15rem 0; text-align: center; border-radius: 999px; }
+    .db-choice [data-kind="gain"] dt { background: var(--db-teal-soft); color: var(--primary); }
+    .db-choice [data-kind="cost"] dt { background: var(--db-amber-soft); color: var(--db-amber); }
+    .db-choice dd { margin: 0; font-size: 1rem; line-height: 1.5; }
+
+    .db-install { padding: clamp(1.25rem, 3vw, 2.25rem); border: 1px solid var(--border); background: var(--card); }
+    .db-cmd { display: inline-flex; align-items: center; gap: 0.75rem; margin: 1.25rem 0; padding: 0.6rem 0.9rem; border-radius: var(--radius); background: var(--muted); font-family: var(--font-mono); }
+    .db-cmd::before { content: "$"; color: var(--muted-foreground); }
+    .db-cmds { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.25rem 0; }
+    .db-cmds .db-cmd { margin: 0; }
+    .tab-content p { color: var(--muted-foreground); }
+
+    /* The call to action stays dark in both themes, so the nebula shader and white text keep their contrast. */
+    .db-cta { --foreground: #fff; --muted-foreground: rgb(255 255 255 / 0.8); --border: rgb(255 255 255 / 0.3); --background: #102b2d; --primary: #86ccbd; --primary-foreground: #102b2d;
+      position: relative; isolation: isolate; overflow: hidden; color: #fff; background: #102b2d; border-radius: calc(var(--radius) * 2); }
+    .db-cta .mk-cta-inner { position: relative; background: transparent; }
+    .db-cta .mk-cta-desc, .db-cta .mk-cta-note { color: rgb(255 255 255 / 0.82); }
+
+    .db-footer .mk-footer-inner { max-width: 76rem; margin-inline: auto; }
+    .db-menu { display: none; }
+    @media (max-width: 54rem) {
+      .mk-header-nav { display: none; }
+      .db-menu { display: inline-flex; }
+    }
+    @media (max-width: 40rem) { .db-ledger { grid-template-columns: 1fr; } }
+
+    /* Phones: the sticky header already sits above the hero, code scrolls sideways instead of wrapping,
+       cards put their icon beside the heading, and the steps become a compact numbered list. */
+    @media (max-width: 48rem) {
+      .db-hero { padding-block-start: 1.5rem; }
+      .db-window { padding: 0.6rem; border-radius: calc(var(--radius) * 1.4); }
+      .mockup-code { font-size: 0.8rem; }
+      .db-window .mockup-code[data-wrap] { grid-template-columns: minmax(100%, max-content); }
+      .db-window .mockup-code[data-wrap] > pre { white-space: pre; overflow-wrap: normal; padding-inline-start: var(--_px); text-indent: 0; }
+      .db-flow-steps { gap: 1.25rem; }
+      .db-flow-steps li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; justify-items: start; column-gap: 0.85rem; padding: 0.75rem 1rem; text-align: start; }
+      .db-flow-n { grid-row: span 2; margin: 0; }
+      .db-flow-steps li:not(:last-child)::after { inset-inline-start: calc(1.9rem - 1px); top: calc(100% + 3px); height: calc(1.25rem - 12px); }
+      .db-flow-steps li:not(:last-child)::before { inset-inline-start: calc(1.9rem - 5px); top: calc(100% + 1.25rem - 8px); }
+    }
+    @media (max-width: 40rem) {
+      .db-features, .db-guarantees { gap: 0.9rem; margin-top: 1.5rem; }
+      .db-feature { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.65rem 0.9rem; padding: 1.1rem 1.15rem; }
+      .db-feature .db-icon { width: 2.75rem; height: 2.75rem; }
+      .db-feature .db-icon svg { width: 1.45rem; height: 1.45rem; }
+      .db-feature h3 { margin: 0; font-size: 1.1rem; }
+      .db-feature > :not(.db-icon, h3) { grid-column: 1 / -1; }
+      .db-feature .db-file { justify-self: start; margin-top: 0; }
+      .db-stats, .db-choices { gap: 0.9rem; margin-top: 1.5rem; }
+      .db-log { min-height: 0; }
+      /* The tab list is an inline grid of columns; stacked rows keep the full labels. */
+      .db-install .tab-list { display: grid; grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); width: 100%; height: auto; }
+      .db-footer .mk-footer-inner { padding-top: 2.5rem; }
+    }
+  
+/* Database examples share the release palette and the reference's responsive shell. */
+.mk-hero-title {text-wrap:balance}
+.db-hero .mk-hero {padding-block:1rem}
+.db-hero .mk-hero-copy {gap:1.08rem}
+.db-hero .mk-hero-desc {max-width:42ch;line-height:1.52}
+.db-window {background:radial-gradient(ellipse at 12% 10%,#71a39d 0,transparent 45%),linear-gradient(131deg,#286467,#173e42 45%,#467f7c 75%,#a17b52);border:1px solid #4b7877}
+.db-window .mockup-code {position:relative;z-index:1;background:#11282b;color:#f2faf6;border:1px solid #ffffff2e;box-shadow:0 18px 35px #0e262a50}
+.db-window .mockup-code .k {color:#98e1d4}.db-window .mockup-code .s {color:#ffce9c}.db-window .mockup-code .c {color:#b7ccca}
+.db-window .mockup-code pre {font-size:clamp(.66rem,1.14vw,.88rem);line-height:1.45;min-height:1.42em}
+.db-window .mockup-code::before {color:#c6ccdd}
+.db-window figcaption {position:relative;z-index:1;max-width:45ch;margin:.85rem .3rem 0;line-height:1.4}
+.db-hero-line {margin:0;color:var(--muted-foreground);font-size:.92rem}
+.db-hero-line code {color:var(--primary);font-size:.88em;font-weight:600}
+.db-comparison .db-vs-panel {margin-top:1.6rem}
+.db-comparison .db-vs-hits {gap:.8rem;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:1.2rem}
+.db-comparison .db-vs-hit {gap:.3rem}
+.db-comparison .db-vs-hit strong {font-size:clamp(1.5rem,3.8vw,2.6rem)}
+.db-comparison .db-vs-hit small {font:500 .78rem var(--font-mono);color:var(--muted-foreground)}
+.db-label {font-weight:650;color:var(--foreground)}
+.db-chart {width:100%;height:260px;margin-top:1rem}
+.db-compare-caption {font-size:.9rem;color:var(--muted-foreground);margin:.5rem 0 0}
+.db-chart[hidden], [hidden]{display:none!important}
+.db-out {padding:.75rem .85rem;border:1px solid var(--border);border-radius:.7rem;background:var(--muted);font:500 .86rem/1.6 var(--font-mono);min-height:3.2rem;overflow-wrap:anywhere;white-space:pre-line;margin:0;color:var(--foreground)}
+.db-pill-number {color:var(--primary);font-variant-numeric:tabular-nums}
+.db-cap {color:var(--muted-foreground);font-size:.83rem;line-height:1.4}
+.db-guide {max-width:56rem;padding:3.5rem 1.3rem 6rem;margin:auto;font-size:1.05rem;line-height:1.65}
+.db-guide h1,.db-guide h2,.db-guide h3{line-height:1.17;scroll-margin-top:2rem;letter-spacing:-.025em}
+.db-guide h1{font-size:clamp(2.1rem,5vw,3.5rem)}.db-guide h2{margin-top:2.1rem}
+.db-guide pre,.db-snippet{padding:1rem;border-radius:.7rem;overflow:auto;background:var(--muted);font:400 .86rem/1.6 var(--font-mono)}
+.db-guide :not(pre)>code{font-size:.88em}.db-guide a,.db-scope a,.db-details a{color:var(--primary);text-underline-offset:3px}
+.db-guide table{border-collapse:collapse;display:block;max-width:100%;overflow:auto}.db-guide td,.db-guide th{border:1px solid var(--border);padding:.5rem .68rem;text-align:start;vertical-align:top}
+.db-guide-nav {display:flex;gap:.8rem;align-items:center;justify-content:space-between}
+.db-guide .mermaid {white-space:pre-wrap}.db-snippet{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.db-cases {margin:1.5rem 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(17rem,100%),1fr));gap:1rem}
+.db-case {padding:1rem 1.25rem;border:1px solid var(--border);background:var(--card);border-radius:var(--radius)}
+.db-case summary{font-weight:650;cursor:pointer}.db-case p{color:var(--muted-foreground);line-height:1.5}
+.db-band .db-section {position:relative}.db-flow-steps {list-style:none}
+.db-cta {background:linear-gradient(120deg,#163637,#2d6363,#795d43)}
+.db-window .shader,.db-cta .shader{pointer-events:none}
+
+.db-skip{position:absolute;left:-10000px;top:.5rem}.db-skip:focus{left:.5rem;background:var(--card);padding:1rem;z-index:999;color:var(--foreground)}
+:focus-visible{outline:2px solid var(--ring);outline-offset:3px}
+@media(max-width:56rem){.db-comparison .db-vs-hits{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:48rem){.db-chart{height:260px}.db-window .mockup-code pre{font-size:.78rem}.db-hero .mk-hero-copy{gap:.85rem}}
+@media(max-width:27rem){.db-comparison .db-vs-hit{padding:.72rem}.db-window{padding:.85rem}}
+@media(prefers-reduced-motion:reduce){.shader canvas{display:none!important}}
+.db-vs-gauge {min-width:0}.db-vs-gauge figcaption span {font-variant-numeric:tabular-nums}
+.db-guide :is(p,table,ul,ol,pre,figure) {margin:1.1em 0}.db-guide h2,.db-guide h3 {font-weight:700}.db-guide a {text-decoration:underline}.db-guide li {margin:.3em 0}.db-guide article ul,.db-guide article ol{padding-inline-start:1.5em;list-style:revert}.db-guide figure img{max-width:100%;height:auto}.db-guide-nav{border-block-end:1px solid var(--border);padding-block:1rem}.db-guide h1{font-weight:720;margin:1em 0 .5em}
+
+.db-anchor{display:block;scroll-margin-top:5rem}
+.db-latencies{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem;margin:1.45rem 0 .5rem}
+.db-latency{padding:1.05rem 1.15rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+.db-latency span,.db-latency small{display:block}
+.db-latency span{font-weight:600}
+.db-latency output{display:block;margin:.35rem 0;font:650 clamp(1.55rem,3.1vw,2.7rem)/1.15 var(--font-sans);letter-spacing:-.04em;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.db-latency small,.db-bench-query>p{color:var(--muted-foreground)}
+.db-bench-query{margin-top:1.8rem;border-top:1px solid var(--border);padding-top:1.1rem}
+.db-bench-query h3{margin:0;font-size:1.4rem}.db-bench-query>p{max-width:75ch;margin:.65rem 0 1rem}
+.db-bench-query .db-chart{height:145px}
+.db-capabilities{margin-top:1.7rem;overflow:auto}
+.db-capabilities table,.db-details table{width:100%;border-collapse:collapse}
+.db-capabilities caption,.db-details caption{text-align:left;font-weight:650;padding-block:.75rem}
+.db-capabilities :is(td,th),.db-details :is(td,th){padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:top;text-align:left}
+.db-details .table-container{overflow:auto}.db-details td:nth-child(n+3){text-align:right}
+@media(max-width:52rem){.db-latencies{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:36rem){.db-latency{padding:.8rem}.db-history-terms{grid-template-columns:1fr}.db-capabilities :is(td,th),.db-details :is(td,th){padding:.45rem}.db-bench-query{margin-top:1.2rem}}
+
+.db-feature-links{display:flex;flex-wrap:wrap;gap:.4rem 1rem}
+#why .db-feature a,.db-bench-guide a,.db-search-stats a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+.db-bench-guide,.db-write-cost{margin-top:1rem}
+.db-write-cost strong{color:var(--foreground);font-variant-numeric:tabular-nums}
+.db-search-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.db-search-stats a{display:inline-block;margin-top:.65rem;font-size:.9rem}
+@media(max-width:40rem){.db-search-stats{grid-template-columns:1fr}.db-search-stats .db-latency{padding:.9rem 1rem}}
+.db-history-window{margin-block:1.5rem}
+.db-h3{font-size:1.25rem;font-weight:700;margin:2rem 0 .5rem}
+.db-choose{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:1rem;margin-top:1.5rem}
+.db-choose>div{padding:1.2rem 1.4rem;background:var(--card);border:1px solid var(--border);border-inline-start:3px solid var(--db-teal);border-radius:var(--radius)}
+.db-choose>div+div{border-inline-start-color:var(--db-amber)}
+.db-choose h3{font-size:1rem;font-weight:700;margin:0 0 .5rem}
+.db-choose ul,.db-scale-facts{margin:0;padding-inline-start:1.2rem;line-height:1.6}
+.db-scale-facts{max-width:52rem;margin-top:1.25rem}.db-scale-facts li+li{margin-top:.5rem}
+.db-capabilities td:nth-child(n+2) code{font-size:.85em}
+
+.db-snippet .k{color:var(--db-teal)}.db-snippet .s{color:var(--db-amber)}.db-snippet .c{color:var(--muted-foreground)}
+.db-mongo-controls{margin-top:1rem}
+.db-mongo-figure{margin:1.25rem 0 0}
+.db-chart-title{font-weight:600;font-size:.95rem}
+.db-legend{display:flex;flex-wrap:wrap;gap:.25rem 1rem;margin:.35rem 0 0;font-size:.85rem;color:var(--muted-foreground)}
+.db-legend span::before{content:"";display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.4rem;vertical-align:-.05rem;background:var(--db-chart-a)}
+.db-legend span[data-series="b"]::before{background:var(--db-chart-b)}
+.db-mongo-ratio{height:300px}
+.db-mongo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.75rem;margin-top:.75rem}
+.db-mini{border:1px solid var(--border);border-radius:.6rem;padding:.6rem .75rem .25rem;min-width:0}
+.db-mini h4{margin:0;font-size:.85rem;font-weight:600}
+.db-mini p{margin:.1rem 0 0;font-size:.78rem;color:var(--muted-foreground)}
+.db-mini .chart{height:92px;margin:0}
+
+/* Playground window, as on the defuss-dataview site: the frame, a note and two actions below it. */
+.db-playground{display:grid;gap:.75rem;margin-top:2rem}
+.db-playground-frame{height:clamp(36rem,82vh,50rem);border:1px solid var(--border);border-radius:var(--radius-lg,.9rem);overflow:hidden;background:var(--card)}
+.db-playground-frame iframe{display:block;width:100%;height:100%;border:0}
+.db-playground-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1rem;padding-inline:.25rem}
+.db-playground-note{margin:0;font-size:.8125rem;color:var(--muted-foreground);max-width:60ch}
+.db-playground-actions{display:flex;gap:.5rem}

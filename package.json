@@ -1,0 +1,100 @@
+{
+  "name": "defuss-db",
+  "version": "3.0.0",
+  "description": "Isomorphic document database with DataView queries, DSON values and lexical, vector and hybrid search.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aron Homberg",
+  "packageManager": "bun@1.4.4",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server.d.mts",
+        "default": "./dist/server.mjs"
+      },
+      "require": {
+        "types": "./dist/server.d.cts",
+        "default": "./dist/server.cjs"
+      }
+    },
+    "./browser": {
+      "import": {
+        "types": "./dist/browser.d.mts",
+        "default": "./dist/browser.mjs"
+      },
+      "require": {
+        "types": "./dist/browser.d.cts",
+        "default": "./dist/browser.cjs"
+      }
+    },
+    "./parallel-worker": {
+      "import": "./dist/parallel-worker.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "ARCH.md",
+    "LICENSE",
+    "docs/*.md",
+    "docs/benchmarks/*.json",
+    "examples"
+  ],
+  "engines": {
+    "node": ">=26",
+    "bun": ">=1.4.4"
+  },
+  "dependencies": {
+    "defuss-brotli": "0.3.0",
+    "defuss-dataview": "0.7.0",
+    "defuss-dbsonl": "0.8.0",
+    "defuss-dson": "1.5.1",
+    "defuss-lexicalsearch": "0.4.0",
+    "defuss-search": "0.5.0",
+    "defuss-storage": "0.4.1",
+    "defuss-vectorsearch": "0.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@vitest/coverage-v8": "4.1.12",
+    "defuss-shadcn": "0.9.14",
+    "esbuild": "0.27.4",
+    "fflate": "0.8.2",
+    "marked": "17.0.1",
+    "mongodb": "7.8.0",
+    "oxlint": "1.90.0",
+    "pkgroll": "2.29.0",
+    "playwright": "1.63.0",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  },
+  "scripts": {
+    "build": "pkgroll --clean-dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && oxlint --deny-warnings src tests scripts examples website/demo",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage --reporter=default --reporter=json --outputFile=output/tests.json",
+    "e2e": "node scripts/e2e.mjs",
+    "bench": "node scripts/bench.mjs",
+    "verify": "make verify",
+    "format": "prettier --write src tests scripts examples website/demo website/examples",
+    "bench:search": "node scripts/bench-search.mjs",
+    "bench:history": "node scripts/bench-history.mjs && bun scripts/bench-history.mjs",
+    "site": "make site"
+  }
+}

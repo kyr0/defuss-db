@@ -1,0 +1,19 @@
+{
+  "defuss-shadcn": {
+    "version": "0.9.14",
+    "license": "MIT",
+    "npmIntegrity": "sha512-4T3gbx+7xaQK9J36CNhOuA8wtKWRR+qF8qG32K5LOrgjEZTIp3eIQxgTJlsLaeYsH5BasGQM2isK+sOCiQC5VA==",
+    "files": [
+      "dist/components/core.min.css",
+      "dist/components/all.min.css",
+      "dist/components/all.min.js",
+      "dist/components/NOTICE.txt",
+      "LICENSE"
+    ],
+    "note": "Copied unchanged from the installed package. Their sourceMappingURL comments name maps that are not copied; only developer tools request them."
+  },
+  "fonts": {
+    "from": "docs/assets/vendor/fonts",
+    "note": "The defuss-db site’s self-hosted fonts and their OFL licences."
+  }
+}

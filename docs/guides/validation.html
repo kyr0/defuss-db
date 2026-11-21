@@ -1,0 +1,115 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Validation · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="validation">Validation</h1>
+<p>The release suite ran on Linux x64 on 2026-11-18 and on macOS arm64 (Apple M5 Max) on 2026-11-19, both with Node.js 26.13.1 and Bun 1.4.4. Reports in <code>output/</code> retain exact counts, coverage, versions, timings and execution dates.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Unit/integration requirements</td>
+<td>127 tests using real memory and native file storage</td>
+</tr>
+<tr>
+<td>Temporal invariants</td>
+<td>Native commit receipts after a disjoint commit, ordinal ordering, half-open intervals, historical predicate writes, tombstones, snapshot visibility, stable cursors and historical BM25/vector/hybrid scores against a rebuilt reference corpus. The deterministic cell oracle compares 1,152 recorded/effective observations.</td>
+</tr>
+<tr>
+<td>Temporal storage</td>
+<td>Interruption and resumption across handles, baseline publication under tight transaction limits, failure rollback, archive lineage through two forks, zero-payload tombstones and one-seek point reads across a 256-version timeline.</td>
+</tr>
+<tr>
+<td>Packed history</td>
+<td>Node and Bun directory reopen after compaction, real Chromium OPFS reopen, and full history archives crossing between server and OPFS with source-qualified receipts.</td>
+</tr>
+<tr>
+<td>Index-only reads</td>
+<td>A storage probe records zero document lookups for ID pages and range counts. Tests compare all outputs against full rows, including mixed primary types, ties, bounds, snapshots and staged changes.</td>
+</tr>
+<tr>
+<td>Website pages</td>
+<td>Every generated page loads in Chromium at desktop and phone width without console errors, failed requests or horizontal overflow. The landing page benchmark controls, charts, theme, tabs, menu and embedded playground run through their buttons. <code>scripts/e2e-demo.mjs</code> drives every tab of the Ledger playground at both widths, including persistence across a reload.</td>
+</tr>
+<tr>
+<td>Browser examples</td>
+<td>18 Chromium checks run seven examples against the installed tarball. Eight price-history cases vary the effective date and recorded revision. They exercise cursor resume, grouping, snapshots and rejected writes, all three search modes, compressed native graphs, and persisted OPFS state.</td>
+</tr>
+<tr>
+<td>Seek and ordering</td>
+<td>Pairwise DataView comparator oracle, forced scan equivalence, 128/129 range cutoff, mixed directions, prefix IDs, exact key limit, explicit bounds, malformed and stale cursors, pinned snapshots, compaction and rollback. A seven-row deep continuation reads seven documents plus one lookahead pointer.</td>
+</tr>
+<tr>
+<td>Caching and indexing</td>
+<td>Cross-handle writes, independent collections, same-collection replacement, skipped import, current summary revisions, query/search plan equivalence, rejected writes and corruption detection.</td>
+</tr>
+<tr>
+<td>Query correctness</td>
+<td>Indexed/forced-scan/JavaScript equivalence across four batch sizes; DataView array-source aggregation oracle</td>
+</tr>
+<tr>
+<td>Search semantics</td>
+<td>Upstream lexical/vector/hybrid oracles; pre-top-k predicates/typed IDs; language analyzers; TurboQuant refinement; cached generations; rollback/reopen/compaction; concurrent search-write conflicts</td>
+</tr>
+<tr>
+<td>Brotli archives</td>
+<td>Native DSON graphs, all index definitions, merge policies, fragmented/reused Node buffers, size limits, checksum/order/truncation failures and full rollback</td>
+</tr>
+<tr>
+<td>Archive interoperability</td>
+<td>Archives travel from Node and Bun to Chromium OPFS and back; packed ESM/CommonJS archive consumers</td>
+</tr>
+<tr>
+<td>Query cache</td>
+<td>Automatic/manual admission, revision/handle/snapshot isolation, transaction bypass, plan reuse/bounds/immutability, exact property order, native-constant bypass, result ownership, one real scan for eight overlapping queries, budget/signal isolation, shared failure cleanup and clear epochs</td>
+</tr>
+<tr>
+<td>Input capture / I/O</td>
+<td>Synchronous argument capture, one schema read for 100-document indexed batch, one document read per update, one schema read per collection audit, zero equality-index writes for unchanged fields, bounded point reads</td>
+</tr>
+<tr>
+<td>Native types</td>
+<td>Dates, invalid Dates, bigint, undefined, NaN/infinity, signed zero, binary views, shared buffers, Maps, Sets, RegExp, shared references and cycles</td>
+</tr>
+<tr>
+<td>Transactions</td>
+<td>Cross-collection commit/rollback, staged reads, conflicting uniqueness, phantom detection, disjoint point writes, callback lifecycle, capacity failure</td>
+</tr>
+<tr>
+<td>Recovery</td>
+<td>Four separately launched writer SIGKILL trials; reopen, paired-document, equality-index, ordered-index and hybrid-search input atomicity/audit after each</td>
+</tr>
+<tr>
+<td>Runtime concurrency</td>
+<td>Independent Node and Bun processes updating one real directory without lost updates</td>
+</tr>
+<tr>
+<td>Native packaging</td>
+<td>Clean tarball consumers under Node and Bun, ESM and CommonJS, including directory operations</td>
+</tr>
+<tr>
+<td>Type packaging</td>
+<td>Clean TypeScript consumer checks projected aliases, aggregate result types and rejected unknown fields without DOM/Node ambient types</td>
+</tr>
+<tr>
+<td>Browser packaging</td>
+<td>Browser bundle built from installed tarball; excludes native locking/server, ONNX/transformer and multicore imports</td>
+</tr>
+<tr>
+<td>Browser execution</td>
+<td>Real Chromium Headless Shell 153.0.8010.12, dedicated workers and OPFS. 8 scenarios with 62 assertions</td>
+</tr>
+<tr>
+<td>Browser concurrency</td>
+<td>Two independent workers perform 24 total counter updates, then a fresh worker checks persisted state and index integrity</td>
+</tr>
+<tr>
+<td>Resource behavior</td>
+<td>Row/work/output/group limits, cancellation, early iterator return, pull-driven ingestion receipts</td>
+</tr>
+</tbody></table>
+<p>The browser test ran under a same-origin CSP on localhost with <code>script-src &#39;self&#39; &#39;wasm-unsafe-eval&#39;</code> for Brotli WASM, without JavaScript <code>unsafe-eval</code>. The execution environment required the serverless headless shell with single-process browser mode; it still uses real dedicated workers, OPFS and Web Locks. This validates competing workers, not separate browser processes. The release&#39;s e2e script also supports a normal Playwright browser. Browser launch arguments are recorded in <code>output/e2e-results.json</code>.</p>
+<p>Coverage is measured by the Node integration suite; it does not fabricate browser coverage. The final run measured 92.94% line coverage and 87.54% branch coverage. The exact values are in <code>output/coverage/coverage-summary.json</code>. TypeScript checks and oxlint run with warnings treated as failures.</p>
+<p>Not established by these runs: physical power loss, disk-full fault injection, Windows native execution, Firefox/WebKit OPFS behavior, network filesystems, hostile writers, multi-origin browser storage, or distributed use. On macOS a 4 KiB write plus defuss-storage flush took about 4 ms under Node.js and under Bun (<a href="performance.html#compared-with-mongodb-on-one-machine">MongoDB comparison</a>): under both runtimes it asks the drive to empty its write cache (<code>F_FULLFSYNC</code>). Server and browser durability differ as reported by their backends. SIGKILL tests establish process-interruption behavior for exercised timings, not an exhaustive crash-point proof.</p>
+<p><code>make verify</code> runs the complete release gate. <code>make release</code> depends on that gate, then creates the archive with a fresh filename and per-file SHA-256 inventory. Release packaging compares query access paths within each backend, measures search and history, and compares DataView arrays only with in-memory collections, rebuilds the static site from the matching evidence and confirms the downloadable tarball matches the distributed package.</p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

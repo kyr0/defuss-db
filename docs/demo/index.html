@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Scripts only from this origin; wasm-unsafe-eval is what defuss-db's Brotli archives would need in a browser. -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; object-src 'none'; base-uri 'none'">
+  <title>Ledger · defuss-db playground</title>
+  <meta name="description" content="defuss-shadcn's Data Grid, Autocomplete and Property Grid over a real defuss-db database in a dedicated worker on OPFS: 100,000 orders, reports, a price history with corrections, transactional transfers and full-text search, kept across visits.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23246b69' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M3 5v14a9 3 0 0 0 18 0V5'/%3E%3Cpath d='M3 12a9 3 0 0 0 18 0'/%3E%3C/svg%3E">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="vendor/fonts/index.css">
+  <link rel="stylesheet" href="vendor/defuss-shadcn/core.min.css">
+  <link rel="stylesheet" href="vendor/defuss-shadcn/all.min.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg class="sr-only" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+  <symbol id="i-reload" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.9-1.9"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<div class="border-layout dv-app" data-frame="none" data-center-min="300">
+  <main class="border-layout-center dv-center">
+    <header class="dv-bar">
+      <h1 class="dv-brand"><svg class="dv-icon" aria-hidden="true"><use href="#i-logo"/></svg>Ledger</h1>
+      <p class="dv-bar-note" id="store-chip" role="status">Opening the store in OPFS</p>
+      <button type="button" class="btn" data-variant="ghost" data-size="sm" id="reload" title="Reload: the worker reopens the same OPFS files">
+        <svg class="dv-icon" aria-hidden="true"><use href="#i-reload"/></svg>Reload
+      </button>
+      <button type="button" class="btn" data-variant="ghost" data-size="sm" id="reset" title="Delete the store from this browser and seed it again">
+        <svg class="dv-icon" aria-hidden="true"><use href="#i-reset"/></svg>Reset data
+      </button>
+    </header>
+
+    <div class="tabs dv-tabs">
+      <div class="tab-list" role="tablist" aria-label="Demo views" id="dv-tablist" data-size="sm">
+        <button class="tab-trigger" role="tab" aria-selected="true" aria-controls="panel-orders" id="tab-orders">Orders (Grid)</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="panel-reports" id="tab-reports" tabindex="-1">Reports (Compute)</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="panel-prices" id="tab-prices" tabindex="-1">Price history (History)</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="panel-accounts" id="tab-accounts" tabindex="-1">Accounts (Transactions)</button>
+        <button class="tab-trigger" role="tab" aria-selected="false" aria-controls="panel-search" id="tab-search" tabindex="-1">Search (Autocomplete)</button>
+      </div>
+
+      <div class="tab-content dv-panel" role="tabpanel" id="panel-orders" aria-labelledby="tab-orders">
+        <div class="dv-toolbar">
+          <p class="dv-hint">Click a header to sort, Shift+click to add it, or type in the filter row. Each change is a new defuss-db query in the worker, and scrolling loads the next 100 orders. Pick a status to write it.</p>
+        </div>
+        <div class="data-grid dv-fill" id="orders" aria-label="Orders" data-select="single" data-paging="infinite" data-page-size="100" data-empty-text="No order matches these filters.">
+          <div class="data-grid-viewport">
+            <div class="data-grid-head">
+              <div class="data-grid-row">
+                <div class="data-grid-header" data-field="id" data-format="" data-width="7.5rem" data-locked data-filter="text">Order</div>
+                <div class="data-grid-header" data-field="customer" data-width="minmax(10rem, 1fr)" data-filter="text">Customer</div>
+                <div class="data-grid-header" data-field="region" data-width="6.5rem" data-filter="select" data-options="EU,US,APAC,LATAM">Region</div>
+                <div class="data-grid-header" data-field="product" data-width="8rem" data-filter="select" data-options="Keyboard,Monitor,Dock,Headset,Webcam,Laptop stand,Desk lamp,Cable kit,Mouse,Chair">Product</div>
+                <div class="data-grid-header" data-field="amount" data-type="number" data-format="currency:EUR" data-width="8rem" data-filter="number">Amount</div>
+                <div class="data-grid-header" data-field="date" data-format="date" data-width="7rem">Date</div>
+                <div class="data-grid-header" data-field="status" data-width="8rem" data-filter="select" data-options="Paid,Pending,Refunded,Failed">Status</div>
+              </div>
+            </div>
+            <div class="data-grid-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content dv-panel" role="tabpanel" id="panel-reports" aria-labelledby="tab-reports" hidden>
+        <div class="dv-toolbar">
+          <select class="select" id="reports-plan" data-size="sm" aria-label="Report"></select>
+          <p class="dv-hint">Each report is one prepared plan that defuss-db evaluates over the 100,000 orders in the worker. The grid sorts and filters only the groups or rows the plan returned.</p>
+        </div>
+        <div class="dv-fill dv-report" id="reports-host"></div>
+      </div>
+
+      <div class="tab-content dv-panel" role="tabpanel" id="panel-prices" aria-labelledby="tab-prices" hidden>
+        <div class="dv-toolbar">
+          <label class="dv-field"><span class="dv-field-label">Effective date</span><input class="input" type="date" id="prices-date" data-size="sm" value="2025-09-01" min="2024-12-01"></label>
+          <label class="dv-field"><span class="dv-field-label">Recorded revision</span><select class="select" id="prices-revision" data-size="sm"><option value="">Latest: everything recorded</option></select></label>
+          <p class="dv-hint">The price list is a history-tracked collection: three effective price lists, then a correction recorded later for the second half of 2025.</p>
+        </div>
+        <div class="dv-columns">
+          <div class="data-grid dv-fill" id="prices" aria-label="Price list" data-select="single" data-persist="none" data-empty-text="No price applied on that date.">
+            <div class="data-grid-viewport">
+              <div class="data-grid-head">
+                <div class="data-grid-row">
+                  <div class="data-grid-header" data-field="id" data-width="6.5rem">SKU</div>
+                  <div class="data-grid-header" data-field="product" data-width="minmax(8rem, 1fr)">Product</div>
+                  <div class="data-grid-header" data-field="eur" data-type="number" data-format="currency:EUR" data-width="7rem">Price</div>
+                </div>
+              </div>
+              <div class="data-grid-body"></div>
+            </div>
+          </div>
+          <div class="dv-stack">
+            <h3 class="dv-label">Effective segments of <span id="prices-sku">MN-270</span>: history(id)</h3>
+            <div class="data-grid dv-small" id="prices-history" aria-label="Effective segments" data-persist="none" data-empty-text="No segments.">
+              <div class="data-grid-viewport">
+                <div class="data-grid-head">
+                  <div class="data-grid-row">
+                    <div class="data-grid-header" data-field="from" data-format="date" data-width="7rem">From</div>
+                    <div class="data-grid-header" data-field="until" data-format="date" data-width="7rem">Until</div>
+                    <div class="data-grid-header" data-field="eur" data-type="number" data-format="currency:EUR" data-width="minmax(5rem, 1fr)">Price</div>
+                    <div class="data-grid-header" data-field="revision" data-type="number" data-format="" data-width="5.5rem">Revision</div>
+                  </div>
+                </div>
+                <div class="data-grid-body"></div>
+              </div>
+            </div>
+            <h3 class="dv-label">Recorded changes: audit(id)</h3>
+            <div class="data-grid dv-small" id="prices-audit" aria-label="Recorded changes" data-persist="none" data-empty-text="No changes.">
+              <div class="data-grid-viewport">
+                <div class="data-grid-head">
+                  <div class="data-grid-row">
+                    <div class="data-grid-header" data-field="revision" data-type="number" data-format="" data-width="5.5rem">Revision</div>
+                    <div class="data-grid-header" data-field="from" data-format="date" data-width="7rem">From</div>
+                    <div class="data-grid-header" data-field="until" data-format="date" data-width="7rem">Until</div>
+                    <div class="data-grid-header" data-field="eur" data-type="number" data-format="currency:EUR" data-width="minmax(5rem, 1fr)">Price</div>
+                  </div>
+                </div>
+                <div class="data-grid-body"></div>
+              </div>
+            </div>
+            <form class="dv-form" id="prices-correct">
+              <h3 class="dv-label">Record a correction</h3>
+              <label class="dv-field"><span class="dv-field-label">SKU</span><select class="select" id="correct-sku" data-size="sm"></select></label>
+              <label class="dv-field"><span class="dv-field-label">Price (EUR)</span><input class="input" type="number" id="correct-eur" data-size="sm" min="0" step="0.01" value="344" required></label>
+              <label class="dv-field"><span class="dv-field-label">Effective from</span><input class="input" type="date" id="correct-from" data-size="sm" value="2025-07-01" min="2025-01-01" required></label>
+              <label class="dv-field"><span class="dv-field-label">Until (exclusive)</span><input class="input" type="date" id="correct-until" data-size="sm" value="2025-10-01"></label>
+              <button type="submit" class="btn" data-size="sm" id="correct-submit">Record correction</button>
+              <p class="dv-caption dv-form-note" id="prices-note" role="status"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content dv-panel" role="tabpanel" id="panel-accounts" aria-labelledby="tab-accounts" hidden>
+        <div class="dv-toolbar">
+          <select class="select" id="tx-from" data-size="sm" aria-label="From account"></select>
+          <select class="select" id="tx-to" data-size="sm" aria-label="To account"></select>
+          <input class="input dv-amount" type="number" id="tx-amount" data-size="sm" value="250.00" min="0.01" step="0.01" aria-label="Amount in EUR">
+          <button type="button" class="btn" data-size="sm" id="tx-send">Transfer</button>
+          <button type="button" class="btn" data-variant="outline" data-size="sm" id="tx-fail">Transfer, fail after the debit</button>
+          <button type="button" class="btn" data-variant="outline" data-size="sm" id="tx-burst">Run 25 transfers</button>
+          <button type="button" class="btn" data-variant="outline" data-size="sm" id="tx-pin">Pin snapshot</button>
+          <button type="button" class="btn" data-variant="ghost" data-size="sm" id="tx-release">Release snapshot</button>
+        </div>
+        <p class="dv-invariant" id="tx-invariant" role="status"></p>
+        <p class="dv-caption" id="tx-note" role="status"></p>
+        <div class="dv-columns" data-wide="first">
+          <div class="data-grid dv-fill" id="accounts" aria-label="Accounts" data-select="single" data-persist="none" data-empty-text="No accounts.">
+            <div class="data-grid-viewport">
+              <div class="data-grid-head">
+                <div class="data-grid-row">
+                  <div class="data-grid-header" data-field="id" data-width="4.5rem">Account</div>
+                  <div class="data-grid-header" data-field="name" data-width="minmax(8rem, 1fr)">Name</div>
+                  <div class="data-grid-header" data-field="balance" data-type="number" data-format="currency:EUR" data-width="8.5rem">Live</div>
+                  <div class="data-grid-header" data-field="pinned" data-type="number" data-format="currency:EUR" data-width="8.5rem">Snapshot</div>
+                </div>
+              </div>
+              <div class="data-grid-body"></div>
+            </div>
+          </div>
+          <div class="data-grid dv-fill" id="transfers" aria-label="Recent transfers" data-select="single" data-persist="none" data-empty-text="No transfers yet.">
+            <div class="data-grid-viewport">
+              <div class="data-grid-head">
+                <div class="data-grid-row">
+                  <div class="data-grid-header" data-field="at" data-width="6.5rem">Time</div>
+                  <div class="data-grid-header" data-field="from" data-width="5rem">From</div>
+                  <div class="data-grid-header" data-field="to" data-width="5rem">To</div>
+                  <div class="data-grid-header" data-field="amount" data-type="number" data-format="currency:EUR" data-width="minmax(7rem, 1fr)">Amount</div>
+                </div>
+              </div>
+              <div class="data-grid-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content dv-panel" role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden>
+        <div class="dv-search">
+          <div class="dv-toolbar">
+            <select class="select" id="search-category" data-size="sm" aria-label="Category"><option value="">All categories</option></select>
+            <label class="dv-check"><input type="checkbox" class="checkbox" id="search-stock"> In stock only</label>
+          </div>
+          <div class="autocomplete" id="item" data-debounce="150" data-page-size="20" data-empty-text="No item like that.">
+            <label class="label" for="item-input">Catalog item</label>
+            <input class="input autocomplete-input" id="item-input" type="text" placeholder="Search 5,000 items, e.g. wireless keyboard" autocomplete="off" spellcheck="false">
+            <input type="hidden" name="item" class="autocomplete-value">
+          </div>
+          <p class="dv-hint">Each keystroke sends one request to the worker, which runs <code>catalog.search()</code> on a lexical index persisted with the documents. The first search after a visit rebuilds the in-memory engine from those inputs; later ones reuse it. Scrolling to the end of the list asks for the next page.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-seed" id="seed" hidden role="status" aria-live="polite">
+      <div class="card dv-seed-card">
+        <h2 class="dv-seed-title">Creating the demo store in OPFS</h2>
+        <p class="dv-caption">First visit only. This tab’s worker writes 100,000 orders, 5,000 catalog items, three price lists and six accounts with <code>insertMany()</code> and transactions. Later visits reopen it.</p>
+        <progress class="dv-seed-bar" id="seed-bar" max="1" value="0"></progress>
+        <p class="dv-seed-step" id="seed-step">Opening the store</p>
+      </div>
+    </div>
+  </main>
+
+  <div class="resizer border-layout-east" data-min="220">
+    <section class="card panel" id="inspector" style="width:22rem" aria-labelledby="inspector-title">
+      <header class="panel-header">
+        <svg class="panel-icon dv-icon" aria-hidden="true"><use href="#i-scan"/></svg>
+        <h2 class="panel-title" id="inspector-title">Inspector</h2>
+        <div class="panel-tools">
+          <label class="swap panel-minimize">
+            <input type="checkbox" aria-label="Minimize the inspector">
+            <span class="swap-off"><svg class="dv-icon" aria-hidden="true"><use href="#i-up"/></svg></span>
+            <span class="swap-on"><svg class="dv-icon" aria-hidden="true"><use href="#i-down"/></svg></span>
+          </label>
+        </div>
+      </header>
+      <div class="panel-body dv-inspector">
+        <h3 class="dv-label">Store</h3>
+        <div class="dv-store" id="ins-store"><p class="dv-store-line">Opening…</p></div>
+        <p class="dv-component"><strong id="ins-component">Data Grid</strong> · <code id="ins-api">df$.shadcn.dataGrid</code></p>
+        <div class="dv-stats" id="ins-stats"></div>
+        <div class="statistic dv-timing">
+          <p class="statistic-title">Last measured call, in the worker</p>
+          <p class="statistic-value" id="ins-ms">–</p>
+          <p class="statistic-description" id="ins-ms-what">Waiting for the first call.</p>
+          <p class="statistic-description dv-access" id="ins-access"></p>
+        </div>
+        <h3 class="dv-label" id="ins-presets-label">Example queries</h3>
+        <div class="dv-presets" id="ins-presets" role="group" aria-labelledby="ins-presets-label"></div>
+        <div class="dv-extra" id="ins-extra"></div>
+        <h3 class="dv-label" id="ins-code-label">The defuss-db call behind this view</h3>
+        <figure class="mk-code-block dv-query" data-variant="file" aria-labelledby="ins-code-label">
+          <div class="mk-code-block-head"><span class="mk-code-block-file">worker.ts</span></div>
+          <pre tabindex="0" aria-labelledby="ins-code-label"><code id="ins-code"></code></pre>
+        </figure>
+        <p class="dv-caption" id="ins-note"></p>
+        <h3 class="dv-label">Selected record</h3>
+        <div class="property-grid" id="ins-record" aria-label="Selected record" data-readonly data-headless data-frame="none" data-empty-text="Click a row."></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module" src="vendor/defuss-shadcn/all.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

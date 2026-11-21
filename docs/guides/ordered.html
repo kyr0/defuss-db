@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ordered indexes and keyset pagination · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="ordered-indexes-and-keyset-pagination">Ordered indexes and keyset pagination</h1>
+<p>An ordered index stores one key per document in the underlying DBSONL B+tree. Use one when the application repeatedly sorts a collection, scans an interval, or continues an ordered feed. The package builds and maintains indexes on explicit declaration.</p>
+<pre><code class="language-ts">await events.createIndex({
+  name: &#39;feed&#39;,
+  fields: [&#39;tenant&#39;, &#39;info.time&#39;],
+  order: [&#39;asc&#39;, &#39;desc&#39;],
+});
+const selection = {
+  filters: [
+    { field: &#39;tenant&#39;, op: &#39;eq&#39; as const, value: &#39;eu&#39; },
+    { field: &#39;info.time&#39;, op: &#39;gte&#39; as const, value: new Date(&#39;2026-01-01&#39;) },
+  ],
+  sorters: [{ field: &#39;info.time&#39;, direction: &#39;desc&#39; as const }],
+  limit: 20,
+};
+console.log((await events.explain(selection)).access);
+const { rows, summary } = await events.query(selection);
+</code></pre>
+<h2 id="index-keys-and-ties">Index keys and ties</h2>
+<p>Declare one direction per distinct field, up to 16 fields. Omitting <code>order</code> creates the existing equality index. Use a separate <code>unique: true</code> equality index when uniqueness is required. Each collection can have 64 equality and ordered indexes combined.</p>
+<p>The codec implements DataView&#39;s default total sort order for representable cells. In ascending order the ranks are booleans, numbers, bigints, strings, valid dates, binary, invalid numbers/dates, then nullish values. Strings use UTF-16 code units, dates use timestamps, and buffers/views use their visible bytes. Negative and positive zero tie. NaN and invalid dates tie. Null, undefined and a missing field tie. Declared ordered fields accept those values. An array, Map, Set, or other opaque object in an indexed field rejects the build or write atomically. Documents can contain DSON graphs in other fields.</p>
+<p>Every tuple ends in its natural typed storage ID in ascending order. This makes tied rows deterministic across page boundaries, even when two IDs share a prefix. Natural ID order sorts their storage tokens lexicographically. Numeric identifiers need not increase numerically. The complete encoded key, including namespace, tuple and ID, must fit 4,096 code units. Long UTF-16 strings and binary values expand in the order-preserving representation.</p>
+<h2 id="query-planning">Query planning</h2>
+<ul>
+<li>An ANDed equality prefix fixes consecutive leading fields. Bounds on the next field are intersected into one half-open storage interval. The executor still evaluates the complete original DataView predicate, including <code>where</code> and any residual filters. A predicate expressed only in <code>where</code> supplies no bounds to the planner.</li>
+<li>When a simple field sort matches the entire varying suffix in the declared directions, the planner supplies DataView&#39;s ordering certificate. Filters on any remaining fields still run. Eligible page queries can stop after finding the page and its lookahead. A request for an exact total can require reading the rest of the interval. A sort on only part of a varying suffix cannot certify tie order.</li>
+<li>For a range lacking the requested order, the planner probes up to 129 pointers. At most 128 candidates are sorted by typed primary key before document reads. A larger interval falls back to the ordinary equality index or collection scan. This preserves natural ties, first-seen groups and floating-point reduction order. Aggregate and view totals keep that encounter order.</li>
+<li>A complete equality tuple can use its equality index. Primary-key equality and a short primary-key IN list use direct document reads. IN accepts up to 256 input members on this path, deduplicates typed IDs, and restores natural order before applying the full query. Larger lists remain valid DataView queries.</li>
+<li>Locale collation, identity comparison and computed sorts do not acquire an ordered-index certificate. Unsuitable order declarations leave sorting to DataView. <code>access: &#39;scan&#39;</code> forces the collection reference path. <code>explain().access</code> reports the chosen physical plan. Its <code>primary-in</code> and <code>range</code> variants also report <code>pointKeys</code>.</li>
+</ul>
+<p>Ordinary filters retain DataView&#39;s comparison and invalid-value rules. <code>pageByIndex</code> is lower level and addresses the <strong>sort-key buckets</strong> directly. For example, <code>prefix: [null]</code> includes missing and undefined values in that leading field. To distinguish them, use a regular filtered query.</p>
+<h2 id="cursor-contract">Cursor contract</h2>
+<pre><code class="language-ts">const snapshot = await db.snapshot();
+try {
+  const feed = snapshot.collection(&#39;events&#39;);
+  const range = { prefix: [&#39;eu&#39;], gte: new Date(&#39;2026-01-01&#39;), limit: 100 };
+  let after: string | undefined;
+  do {
+    const page = await feed.pageByIndex(&#39;feed&#39;, { ...range, after });
+    for (const row of page.rows) console.log(row.id);
+    after = page.nextCursor ?? undefined;
+  } while (after);
+} finally {
+  await snapshot.close();
+}
+</code></pre>
+<p><code>prefix</code> fixes leading components. Supply at most one of <code>gt/gte</code> and one of <code>lt/lte</code> for the following component. Bounds use the natural comparison direction, also on descending indexes. A full-width prefix selects the tie bucket and accepts no additional bounds. An empty interval returns an empty page. The default limit is 50, with a maximum of 1,000. <code>maxOutputBytes</code> caps estimated returned row bytes at 16 MiB by default. <code>signal</code> supports cancellation. An exceeded byte budget rejects the page. A page reads at most its limit in documents and examines at most one additional index pointer. Storage pages and documents have independent physical I/O costs.</p>
+<p>Pass <code>nextCursor</code> back as <code>after</code> with the same index and interval. The limit can change. A null cursor means the interval is exhausted. The token carries the previous full physical key, so a continuation seeks to the next row. Reaching an arbitrary page position for the first time requires a known key, an earlier cursor, or traversal.</p>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Continuation behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Live collection</td>
+<td>Same store UUID and collection version required. Unrelated commits can advance the returned database revision. A committed write or DDL to this collection makes the old cursor stale.</td>
+</tr>
+<tr>
+<td>Explicit snapshot</td>
+<td>Pages observe its pinned state across writes, index drops and compaction. Close the snapshot after the sequence to release its storage generation.</td>
+</tr>
+<tr>
+<td>Reopened directory or OPFS store</td>
+<td>An unchanged physical store identity, collection version, index and range permit resumption. A logical import into another database has that target&#39;s UUID.</td>
+</tr>
+<tr>
+<td>Transaction</td>
+<td>The cursor belongs to its transaction. A subsequent admitted write operation on that transaction advances its private sequence, including an operation on another collection.</td>
+</tr>
+</tbody></table>
+<p>A malformed or out-of-scope token raises <code>INVALID_CURSOR</code>. A changed collection version or transaction write sequence raises <code>STALE_CURSOR</code>. Start a fresh live traversal in that case or retain the originating snapshot when every page must see the same data. The opaque token encodes the range and position with base64url. Applications exposing it to untrusted clients must enforce their own authorization and, if required, authenticate token contents.</p>
+<p>Seek pagination and leftmost equality/range planning follow established B-tree techniques. The tuple codec, DataView ordering proof and DBSONL consistency contract are implemented in this package. <a href="https://www.sqlite.org/rowvalue.html#scrolling_window_queries">SQLite row-value scrolling</a> · <a href="https://www.sqlite.org/queryplanner.html#multi_column_indices">SQLite multi-column indexes</a></p>
+<h2 id="id-pages-and-counts">ID pages and counts</h2>
+<pre><code class="language-ts">const view = snapshot.collection&lt;Event&gt;(&#39;events&#39;);
+const range = { prefix: [&#39;eu&#39;], gte: new Date(&#39;2026-01-01&#39;) };
+const ids = await view.pageIdsByIndex(&#39;feed&#39;, { ...range, limit: 64 });
+const n = await view.countByIndex(&#39;feed&#39;, { ...range, maxScannedEntries: 100_000 });
+</code></pre>
+<p>Each ordered leaf already stores the typed primary ID. An ID page reads at most <code>limit + 1</code> pointers, converts each returned token to its original string, finite number or bigint, and returns <code>IndexPage&lt;Event[&#39;id&#39;]&gt;</code>. Numeric zero has one canonical identity. Byte limits apply to the returned IDs. The document and ID methods accept the same continuation for the same store, collection, index, interval and visible collection version.</p>
+<p>An exact count visits each pointer in the interval, in bounded batches. Its cost grows with the number of matched entries. The optional nonnegative <code>maxScannedEntries</code> causes a <code>RangeError</code> once the count exceeds the budget. A zero budget succeeds on an empty interval. Both live index-only operations check pointer placement and issue zero primary-document reads. A cold historical index first reads the visible corpus to build its time-specific postings. Native I/O still reads storage windows. Use <code>verify()</code> to check the index against every document.</p>
+<p>A physical interval groups missing, undefined and null into one sort bucket. Use a DataView predicate when the requested semantics distinguish them. Pin one snapshot for a page and count that must observe the same commit. Inside transactions, the methods include staged changes.</p>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>
