@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createMemoryBackend, openDatabase, openMemory } from '../src/index.js';
 import type { Database } from '../src/index.js';
-import { compactionDue, liveBytes, packedAt } from '../src/compaction.js';
+import { compactionDue, layoutDue, liveBytes, packedAt } from '../src/compaction.js';
 
 const opened: Database[] = [];
 afterEach(async () => {
@@ -115,6 +115,29 @@ describe('automatic compaction', () => {
     expect(stats.autoCompaction.runs).toBe(0);
   });
 
+  it('compacts an idle store whose file doubled since it was packed, though it holds little garbage', async () => {
+    const db = track(await openMemory({ autoCompact: { minBytes: 64 * 1024, growth: 1000, idleMs: 50 } }));
+    const items = db.collection<{ id: number; note: string }>('items');
+    const batch = (from: number) =>
+      items.insertMany(Array.from({ length: 1000 }, (_, k) => ({ id: from + k, note: 'y'.repeat(400) })));
+    await batch(0);
+    await db.compact();
+    await db.collect();
+    const packed = (await db.stats()).committedBytes;
+    // Appends in key order, one commit each: almost no garbage, so the garbage trigger (1.5 times the live size,
+    // which is three times the packed size here) stays quiet, but the file grows past twice its packed size.
+    await batch(1000);
+    await batch(2000);
+    const grown = (await db.stats()).committedBytes;
+    expect(grown).toBeGreaterThan(2 * packed);
+    expect(grown).toBeLessThan(1.5 * 3 * packed);
+    expect((await settled(db)).autoCompaction).toMatchObject({ runs: 1, failures: 0 });
+    // The copy reclaims nothing here; it reorders. Its size is the new packed size, so idling again copies nothing.
+    await items.put({ id: 0, note: 'z' });
+    expect((await settled(db)).autoCompaction).toMatchObject({ runs: 1, failures: 0 });
+    expect(await items.count()).toBe(3000);
+  });
+
   it('copies an insert-only load once while its growth stays below the bound', async () => {
     const load = async (db: Database) => {
       const events = db.collection('events');
@@ -154,6 +177,12 @@ describe('automatic compaction', () => {
     await expect(openMemory({ autoCompact: { growth: 1 } })).rejects.toThrow(RangeError);
     await expect(openMemory({ autoCompact: { minBytes: -1 } })).rejects.toThrow(RangeError);
     await expect(openMemory({ autoCompact: { idleMs: 0.5 } })).rejects.toThrow(RangeError);
+  });
+
+  it('restores key order once the file doubled since it was packed, not below minBytes', () => {
+    expect(layoutDue(199, 100, 0)).toBe(false);
+    expect(layoutDue(200, 100, 0)).toBe(true);
+    expect(layoutDue(200, 100, 300)).toBe(false);
   });
 
   it('becomes due at minBytes or at growth times the packed size, whichever is larger', () => {

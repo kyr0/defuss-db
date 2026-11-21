@@ -76,3 +76,8 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-21T00:45:37Z s=19560c1d FINDING src/compaction.ts (packedAt, liveBytes, AutoCompactor.run/compacted), src/database.ts compact(), tests/compaction.test.ts, ARCH.md, docs/OPERATIONS.md, README.md:252, src/types.ts:75, CHANGELOG.md, website/index.html, scripts/check-site.mjs learn=test: tests/compaction.test.ts asserts an insert-only load below the bound copies once; MEMORY line records the post-copy count pitfall
 2026-11-21T00:52:25Z s=19560c1d DONE fp=320055aa6c38 cov=93.0% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
 2026-11-21T00:52:25Z s=19560c1d FINDING whole repository (git index) learn=none: staging changes the fingerprint without changing content
+2026-11-21T01:13:58Z s=19560c1d FAIL tests.no-mocks
+2026-11-21T01:17:55Z s=19560c1d DONE fp=3f25d4220d89 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/demo/worker.js,docs/guides/architecture.html(+3)
+2026-11-21T01:17:55Z s=19560c1d FINDING src/keys.ts primary/primaryFromToken/escapeId/unescapeId/scalar, tests/index-only.test.ts, tests/history.test.ts, ARCH.md:39, CHANGELOG.md learn=test: tests/history.test.ts pins the separator-safe token and the clock clamp without mocks
+2026-11-21T02:55:13Z s=19560c1d DONE fp=fac8b8c5e769 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/demo/worker.js(+7)
+2026-11-21T02:55:13Z s=19560c1d FINDING src/compaction.ts IDLE_DOUBLING/layoutDue/AutoCompactor.run, tests/compaction.test.ts, ARCH.md, docs/OPERATIONS.md (+ generated docs/guides/operations.html), CHANGELOG.md, .vae/MEMORY.md learn=test: tests/compaction.test.ts pins the doubling trigger; .vae/MEMORY.md storage-space line updated

@@ -14,7 +14,7 @@ For large collections, set `historyBatchSize` and resume an interrupted baseline
 
 Every commit appends copy-on-write pages and never overwrites old ones, so a store grows faster than its data. VERIFIED: in `docs/benchmarks/mongodb-node.json`, `compaction[].reclaimedBytes` shows what background compaction removed while loading each collection. A connection compacts in the background:
 
-- After `idleMs` (1,000 ms) without a commit of its own, once the file is 1.5 times its live size. This copy never blocks writers; a commit drops it.
+- After `idleMs` (1,000 ms) without a commit of its own, once the file is 1.5 times its live size, or twice the size it had when it was last packed. The second condition restores key order after a load that left little garbage: range reads and scans then read neighbouring frames. This copy never blocks writers; a commit drops it.
 - Under sustained writes, once the file reaches `growth` (4) times its live size and at least `minBytes` (8 MiB). After one interrupted attempt this copy queues writers until it is installed, so the pause grows with the live data.
 
 The live size is the size the last compaction left, scaled by the stored entries since, so inserted documents do not count as garbage and deleted ones do. VERIFIED: a 100,000-document load into an empty directory store copied it once during the load and once after it.

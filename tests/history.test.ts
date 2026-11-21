@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, expect, it } from 'vitest';
 import {
   openMemory,
   openDatabase,
@@ -21,8 +21,30 @@ async function fixture() {
   return { db, c };
 }
 afterEach(async () => {
-  vi.restoreAllMocks();
   await Promise.all(opened.splice(0).map((db) => db.close()));
+});
+it('keeps the history of an ID apart from IDs that extend it with the key separator', async () => {
+  const { c } = await fixture();
+  // VERIFIED: history keys put the ID token in front of '!', so a raw 'a!b' token would fall inside the range of 'a'.
+  for (const [id, amount] of [
+    ['a', 1],
+    ['a!b', 2],
+    ['a!', 3],
+    ['a"', 4],
+  ] as const) {
+    await c.at(dt(0)).put({ id, amount });
+    await c.at(dt(10)).put({ id, amount: amount * 10 });
+  }
+  for (const [id, amount] of [
+    ['a', 1],
+    ['a!b', 2],
+    ['a!', 3],
+    ['a"', 4],
+  ] as const) {
+    // Newest segment first.
+    expect((await c.history(id)).map((r) => r.document?.amount)).toEqual([amount * 10, amount]);
+    expect((await c.audit(id)).map((e) => e.document?.id)).toEqual([id, id]);
+  }
 });
 it('resolves half-open corrections, tombstones, reinsertion and original committed beliefs', async () => {
   const { db, c } = await fixture();
@@ -80,8 +102,8 @@ it('establishes atomic baseline coverage, checks old handles, and captures dates
   row.self = row;
   await c.put(row);
   await expect(c.at(dt(1)).get(1)).rejects.toMatchObject({ code: 'HISTORY_NOT_ENABLED' });
+  // Real clock bounds: activation and every later write happen at or after t.
   const t = Date.now();
-  vi.spyOn(Date, 'now').mockReturnValue(t);
   const prior = (await db.stats()).revision;
   await db.ensureCollection('docs', { $trackHistory: true });
   await db.ensureCollection('docs', { $trackHistory: true });
@@ -103,19 +125,21 @@ it('establishes atomic baseline coverage, checks old handles, and captures dates
   expect(past[1]!.document.self).toBe(past[1]!.document);
   expect(past[1]!.document.map.get(1)).toBe(3n);
   expect(past[1]!.document.$historic).toBe('data');
-  const date = dt(t),
+  const now = Date.now(),
+    later = now + 60_000,
+    date = dt(now),
     read = c.get(1, { $historic: date });
   date.setTime(0);
   expect((await read).amount).toBe(20);
-  await expect(c.at(dt(t + 1)).update('absent', {})).rejects.toMatchObject({
+  await expect(c.at(dt(later)).update('absent', {})).rejects.toMatchObject({
     code: 'HISTORY_FUTURE_WRITE',
   });
-  await expect(c.at(dt(t + 1)).delete('absent')).rejects.toMatchObject({
+  await expect(c.at(dt(later)).delete('absent')).rejects.toMatchObject({
     code: 'HISTORY_FUTURE_WRITE',
   });
   expect(() => c.at(new Date(NaN))).toThrow();
   expect(() => c.at(42 as any)).toThrow();
-  await expect(c.at(dt(t), { $until: dt(t + 1) }).put({ id: 1 })).rejects.toMatchObject({
+  await expect(c.at(dt(now), { $until: dt(later) }).put({ id: 1 })).rejects.toMatchObject({
     code: 'HISTORY_FUTURE_WRITE',
   });
   await expect(c.at(dt(t), { $asOfRevision: 1e8 }).get(1)).rejects.toMatchObject({
@@ -124,26 +148,38 @@ it('establishes atomic baseline coverage, checks old handles, and captures dates
   await db.verify();
 });
 it('orders same-millisecond writes within transactions, preserves pinned snapshots and rejects past-basis writes', async () => {
-  const { db, c } = await fixture();
-  const t = Date.now();
-  const mock = vi.spyOn(Date, 'now').mockReturnValue(t);
+  const backend = createMemoryBackend(),
+    db = await openDatabase(backend);
+  opened.push(db);
+  const c = await db.ensureCollection<Price>('prices', { $trackHistory: true });
   const receipt = await db.transaction(async (tx) => {
     const prices = tx.collection<Price>('prices');
     await prices.put({ id: 1, amount: 1 });
     await prices.update(1, { amount: 2 });
-    expect((await prices.at(dt(t)).get(1))!.amount).toBe(2);
-    expect(await prices.at(dt(t), { $asOfRevision: tx.revision }).has(1)).toBe(false);
+    const now = dt(Date.now());
+    expect((await prices.at(now).get(1))!.amount).toBe(2);
+    expect(await prices.at(now, { $asOfRevision: tx.revision }).has(1)).toBe(false);
     await tx.collection('other').put({ id: 1 });
   });
+  // All tracked writes of one transaction share its clock.
+  const t = +(await c.audit(1))[0]!.from;
   const snap = await db.snapshot();
-  mock.mockReturnValue(t - 20);
+  // A system clock behind the stored history clock, as after the clock was set back: the next write must not
+  // record an earlier time. The stored clock is moved ahead instead of the system clock moved back.
+  const ahead = Date.now() + 60_000,
+    raw = await openDbsonl<{ ms: number; seq: number }>(backend, 'default');
+  await raw.transaction(async (tx) => {
+    const stored = await tx.get('!history-clock');
+    tx.put('!history-clock', { ...stored.value!, ms: ahead });
+  });
+  await raw.close();
   await c.update(1, { amount: 3 });
   await db.compact();
   await db.collect();
   expect((await snap.collection<Price>('prices').at(dt(t)).get(1))!.amount).toBe(2);
   expect((await c.at(dt(t), { $asOfRevision: receipt.revision }).get(1))!.amount).toBe(2);
   const audit = await c.audit(1);
-  expect(audit.map((a) => +a.from)).toEqual([t, t, t]);
+  expect(audit.map((a) => +a.from)).toEqual([ahead, t, t]);
   expect(audit[1]!.revision).toBe(audit[2]!.revision);
   expect(audit[1]!.ordinal).toBeGreaterThan(audit[2]!.ordinal);
   await expect(

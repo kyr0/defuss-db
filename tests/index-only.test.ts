@@ -39,6 +39,8 @@ it('inverts the entire primary token domain and rejects noncanonical tokens', ()
     'n1',
     '\ud800😀',
     'x'.repeat(512),
+    '!'.repeat(512),
+    'a!b"c#\u0001 ~',
     1,
     -0,
     0.0000010000000000000002,
@@ -51,9 +53,13 @@ it('inverts the entire primary token domain and rejects noncanonical tokens', ()
     expect(primaryFromToken(primary(id))).toBe(Object.is(id, -0) ? 0 : id);
   for (const invalid of [
     '',
-    's005G',
-    's0',
-    's' + '0000'.repeat(513),
+    's!',
+    's\u0000',
+    's"',
+    's""',
+    's"F',
+    's' + 'x'.repeat(513),
+    's' + '"#'.repeat(513),
     'b00',
     'b-0',
     'b',
@@ -67,6 +73,32 @@ it('inverts the entire primary token domain and rejects noncanonical tokens', ()
     'x0030',
   ])
     expect(() => primaryFromToken(invalid)).toThrow(expect.objectContaining({ code: 'CORRUPT' }));
+});
+it('keeps string ID tokens free of the history separator and in code-unit order', () => {
+  // Every unit an escape could get wrong: below, at and above the escape, the separator, and surrogates.
+  const ids = [
+    '',
+    '!',
+    '!!',
+    '"',
+    '"#',
+    '#',
+    ' ',
+    '\u0000',
+    '\u0021\u0000',
+    'a',
+    'a!',
+    'a!b',
+    'a"',
+    'a#',
+    'ab',
+    '\ud800',
+    '😀',
+    '\uffff',
+  ];
+  const units = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+  for (const id of ids) expect(primary(id)).not.toContain('!');
+  expect([...ids].sort(units).map(primary)).toEqual(ids.map(primary).sort(units));
 });
 it('compares every ID and count with full rows for tied dates, mixed IDs and changing page sizes', async () => {
   const { c } = await sample();

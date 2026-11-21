@@ -27,6 +27,12 @@ interface Attempt {
 const DEFAULTS: Settings = { minBytes: 8 * 1024 * 1024, growth: 4, idleMs: 1000 };
 // An idle copy runs once garbage reaches half the live size.
 const IDLE_GROWTH = 1.5;
+// An idle copy also runs once the file has doubled since it was packed, even with little garbage: then at least half
+// of it lies in commit order instead of key order, and range reads go to scattered frames. VERIFIED: a 100,000-document
+// load with one ordered index on DBSONL 0.9 left 1.12 times its packed size, so the garbage trigger never ran; an index
+// range count then took 19 ms instead of 0.64 ms after compact(), and a full-scan aggregate 120 ms instead of 80 ms
+// (85 instead of 21 ms with query workers). Copying at each doubling copies at most twice the final size in all.
+const IDLE_DOUBLING = 2;
 // Below this many bytes a store's fixed bytes overstate its bytes per entry, so such a size is used unscaled.
 // VERIFIED: a packed in-memory store with 3 entries took 690 bytes, 230 per entry; from 23 entries on it took
 // 112 to 125 bytes per entry, so at 64 KiB the fixed bytes are about 1%.
@@ -53,6 +59,11 @@ export function compactionDue(
   settings: { minBytes: number; growth: number },
 ): boolean {
   return committedBytes >= Math.max(settings.minBytes, settings.growth * liveBytes);
+}
+
+/** Pure policy: an idle copy that restores key order pays off once the file doubled since it was packed. */
+export function layoutDue(committedBytes: number, packedBytes: number, minBytes: number): boolean {
+  return committedBytes >= Math.max(minBytes, IDLE_DOUBLING * packedBytes);
 }
 
 /** The packed size a connection knows, with the stored entries it held when that size was measured. */
@@ -83,7 +94,7 @@ export function liveBytes(packed: Packed, entries: number): number {
  * filled the memory backend's 256 MiB file limit.
  *
  * Two triggers share one background copy, both measured against liveBytes(). After `idleMs` without a commit
- * of this connection, an optimistic copy runs once the file is 1.5 times its live size; it never blocks writers and is dropped when one
+ * of this connection, an optimistic copy runs once the file is 1.5 times its live size or twice its packed size; it never blocks writers and is dropped when one
  * commits. Under sustained writes an optimistic copy never installs (VERIFIED: DBSONL returns CONFLICT once a
  * writer published meanwhile), so at `growth` times the live size the copy switches to exclusive mode after
  * one interrupted attempt and writers queue until it is installed. That bounds the file. Compacting at a
@@ -181,7 +192,8 @@ export class AutoCompactor {
         trigger === 'bound' ? this.settings.growth : Math.min(IDLE_GROWTH, this.settings.growth);
       if (this.closed) return;
       if (
-        !compactionDue(committed, liveBytes(this.packed, entries), { ...this.settings, growth })
+        !compactionDue(committed, liveBytes(this.packed, entries), { ...this.settings, growth }) &&
+        !(trigger === 'idle' && layoutDue(committed, this.packed.bytes, this.settings.minBytes))
       ) {
         // Another connection may have compacted meanwhile; escalate again only after a new interruption.
         this.exclusive = false;
