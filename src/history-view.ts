@@ -1,6 +1,6 @@
-import { postings } from './history-index-cache.js';
+import { postings, type Postings } from './history-index-cache.js';
 import { DatabaseError } from './errors.js';
-import { documentPrefix, indexKey, primary, schemaKey, FORMAT_KEY } from './keys.js';
+import { documentPrefix, indexKey, indexPrefix, primary, schemaKey, FORMAT_KEY } from './keys.js';
 import { searchPrefix, searchStateKey, inputBytes, projectSearch } from './search-config.js';
 import {
   historicalSchema,
@@ -45,15 +45,16 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
         (await temporalVersion()) +
         '/' +
         (parent.cursorMutation ? parent.cursorIdentity?.() + '/' + parent.cursorMutation() : '');
-      const groups = new Map<string, Promise<Row<unknown>[]>>();
+      const groups = new Map<string, Promise<Postings>>();
       // Only an explicitly requested named index needs materialization. Streaming document scans
       // and bounded point reads bypass every secondary/search projection.
       async function build(
         kind: string,
         index: string,
         signal?: NonNullable<Parameters<Reader['scan']>[0]>['signal'],
-      ) {
+      ): Promise<Postings> {
         const rows: Row<unknown>[] = [];
+        let complete = true;
         if (kind === 'p' || kind === 'g') {
           const def = schema.searchIndexes.find((d) => d.name === index);
           if (!def)
@@ -83,11 +84,23 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
           const def = indexDef.unique ? { ...indexDef, unique: false } : indexDef;
           for await (const row of visibleDocuments(raw, c, scope.time, basis, signal)) {
             const token = primary(row.value.id);
-            rows.push({ key: indexKey(c, def, row.value, token), value: token, revision });
+            try {
+              rows.push({ key: indexKey(c, def, row.value, token), value: token, revision });
+            } catch (error) {
+              // A version older than the index may hold a value it cannot key. An equality index stays exact
+              // without an object, array, Map or Set there: such a value never equals an operand the index can key.
+              // An oversized key can (the 4096-unit limit counts the document's own ID), and an ordered index would
+              // leave any such version out of ranges and sorts, so those are incomplete and the planner avoids them.
+              // VERIFIED: tests/history.test.ts 'cannot key' and 'key limit'; both fail without these rules.
+              const oversized = error instanceof RangeError;
+              if (!oversized && !(error instanceof DatabaseError && error.code === 'INVALID_INDEX_VALUE'))
+                throw error;
+              if (def.order || oversized) complete = false;
+            }
           }
         }
         rows.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-        return rows;
+        return { rows, complete };
       }
       async function group(
         key: string,
@@ -95,7 +108,7 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
       ) {
         const [kind, name, index] = key.split(':');
         if (name !== c || !index || !['i', 'u', 'o', 'p', 'g'].includes(kind!))
-          return Promise.resolve([]);
+          return Promise.resolve({ rows: [], complete: true });
         const id = (kind === 'g' ? 'p' : kind) + ':' + index;
         let result = groups.get(id);
         if (!result) {
@@ -106,9 +119,9 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
           const existing = postings(owner, cacheKey);
           result = existing
             ? Promise.resolve(existing)
-            : build(kind!, index, signal).then((rows) => {
-                if (owner?.epoch === epoch) postings(owner, cacheKey, rows);
-                return rows;
+            : build(kind!, index, signal).then((built) => {
+                if (owner?.epoch === epoch) postings(owner, cacheKey, built);
+                return built;
               });
           groups.set(id, result);
         }
@@ -126,6 +139,9 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
       }
       const reader: Reader = {
         temporal: true,
+        async indexComplete(index) {
+          return (await group(indexPrefix(c, index))).complete;
+        },
         searchGeneration: generation,
         temporalVersion,
         revision,
@@ -134,7 +150,7 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
           if (key === schemaKey(c)) return { found: true, value: schema, revision };
           if (key === versionKey(c)) return { found: true, value: 1, revision };
           if (key === FORMAT_KEY) return raw.get(key);
-          const rows = await group(key),
+          const { rows } = await group(key),
             hit = rows[lower(rows, key)];
           return hit?.key === key ? { found: true, value: hit.value, revision } : { found: false };
         },
@@ -154,7 +170,12 @@ export function temporalContext(parent: ReadContext, c: string, scope: TimeScope
               if (--left === 0) break;
             }
           } else {
-            const index = await group(start, opts.signal);
+            const { rows: index, complete } = await group(start, opts.signal);
+            if (!complete)
+              throw new DatabaseError(
+                'INVALID_INDEX_VALUE',
+                `Index ${start.split(':')[2]} cannot key a version visible at this time: an older version holds an object, array, Map, Set or oversized value in an indexed field.`,
+              );
             for (let i = lower(index, start); i < index.length && left > 0; i++, left--) {
               if (opts.signal?.aborted) throw opts.signal.reason ?? new Error('Aborted');
               const row = index[i]!;

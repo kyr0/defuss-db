@@ -4,10 +4,14 @@
  * own request. `findMongo(collection, filter, { sort, projection })` is the whole round trip.
  *
  * Why translate instead of a second query engine: defuss-db's request (`filters` ANDed + one `where` expression +
- * `sorters`) already answers every operator here, and its planner answers `filters` from an index. Top-level
- * conditions with a plain operator become `filters`, so `{ status: 'paid' }` uses an index on status exactly as a
- * native request would; the rest ($or, $nor, $not, $nin, $exists, dot paths) becomes the `where` expression.
- * VERIFIED: tests/mongo.test.ts runs every operator against a real memory database and reads explain().
+ * `sorters`) already answers every operator here, and its planner answers `filters` from an index. MongoDB matches
+ * an array when the array or one of its elements matches, and dot paths step through arrays of documents, so in
+ * general a condition becomes a `where` expression built with some(). A top-level field that an index covers cannot
+ * hold an array (indexes reject array values on write), so its conditions stay `filters`: `{ status: 'paid' }`
+ * uses an index on status exactly as a native request would, and so does a range on an ordered index. findMongo
+ * and aggregateMongo read the indexes; translateFilter and mongoRequest take them as `scalarFields`.
+ * VERIFIED: tests/mongo.test.ts runs every operator against a real memory database and reads explain(), and
+ * compares the documents MongoDB 9.0.8 returned for the same filters over scalars, nulls, arrays and subdocuments.
  *
  * The module is structural: it reads a collection only through `q`, `find`, `query` and `explain`, so the same
  * file runs against a Collection, a ReadCollection bound with at(date) and a TransactionCollection.
@@ -24,10 +28,10 @@ export interface MongoSorter {
   field: string;
   direction: 'asc' | 'desc';
 }
-/** The expression builders a collection hands out (`collection.q`), the part a filter needs. */
+/** The expression builders a collection hands out (`collection.q`), the part a filter needs (defuss-dataview 0.10). */
 export interface Builders {
   field(key: string): unknown;
-  path(path: string): unknown;
+  get(expr: unknown, path: string): unknown;
   literal(value: unknown): unknown;
   eq(a: unknown, b: unknown): unknown;
   neq(a: unknown, b: unknown): unknown;
@@ -35,10 +39,30 @@ export interface Builders {
   gte(a: unknown, b: unknown): unknown;
   lt(a: unknown, b: unknown): unknown;
   lte(a: unknown, b: unknown): unknown;
+  in(a: unknown, list: unknown): unknown;
+  contains(a: unknown, b: unknown): unknown;
+  startsWith(a: unknown, b: unknown): unknown;
+  endsWith(a: unknown, b: unknown): unknown;
   isNullish(a: unknown): unknown;
+  typeOf(a: unknown): unknown;
+  lower(a: unknown): unknown;
+  length(a: unknown): unknown;
+  floor(a: unknown): unknown;
+  ceil(a: unknown): unknown;
+  div(a: unknown, b: unknown): unknown;
+  mod(a: unknown, b: unknown): unknown;
+  bitAnd(...e: unknown[]): unknown;
+  cond(test: unknown, then: unknown, otherwise: unknown): unknown;
+  coalesce(...e: unknown[]): unknown;
+  some(list: unknown, predicateFn: (element: unknown) => unknown): unknown;
   and(...e: unknown[]): unknown;
   or(...e: unknown[]): unknown;
   not(e: unknown): unknown;
+}
+/** Which top-level fields hold no arrays: those an index covers, and the primary key. */
+export interface TranslateOptions {
+  /** Top-level fields that an index covers; their conditions stay `filters`, which the planner answers from it. */
+  scalarFields?: Iterable<string>;
 }
 /** What a filter document becomes. */
 export interface Translated {
@@ -66,6 +90,10 @@ export interface MongoFindOptions {
 export interface MongoReadable {
   readonly q: unknown;
   find(request?: object): Promise<unknown[]>;
+  /** The collection's indexes; their top-level fields keep conditions answerable from an index. */
+  indexes?(): Promise<readonly { fields: readonly string[] }[]>;
+  /** True for a view bound with at(date): a past version may hold an array in a field indexed later. */
+  readonly historic?: boolean;
 }
 
 /** A query that does not translate - the message names the part. */
@@ -85,13 +113,24 @@ const COMPARE: Record<string, MongoFilter['op']> = {
 
 /*
  * MongoDB's matching rules where they differ from defuss-db's operators. VERIFIED: the same filters on MongoDB 9.0.8
- * and defuss-db over null, missing, string, Date and array values (tests/mongo.test.ts 'MongoDB matching rules').
- * - null matches a null or missing field: `in [null, undefined]`, which an index still answers. `$exists` tells them
- *   apart, as `neq` / `eq` against undefined do.
+ * and defuss-db (tests/mongo.test.ts 'MongoDB matching rules', 2026-11-21 and 2026-11-22).
+ * - null matches a null or missing field: `in [null, undefined]`. `$exists` tells them apart, as `neq` / `eq`
+ *   against undefined do.
  * - A comparison matches only values of the operand's type: `{ $gt: 4 }` matches no string or Date. defuss-db ranks
  *   types in blocks (booleans, numbers, BigInts, strings, Dates, ...), so one more bound at the edge of the
  *   operand's block keeps the comparison in it, still as a range an ordered index answers.
- * - Not translated: MongoDB matches an array when one element matches; here an array is one value.
+ * - A condition matches an array when the array itself or one of its elements matches ({ tags: 'a' } matches
+ *   ['a', 'b']); $ne and $nin match when none does. $size, $all, $elemMatch and $exists test the value itself.
+ * - A dot path steps into the documents of an array on its way ('items.sku' reads the sku of every item), never into
+ *   nested arrays or scalars; a numeric segment also indexes an array ('items.0.sku'), and the element it reaches
+ *   is matched as it is, without trying its own elements.
+ * - Numbers and BigInts (MongoDB's doubles and longs) compare as numbers: { a: 7 } matches 7n, { $gt: 4 } matches 7n.
+ *   On an indexed field, where the conditions stay filters, they cover the operand's own kind only: the index keys
+ *   numbers and BigInts apart, and the planner answers one key or range from it, not two.
+ * - $bitsAllSet and the other bit operators read integral numbers as 64-bit two's complement, BigInts and the bytes
+ *   of a Uint8Array (bit 0 is the lowest bit of the first byte).
+ * - In $regex, `$` also matches before a final line break: /bc$/ matches 'abc\n'.
+ * - NaN equals NaN; $gte and $lte with NaN match NaN only, $gt and $lt nothing.
  */
 const FIRST_DATE = new Date(-8.64e15),
   LAST_DATE = new Date(8.64e15);
@@ -217,135 +256,430 @@ export function stringify(value: unknown, space: number | string = 2): string {
   return JSON.stringify(plain(value), null, space);
 }
 
+/** A $regex as text tests: `^prefix`, `suffix$`, `^exact$` or plain text, with \-escaped metacharacters; flag i only. */
+interface Pattern {
+  kind: 'startsWith' | 'endsWith' | 'contains' | 'eq';
+  text: string;
+  fold: boolean;
+}
+const META = '.*+?()[]{}|^$';
+function pattern(key: string, value: unknown, options: unknown): Pattern {
+  const source = value instanceof RegExp ? value.source : value;
+  const flags = (value instanceof RegExp ? value.flags : '') + (options === undefined ? '' : String(options));
+  if (typeof source !== 'string') throw new QueryError(`${key}: $regex takes a string or a RegExp`);
+  if (/[^i]/.test(flags.replace(/[gu]/g, '')))
+    throw new QueryError(`${key}: $regex takes the option i only here`);
+  const head = source.startsWith('^');
+  let tail = false,
+    text = '';
+  for (let i = head ? 1 : 0; i < source.length; i++) {
+    const c = source[i]!;
+    if (c === '\\') {
+      const next = source[++i];
+      if (next === undefined || !(META + '\\/').includes(next))
+        throw new QueryError(`${key}: $regex takes ^prefix, suffix$ or plain text here`);
+      text += next;
+    } else if (c === '$' && i === source.length - 1) tail = true;
+    else if (META.includes(c)) throw new QueryError(`${key}: $regex takes ^prefix, suffix$ or plain text here`);
+    else text += c;
+  }
+  const kind = head && tail ? 'eq' : head ? 'startsWith' : tail ? 'endsWith' : 'contains';
+  return { kind, text, fold: flags.includes('i') };
+}
+
+type Expr = unknown;
+type Test = (v: Expr) => Expr;
+/** Applies a value test where MongoDB applies it; `elements` also tries the elements of an array found there. */
+type Target = (test: Test, elements: boolean) => Expr;
+/** Where a path starts: at the row, or at an element that $elemMatch tests as a document. */
+type Base = { element?: Expr };
+const ROW: Base = {};
+
 const isOperatorDoc = (v: unknown): v is Doc =>
   !!v &&
   typeof v === 'object' &&
   !Array.isArray(v) &&
   !(v instanceof Date) &&
+  !(v instanceof RegExp) &&
   Object.keys(v).length > 0 &&
   Object.keys(v).every((k) => k.startsWith('$'));
-
-/** A $regex that defuss-db can answer: ^prefix, suffix$ or a plain substring (no other pattern syntax). */
-function regexOp(field: string, pattern: unknown): MongoFilter {
-  const p = pattern instanceof RegExp ? pattern.source : String(pattern);
-  const plain = (s: string) => !/[.*+?()[\]{}|\\^$]/.test(s);
-  if (p.startsWith('^') && plain(p.slice(1))) return { field, op: 'startsWith', value: p.slice(1) };
-  if (p.endsWith('$') && plain(p.slice(0, -1)))
-    return { field, op: 'endsWith', value: p.slice(0, -1) };
-  if (plain(p)) return { field, op: 'contains', value: p };
-  throw new QueryError(`${field}: $regex takes ^prefix, suffix$ or plain text here`);
+const isPlainObject = (v: unknown) =>
+  !!v &&
+  typeof v === 'object' &&
+  !Array.isArray(v) &&
+  !(v instanceof Date) &&
+  !(v instanceof RegExp) &&
+  !ArrayBuffer.isView(v) &&
+  !(v instanceof ArrayBuffer);
+/** An operand defuss-db compares by value: no embedded document, also not inside an array. */
+function valueOperand(key: string, v: unknown): unknown {
+  if (isPlainObject(v) || (Array.isArray(v) && v.some((x) => isPlainObject(x) || x instanceof RegExp)))
+    throw new QueryError(`${key}: comparing embedded documents is not supported here; compare their fields with dot paths`);
+  return v;
 }
 
-/**
- * A filter document → defuss-db's request: `filters` for the top-level conditions with a plain operator, one
- * `where` expression for the rest ($or, $nor, $not, $nin, $exists, conditions on a dot path).
- */
-export function translateFilter(doc: Doc, q: Builders): Translated {
-  const filters: MongoFilter[] = [];
-  const where: unknown[] = [];
-  for (const [key, cond] of Object.entries(doc)) {
-    if (key.startsWith('$')) {
-      where.push(logical(key, cond, q));
-      continue;
-    }
-    const top = !key.includes('.');
-    if (!isOperatorDoc(cond)) {
-      if (top && cond === null) filters.push({ field: key, op: 'in', value: [null, undefined] });
-      else if (top) filters.push({ field: key, op: 'eq', value: cond });
-      else where.push(condition(key, '$eq', cond, q));
-      continue;
-    }
-    for (const [op, value] of Object.entries(cond)) {
-      if (op === '$options') continue;
-      if (top && op === '$eq' && value === null)
-        filters.push({ field: key, op: 'in', value: [null, undefined] });
-      else if (top && op in COMPARE && !(op === '$ne' && value === null)) {
-        filters.push({ field: key, op: COMPARE[op]!, value });
-        const bound = RELATIONAL.has(op) ? typeBound(op as Relational, value) : undefined;
-        if (bound) filters.push({ field: key, ...bound });
-      } else if (top && op === '$in')
-        filters.push({ field: key, op: 'in', value: withMissing(list(key, value)) });
-      else if (op === '$regex') {
-        if (!top) throw new QueryError(`${key}: $regex works on a top-level field`);
-        filters.push(regexOp(key, value));
-      } else where.push(condition(key, op, value, q));
-    }
+/** The values MongoDB finds at a dot path, as a Target. */
+function pathTarget(q: Builders, base: Base, key: string): Target {
+  const segments = key.split('.');
+  if (segments.some((s) => !s)) throw new QueryError(`${key}: a path has no empty segments`);
+  const kind = (v: Expr, name: string) => q.eq(q.typeOf(v), q.literal(name));
+  return (test, elements) => {
+    // `positional`: v is an array's element reached by its index, which MongoDB matches without its elements.
+    const walk = (v: Expr, i: number, positional: boolean): Expr => {
+      if (i === segments.length) return elements && !positional ? q.or(test(v), q.some(v, (e) => test(e))) : test(v);
+      const s = segments[i]!;
+      // Only documents have fields: a string, a Date or binary bytes read as missing.
+      const field = walk(q.cond(kind(v, 'object'), q.get(v, s), q.literal(undefined)), i + 1, false);
+      // Through an array the path continues in its documents only; a numeric segment also indexes the array.
+      const through = q.some(v, (e) => q.and(kind(e, 'object'), walk(q.get(e, s), i + 1, false)));
+      // A position past the end gives no value at all, unlike a missing field: { 'a.0': null } skips [].
+      const index = /^\d+$/.test(s) ? [q.and(kind(v, 'array'), q.gt(q.length(v), q.literal(Number(s))), walk(q.get(v, s), i + 1, true))] : [];
+      return q.or(q.and(q.not(kind(v, 'array')), field), ...index, through);
+    };
+    return 'element' in base ? walk(base.element, 0, false) : walk(q.field(segments[0]!), 1, false);
+  };
+}
+/** One value, as $elemMatch tests an element: no further expansion. */
+const valueTarget =
+  (v: Expr): Target =>
+  (test) =>
+    test(v);
+
+const TRUE = (q: Builders) => q.literal(true);
+const FALSE = (q: Builders) => q.literal(false);
+const finiteNumber = (q: Builders, v: Expr) =>
+  q.and(q.eq(q.typeOf(v), q.literal('number')), q.gt(v, q.literal(-Infinity)), q.lt(v, q.literal(Infinity)));
+const integral = (q: Builders, v: Expr, low: number, high: number) =>
+  q.and(q.eq(q.typeOf(v), q.literal('number')), q.gte(v, q.literal(low)), q.lte(v, q.literal(high)), q.eq(q.floor(v), v));
+
+/** The same integer as the other numeric kind, where both are exact: 7 and 7n, 2 ** 60 and 2n ** 60n. */
+function twin(value: unknown): number | bigint | undefined {
+  if (typeof value === 'number' && Number.isInteger(value)) return BigInt(value);
+  if (typeof value !== 'bigint') return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && BigInt(n) === value ? n : undefined;
+}
+/** The adjacent doubles around a BigInt that no double holds exactly; undefined when one does. */
+function doublesAround(b: bigint): [number, number] | undefined {
+  const n = Number(b);
+  if (n === Infinity) return [Number.MAX_VALUE, Infinity];
+  if (n === -Infinity) return [-Infinity, -Number.MAX_VALUE];
+  if (BigInt(n) === b) return undefined;
+  const step = (x: number, up: boolean) => {
+    const bits = new BigInt64Array(new Float64Array([x]).buffer);
+    bits[0]! += up === x > 0 ? 1n : -1n;
+    return new Float64Array(bits.buffer)[0]!;
+  };
+  return BigInt(n) < b ? [n, step(n, true)] : [step(n, false), n];
+}
+function equalTest(q: Builders, key: string, value: unknown): Test {
+  if (value === null) return (v) => q.isNullish(v);
+  if (value instanceof RegExp) return regexTest(q, key, value, undefined);
+  const operand = valueOperand(key, value), other = twin(operand);
+  return other === undefined ? (v) => q.eq(v, q.literal(operand)) : (v) => q.in(v, q.literal([operand, other]));
+}
+function compareTest(q: Builders, key: string, op: Relational, value: unknown): Test {
+  const ok = ['number', 'bigint', 'string', 'boolean'].includes(typeof value) || value instanceof Date;
+  if (!ok) throw new QueryError(`${key}: ${op} takes a number, BigInt, string, Boolean or Date here`);
+  if (value instanceof Date && Number.isNaN(value.getTime())) throw new QueryError(`${key}: ${op} takes a valid Date`);
+  if (Number.isNaN(value)) return op === '$gte' || op === '$lte' ? (v) => q.eq(v, q.literal(NaN)) : () => FALSE(q);
+  const bound = typeBound(op, value);
+  const cmp = COMPARE[op] as 'gt' | 'gte' | 'lt' | 'lte';
+  const own = (v: Expr) => {
+    const compare = q[cmp](v, q.literal(value));
+    return bound ? q.and(compare, q[bound.op as 'gt' | 'gte' | 'lt' | 'lte'](v, q.literal(bound.value))) : compare;
+  };
+  // The other numeric kind: a BigInt is above x exactly when it is above floor(x), and so on.
+  const kind = (v: Expr, name: string) => q.eq(q.typeOf(v), q.literal(name));
+  if (typeof value === 'number') {
+    const above = op === '$gt' || op === '$gte';
+    if (!Number.isFinite(value)) return (value > 0) === above ? own : (v) => q.or(own(v), kind(v, 'bigint'));
+    const edge = BigInt(op === '$gt' || op === '$lte' ? Math.floor(value) : Math.ceil(value));
+    return (v) => q.or(own(v), q.and(kind(v, 'bigint'), q[cmp](v, q.literal(edge))));
   }
-  return where.length
-    ? { filters, where: where.length === 1 ? where[0] : q.and(...where) }
-    : { filters };
+  // Numbers against a BigInt: exactly, through the doubles on either side when none equals it.
+  if (typeof value === 'bigint') {
+    const around = doublesAround(value), above = op === '$gt' || op === '$gte';
+    const number = (v: Expr) =>
+      around ? (above ? q.gte(v, q.literal(around[1])) : q.lte(v, q.literal(around[0]))) : q[cmp](v, q.literal(Number(value)));
+    return (v) => q.or(own(v), q.and(kind(v, 'number'), number(v)));
+  }
+  return own;
+}
+function inTest(q: Builders, key: string, value: unknown): Test {
+  const members = list(key, value);
+  const plain = members
+    .filter((m) => m !== null && !(m instanceof RegExp))
+    .flatMap((m) => [valueOperand(key, m), ...(twin(m) === undefined ? [] : [twin(m)])]);
+  const regexes = members.filter((m): m is RegExp => m instanceof RegExp).map((m) => regexTest(q, key, m, undefined));
+  const nullable = members.includes(null);
+  return (v) =>
+    q.or(
+      ...(plain.length ? [q.in(v, q.literal(plain))] : []),
+      ...(nullable ? [q.isNullish(v)] : []),
+      ...regexes.map((t) => t(v)),
+      ...(plain.length || nullable || regexes.length ? [] : [FALSE(q)]),
+    );
+}
+function regexTest(q: Builders, key: string, value: unknown, options: unknown): Test {
+  const p = pattern(key, value, options);
+  const text = p.fold ? p.text.toLowerCase() : p.text;
+  const match = (s: Expr) =>
+    p.kind === 'eq'
+      ? q.in(s, q.literal([text, `${text}\n`]))
+      : p.kind === 'endsWith'
+        ? q.or(q.endsWith(s, q.literal(text)), q.endsWith(s, q.literal(`${text}\n`)))
+        : q[p.kind](s, q.literal(text));
+  return (v) => q.and(q.eq(q.typeOf(v), q.literal('string')), match(p.fold ? q.lower(v) : v));
+}
+/** $type aliases and numbers; the families defuss-db stores, numbers split as the Node.js driver stores them. */
+const TYPES: Record<string, string> = {
+  1: 'double', 2: 'string', 3: 'object', 4: 'array', 5: 'binData', 6: 'undefined', 7: 'objectId', 8: 'bool', 9: 'date', 10: 'null',
+  11: 'regex', 12: 'dbPointer', 13: 'javascript', 14: 'symbol', 16: 'int', 17: 'timestamp', 18: 'long', 19: 'decimal', '-1': 'minKey', 127: 'maxKey',
+};
+function typeTest(q: Builders, key: string, value: unknown): Test {
+  const names = (Array.isArray(value) ? value : [value]).map((t) => (typeof t === 'number' ? TYPES[t] : t));
+  const int32 = (v: Expr) => integral(q, v, -2147483648, 2147483647);
+  const one = (name: unknown): Test => {
+    switch (name) {
+      case 'double': return (v) => q.and(q.eq(q.typeOf(v), q.literal('number')), q.not(int32(v)));
+      case 'int': return int32;
+      case 'long': return (v) => q.eq(q.typeOf(v), q.literal('bigint'));
+      case 'number': return (v) => q.in(q.typeOf(v), q.literal(['number', 'bigint']));
+      case 'string': case 'object': case 'array': case 'date': case 'null': return (v) => q.eq(q.typeOf(v), q.literal(name));
+      case 'bool': return (v) => q.eq(q.typeOf(v), q.literal('boolean'));
+      case 'binData': return (v) => q.eq(q.typeOf(v), q.literal('binary'));
+      // No defuss-db value has these types.
+      case 'undefined': case 'objectId': case 'regex': case 'dbPointer': case 'javascript': case 'symbol': case 'timestamp': case 'decimal': case 'minKey': case 'maxKey':
+        return () => FALSE(q);
+      default: throw new QueryError(`${key}: $type ${JSON.stringify(name)} is not a BSON type`);
+    }
+  };
+  const tests = names.map(one);
+  return (v) => q.or(...tests.map((t) => t(v)));
+}
+function modTest(q: Builders, key: string, value: unknown): Test {
+  if (!Array.isArray(value) || value.length !== 2 || !value.every((x) => typeof x === 'number' && Number.isFinite(x)))
+    throw new QueryError(`${key}: $mod takes [divisor, remainder]`);
+  const [d, r] = (value as number[]).map(Math.trunc) as [number, number];
+  if (!d) throw new QueryError(`${key}: $mod divisor cannot be 0`);
+  // MongoDB truncates a double toward zero and takes a long's remainder exactly.
+  return (v) =>
+    q.or(
+      q.and(finiteNumber(q, v), q.eq(q.mod(q.cond(q.lt(v, q.literal(0)), q.ceil(v), q.floor(v)), q.literal(d)), q.literal(r))),
+      q.and(q.eq(q.typeOf(v), q.literal('bigint')), q.eq(q.mod(v, q.literal(BigInt(d))), q.literal(BigInt(r)))),
+    );
+}
+const BITS = new Set(['$bitsAllSet', '$bitsAnySet', '$bitsAllClear', '$bitsAnyClear']);
+function bitsTest(q: Builders, key: string, op: string, value: unknown): Test {
+  let mask = 0n;
+  if (Array.isArray(value)) {
+    for (const bit of value) {
+      if (!Number.isSafeInteger(bit) || bit < 0 || bit > 63) throw new QueryError(`${key}: ${op} takes bit positions from 0 to 63`);
+      mask |= 1n << BigInt(bit);
+    }
+  } else if (Number.isSafeInteger(value) && (value as number) >= 0) mask = BigInt(value as number);
+  else throw new QueryError(`${key}: ${op} takes a nonnegative bitmask or a list of bit positions`);
+  // A safe integer's bits 53 to 63 copy its sign, so those positions are set exactly for negative numbers. A larger
+  // integral double (up to 2^63) is read bit by bit: bit k is the parity of floor(v / 2^k), exact for doubles.
+  const low = Number(mask & ((1n << 53n) - 1n)), high = mask >> 53n !== 0n;
+  const all = op === '$bitsAllSet' || op === '$bitsAllClear', set = op === '$bitsAllSet' || op === '$bitsAnySet';
+  const lowTest = (word: Expr, m: Expr, zero: Expr) =>
+    all ? q.eq(word, set ? m : zero) : q.neq(word, set ? zero : m);
+  return (v) => {
+    const number = q.and(
+      integral(q, v, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER),
+      ...(high
+        ? [all ? q[set ? 'lt' : 'gte'](v, q.literal(0)) : q.or(lowTest(q.bitAnd(v, q.literal(low)), q.literal(low), q.literal(0)), q[set ? 'lt' : 'gte'](v, q.literal(0)))]
+        : []),
+      ...(all || !high ? [lowTest(q.bitAnd(v, q.literal(low)), q.literal(low), q.literal(0))] : []),
+    );
+    const positions = Array.from({ length: 64 }, (_, k) => k).filter((k) => (mask >> BigInt(k)) & 1n);
+    const bit = (k: number) => {
+      const odd = q.neq(q.mod(q.floor(q.div(v, q.literal(2 ** k))), q.literal(2)), q.literal(0));
+      return set ? odd : q.not(odd);
+    };
+    const wide = q.and(
+      integral(q, v, -(2 ** 63), 2 ** 63),
+      q.lt(v, q.literal(2 ** 63)),
+      q.or(q.lt(v, q.literal(Number.MIN_SAFE_INTEGER)), q.gt(v, q.literal(Number.MAX_SAFE_INTEGER))),
+      positions.length ? (all ? q.and(...positions.map(bit)) : q.or(...positions.map(bit))) : all ? TRUE(q) : FALSE(q),
+    );
+    const big = q.and(q.eq(q.typeOf(v), q.literal('bigint')), lowTest(q.bitAnd(v, q.literal(mask)), q.literal(mask), q.literal(0n)));
+    // Bytes beyond the end of the value count as zero bits.
+    const bytes = [0, 1, 2, 3, 4, 5, 6, 7].flatMap((k) => {
+      const m = Number((mask >> BigInt(8 * k)) & 0xffn);
+      return m ? [lowTest(q.bitAnd(q.coalesce(q.get(v, String(k)), q.literal(0)), q.literal(m)), q.literal(m), q.literal(0))] : [];
+    });
+    const binary = q.and(q.eq(q.typeOf(v), q.literal('binary')), ...(bytes.length ? [all ? q.and(...bytes) : q.or(...bytes)] : [all ? TRUE(q) : FALSE(q)]));
+    return q.or(number, wide, big, binary);
+  };
 }
 
-const list = (key: string, value: unknown): unknown[] => {
-  if (!Array.isArray(value)) throw new QueryError(`${key}: $in / $nin take an array`);
-  return value;
-};
-
-/** One field condition as an expression. */
-function condition(key: string, op: string, value: unknown, q: Builders): unknown {
-  const ref = key.includes('.') ? q.path(key) : q.field(key);
-  const equal = (v: unknown) => (v === null ? q.isNullish(ref) : q.eq(ref, q.literal(v)));
+/** One operator of a field condition, at `at`. */
+function operator(q: Builders, at: Target, key: string, op: string, value: unknown, cond: Doc): Expr {
   switch (op) {
     case '$eq':
-      return equal(value);
+      return at(equalTest(q, key, value), true);
     case '$ne':
-      return q.not(equal(value));
+      return q.not(at(equalTest(q, key, value), true));
     case '$gt':
     case '$gte':
     case '$lt':
-    case '$lte': {
-      const compare = q[COMPARE[op] as 'gt' | 'gte' | 'lt' | 'lte'](ref, q.literal(value));
-      const bound = typeBound(op, value);
-      return bound
-        ? q.and(compare, q[bound.op as 'gt' | 'gte' | 'lt' | 'lte'](ref, q.literal(bound.value)))
-        : compare;
-    }
+    case '$lte':
+      return at(compareTest(q, key, op, value), true);
     case '$in':
-      return q.or(...list(key, value).map(equal));
+      return at(inTest(q, key, value), true);
     case '$nin':
-      return q.not(q.or(...list(key, value).map(equal)));
-    case '$exists':
-      return value ? q.neq(ref, q.literal(undefined)) : q.eq(ref, q.literal(undefined));
+      return q.not(at(inTest(q, key, value), true));
+    case '$regex':
+      return at(regexTest(q, key, value, cond.$options), true);
+    case '$type':
+      return at(typeTest(q, key, value), true);
+    case '$mod':
+      return at(modTest(q, key, value), true);
+    case '$exists': {
+      const exists = at((v) => q.neq(v, q.literal(undefined)), false);
+      return value ? exists : q.not(exists);
+    }
+    case '$size':
+      if (!Number.isSafeInteger(value) || (value as number) < 0) throw new QueryError(`${key}: $size takes a nonnegative integer`);
+      return at((v) => q.and(q.eq(q.typeOf(v), q.literal('array')), q.eq(q.length(v), q.literal(value))), false);
+    case '$all': {
+      const entries = list(key, value);
+      if (!entries.length) return FALSE(q);
+      return q.and(
+        ...entries.map((x) =>
+          isOperatorDoc(x) && Object.keys(x).length === 1 && '$elemMatch' in x
+            ? operator(q, at, key, '$elemMatch', x.$elemMatch, x)
+            : at(equalTest(q, key, x), true),
+        ),
+      );
+    }
+    case '$elemMatch': {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new QueryError(`${key}: $elemMatch takes a document`);
+      const sub = value as Doc;
+      return at((v) => q.some(v, (e) => elementMatch(q, key, e, sub)), false);
+    }
     case '$not': {
-      if (!isOperatorDoc(value)) throw new QueryError(`${key}: $not takes an operator document`);
-      return q.not(q.and(...Object.entries(value).map(([o, v]) => condition(key, o, v, q))));
+      if (value instanceof RegExp) return q.not(at(regexTest(q, key, value, undefined), true));
+      if (!isOperatorDoc(value)) throw new QueryError(`${key}: $not takes an operator document or a RegExp`);
+      return q.not(operators(q, at, key, value));
     }
     default:
+      if (BITS.has(op)) return at(bitsTest(q, key, op, value), true);
       throw new QueryError(`${key}: ${op} is not supported`);
   }
 }
-
+function checkOptions(key: string, cond: Doc) {
+  if ('$options' in cond && !('$regex' in cond)) throw new QueryError(`${key}: $options needs $regex`);
+}
+function operators(q: Builders, at: Target, key: string, cond: Doc): Expr {
+  checkOptions(key, cond);
+  const parts = Object.entries(cond)
+    .filter(([op]) => op !== '$options')
+    .map(([op, value]) => operator(q, at, key, op, value, cond));
+  return parts.length === 1 ? parts[0] : q.and(...parts);
+}
+/**
+ * $elemMatch on one element: operators test the element itself; a query document reads its paths, from a document
+ * or an array element (MongoDB skips scalar elements there).
+ */
+const LOGICAL = new Set(['$and', '$or', '$nor']);
+function elementMatch(q: Builders, key: string, e: Expr, sub: Doc): Expr {
+  if (isOperatorDoc(sub) && !Object.keys(sub).every((k) => LOGICAL.has(k))) return operators(q, valueTarget(e), key, sub);
+  return q.and(q.in(q.typeOf(e), q.literal(['object', 'array'])), documentCondition(q, sub, { element: e }));
+}
+/** A field's condition: a value (equality, or a RegExp) or an operator document. */
+function fieldCondition(q: Builders, base: Base, key: string, cond: unknown): Expr {
+  const at = pathTarget(q, base, key);
+  return isOperatorDoc(cond) ? operators(q, at, key, cond) : at(equalTest(q, key, cond), true);
+}
+/** A whole document as one expression. */
+function documentCondition(q: Builders, doc: Doc, base: Base): Expr {
+  const parts = Object.entries(doc).map(([key, cond]) =>
+    key.startsWith('$') ? logical(q, key, cond, base) : fieldCondition(q, base, key, cond),
+  );
+  if (!parts.length) return TRUE(q);
+  return parts.length === 1 ? parts[0] : q.and(...parts);
+}
 /** $and / $or / $nor over sub-documents. */
-function logical(op: string, value: unknown, q: Builders): unknown {
-  if (!['$and', '$or', '$nor'].includes(op))
-    throw new QueryError(`${op} is not supported at the top`);
+function logical(q: Builders, op: string, value: unknown, base: Base): Expr {
+  if (!['$and', '$or', '$nor'].includes(op)) throw new QueryError(`${op} is not supported at the top`);
   if (!Array.isArray(value) || !value.length) throw new QueryError(`${op} takes a non-empty array`);
   const parts = value.map((sub) => {
-    if (!sub || typeof sub !== 'object' || Array.isArray(sub))
-      throw new QueryError(`${op}: every entry is a document`);
-    return asExpression(sub as Doc, q);
+    if (!sub || typeof sub !== 'object' || Array.isArray(sub)) throw new QueryError(`${op}: every entry is a document`);
+    return documentCondition(q, sub as Doc, base);
   });
   if (op === '$and') return q.and(...parts);
   if (op === '$or') return q.or(...parts);
   return q.not(q.or(...parts));
 }
 
-/** A whole sub-document as one expression (inside $or, every condition must be an expression). */
-function asExpression(doc: Doc, q: Builders): unknown {
-  const parts: unknown[] = [];
-  for (const [key, cond] of Object.entries(doc)) {
-    if (key.startsWith('$')) parts.push(logical(key, cond, q));
-    else if (!isOperatorDoc(cond)) parts.push(condition(key, '$eq', cond, q));
-    else
-      for (const [op, value] of Object.entries(cond)) {
-        if (op === '$regex')
-          throw new QueryError(`${key}: $regex works only at the top, not inside $or / $nor`);
-        parts.push(condition(key, op, value, q));
-      }
+/**
+ * The conditions on a field that holds no arrays as `filters`, which an index answers; undefined for an operator
+ * that has no filter form there.
+ */
+function scalarFilters(key: string, op: string, value: unknown, cond: Doc): MongoFilter[] | undefined {
+  if (op === '$eq' && value === null) return [{ field: key, op: 'in', value: [null, undefined] }];
+  if (op === '$eq' || op === '$ne') {
+    if (value === null || value instanceof RegExp) return undefined;
+    return [{ field: key, op: COMPARE[op]!, value: valueOperand(key, value) }];
   }
-  if (!parts.length) return q.eq(q.literal(1), q.literal(1));
-  return parts.length === 1 ? parts[0] : q.and(...parts);
+  if (RELATIONAL.has(op)) {
+    compareTest({} as Builders, key, op as Relational, value);
+    if (Number.isNaN(value)) return undefined;
+    const bound = typeBound(op as Relational, value);
+    return [{ field: key, op: COMPARE[op]!, value }, ...(bound ? [{ field: key, ...bound }] : [])];
+  }
+  if (op === '$in') {
+    const members = list(key, value);
+    if (members.some((m) => m instanceof RegExp)) return undefined;
+    return [{ field: key, op: 'in', value: withMissing(members.map((m) => (m === null ? m : valueOperand(key, m)))) }];
+  }
+  if (op === '$regex') {
+    const p = pattern(key, value, cond.$options);
+    if (p.fold || p.kind === 'endsWith') return undefined;
+    return [p.kind === 'eq' ? { field: key, op: 'in', value: [p.text, `${p.text}\n`] } : { field: key, op: p.kind, value: p.text }];
+  }
+  return undefined;
 }
+
+/**
+ * A filter document → defuss-db's request: `filters` for the conditions on top-level fields that hold no arrays
+ * (`scalarFields`, and the primary key `id`), one `where` expression for the rest.
+ */
+export function translateFilter(doc: Doc, q: Builders, options: TranslateOptions = {}): Translated {
+  const scalar = new Set(['id', ...(options.scalarFields ?? [])]);
+  const filters: MongoFilter[] = [];
+  const where: Expr[] = [];
+  for (const [key, cond] of Object.entries(doc)) {
+    if (key.startsWith('$')) {
+      where.push(logical(q, key, cond, ROW));
+      continue;
+    }
+    if (key.includes('.') || !scalar.has(key)) {
+      where.push(fieldCondition(q, ROW, key, cond));
+      continue;
+    }
+    if (isOperatorDoc(cond)) checkOptions(key, cond);
+    const entries: [string, unknown][] = isOperatorDoc(cond)
+      ? Object.entries(cond).filter(([op]) => op !== '$options')
+      : [[cond instanceof RegExp ? '$regex' : '$eq', cond]];
+    const at = pathTarget(q, ROW, key);
+    for (const [op, value] of entries) {
+      const own = scalarFilters(key, op, value, isOperatorDoc(cond) ? cond : {});
+      if (own) filters.push(...own);
+      else where.push(operator(q, at, key, op, value, isOperatorDoc(cond) ? cond : {}));
+    }
+  }
+  return where.length ? { filters, where: where.length === 1 ? where[0] : q.and(...where) } : { filters };
+}
+
+const list = (key: string, value: unknown): unknown[] => {
+  if (!Array.isArray(value)) throw new QueryError(`${key}: $in, $nin and $all take an array`);
+  return value;
+};
 
 /** A sort document ({ amount: -1, customer: 1 }) → sorters, in the order written. */
 export function translateSort(doc: Doc): MongoSorter[] {
@@ -364,8 +698,9 @@ export function mongoRequest(
   q: unknown,
   filter: MongoDocument = {},
   sort?: MongoDocument,
+  options: TranslateOptions = {},
 ): MongoRequest {
-  const { filters, where } = translateFilter(asDoc(filter, 'filter'), q as Builders);
+  const { filters, where } = translateFilter(asDoc(filter, 'filter'), q as Builders, options);
   const sorters = translateSort(asDoc(sort, 'sort'));
   return { filters, ...(where ? { where } : {}), ...(sorters.length ? { sorters } : {}) };
 }
@@ -379,7 +714,7 @@ export async function findMongo<T = Doc>(
   filter: MongoDocument = {},
   options: MongoFindOptions = {},
 ): Promise<T[]> {
-  const request = mongoRequest(collection.q, filter, options.sort);
+  const request = mongoRequest(collection.q, filter, options.sort, await scalarOptions(collection));
   const projection = asDoc(options.projection, 'projection');
   const page = {
     ...(options.skip ? { offset: options.skip } : {}),
@@ -387,6 +722,14 @@ export async function findMongo<T = Doc>(
   };
   const rows = (await collection.find({ ...request, ...page })) as Doc[];
   return rows.map((r) => project(r, projection)) as T[];
+}
+
+/** The top-level fields of a collection's indexes: indexes reject arrays, so these fields never hold one. */
+export async function scalarOptions(collection: Pick<MongoReadable, 'indexes' | 'historic'>): Promise<TranslateOptions> {
+  // A past version may hold an array in a field indexed later: indexes check only the versions they were built on.
+  if (collection.historic || typeof collection.indexes !== 'function') return {};
+  const fields = (await collection.indexes()).flatMap((index) => index.fields.filter((f) => !f.includes('.')));
+  return { scalarFields: fields };
 }
 
 /**

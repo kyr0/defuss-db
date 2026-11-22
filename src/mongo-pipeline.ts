@@ -7,11 +7,13 @@
  * onto that exactly or not at all. A stage with no place in it ($lookup, a $match after the $group) is refused by
  * name instead of being run differently. `translatePipeline` returns the plan, so a builder UI can show it.
  * Read: $match (several become $and), $unwind (only as a group key: one group per element), $group (_id: a field, a
- * document of fields, $toLower / $toUpper, $dateTrunc, $dateToString, $year; $sum, $count, $avg, $min, $max,
- * $addToSet), $size of an $addToSet in $set / $addFields / $project, $sort (one key), $limit and the $count stage.
+ * document of fields, $toLower / $toUpper, $dateTrunc (with binSize and startOfWeek), $dateToString, $year; $sum,
+ * $count, $avg, $min, $max, $addToSet, $stdDevPop, $stdDevSamp), $size of an $addToSet in $set / $addFields /
+ * $project, $sort (one key), $limit and the $count stage.
  * VERIFIED: tests/mongo.test.ts converts each shape, runs it on a memory database and names what it refuses.
  */
-import { mongoRequest, parseDocument, QueryError } from './mongo-query.js';
+import { mongoRequest, parseDocument, QueryError, scalarOptions } from './mongo-query.js';
+import type { TranslateOptions } from './mongo-query.js';
 
 type Doc = Record<string, unknown>;
 /** How a group key reads its field: the value, case-folded text, one group per array element, a calendar unit. */
@@ -25,7 +27,10 @@ export type GroupUnit =
   | 'month'
   | 'week'
   | 'day'
-  | 'hour';
+  | 'hour'
+  | 'minute'
+  | 'second'
+  | 'millisecond';
 /** One group key of a pipeline's $group. */
 export interface PipelineKey {
   /** Its name in `_id: { name: ... }`; null for `_id: '$field'` or one operator expression. */
@@ -36,11 +41,15 @@ export interface PipelineKey {
   output?: { year: true } | { format: string };
   /** The IANA time zone of a calendar key ($dateTrunc or $dateToString `timezone`); UTC when absent. */
   zone?: string;
+  /** $dateTrunc's binSize, when above 1. */
+  bin?: number;
+  /** $dateTrunc's startOfWeek for a week key; MongoDB's default is Sunday. */
+  weekStart?: string;
 }
 /** One accumulator of a pipeline's $group (or the $count stage). */
 export interface PipelineMeasure {
   alias: string;
-  op: 'count' | 'sum' | 'avg' | 'min' | 'max' | 'distinct' | 'countDistinct';
+  op: 'count' | 'sum' | 'avg' | 'min' | 'max' | 'distinct' | 'countDistinct' | 'stdDevPop' | 'stdDevSamp';
   /** count: the documents that hold this field; the others: the field they read. */
   field?: string;
 }
@@ -65,11 +74,19 @@ export interface PipelinePlan {
 export interface MongoAggregatable {
   readonly q: unknown;
   aggregate(descriptor: object, page?: object): Promise<{ rows: readonly unknown[] }>;
+  /** The collection's indexes; their top-level fields keep $match conditions answerable from an index. */
+  indexes?(): Promise<readonly { fields: readonly string[] }[]>;
 }
 
 const isDoc = (v: unknown): v is Doc =>
   !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date);
-const UNITS = ['year', 'quarter', 'month', 'week', 'day', 'hour'] as const;
+const UNITS = ['year', 'quarter', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'] as const;
+/** startOfWeek as MongoDB reads it: a weekday name or its three letters, in any case. */
+const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const weekday = (v: unknown) => {
+  const name = String(v).toLowerCase();
+  return WEEKDAYS.find((d) => d === name || d.slice(0, 3) === name);
+};
 const FORMATS: Record<string, GroupUnit> = {
   '%Y': 'year',
   '%Y-%m': 'month',
@@ -146,9 +163,10 @@ export function translatePipeline(stages: readonly Doc[]): PipelinePlan {
             return { name, field: field(i, arg, op), by: op === '$toLower' ? 'lower' : 'upper' };
           if (op === '$year')
             return { name, field: field(i, arg, op), by: 'year', output: { year: true } };
-          // MongoDB applies timezone, binSize and startOfWeek; an option this translation cannot honor is refused
+          // MongoDB applies timezone, binSize and startOfWeek, and defuss-dataview 0.10 counts bins and week starts as
+          // MongoDB does (its calendar tests replay MongoDB 9.0.8). An option it has no counterpart for is refused
           // instead of ignored, so a result never differs silently. VERIFIED: MongoDB 9.0.8 truncates the week of
-          // Wednesday 2026-11-18 to Sunday 2026-11-15 without startOfWeek; dataview's weeks start on Monday.
+          // Wednesday 2026-11-18 to Sunday 2026-11-15 without startOfWeek; dataview's own default is Monday.
           const zoneOf = (o: Doc, allowed: string[]) => {
             for (const k of Object.keys(o))
               if (!allowed.includes(k)) fail(i, `${op} option '${k}' is not supported here`);
@@ -161,18 +179,18 @@ export function translatePipeline(stages: readonly Doc[]): PipelinePlan {
             const unit = String(arg.unit);
             if (!(UNITS as readonly string[]).includes(unit))
               fail(i, `$dateTrunc unit '${unit}': one of ${UNITS.join(', ')}`);
-            if (arg.binSize !== undefined && arg.binSize !== 1)
-              fail(i, '$dateTrunc binSize: only 1');
-            if (unit === 'week' && !/^mon(day)?$/i.test(String(arg.startOfWeek)))
-              fail(
-                i,
-                "$dateTrunc unit 'week' needs startOfWeek: 'monday'; MongoDB's weeks otherwise start on Sunday",
-              );
+            const bin = arg.binSize ?? 1;
+            if (!Number.isSafeInteger(bin) || (bin as number) < 1)
+              fail(i, '$dateTrunc binSize takes a positive integer');
+            const start = arg.startOfWeek === undefined ? 'sunday' : weekday(arg.startOfWeek);
+            if (!start) fail(i, `$dateTrunc startOfWeek '${String(arg.startOfWeek)}' is no weekday`);
             return {
               name,
               field: field(i, arg.date, '$dateTrunc'),
               by: unit as GroupUnit,
               ...zoneOf(arg, ['date', 'unit', 'timezone', 'binSize', 'startOfWeek']),
+              ...((bin as number) > 1 ? { bin: bin as number } : {}),
+              ...(unit === 'week' ? { weekStart: start } : {}),
             };
           }
           if (op === '$dateToString' && isDoc(arg)) {
@@ -226,7 +244,7 @@ export function translatePipeline(stages: readonly Doc[]): PipelinePlan {
               ? { alias, op: 'count' }
               : held
                 ? { alias, op: 'count', field: held }
-                : op === '$sum' || op === '$avg' || op === '$min' || op === '$max'
+                : op === '$sum' || op === '$avg' || op === '$min' || op === '$max' || op === '$stdDevPop' || op === '$stdDevSamp'
                   ? {
                       alias,
                       op: op.slice(1) as PipelineMeasure['op'],
@@ -236,7 +254,7 @@ export function translatePipeline(stages: readonly Doc[]): PipelinePlan {
                     ? { alias, op: 'distinct', field: field(i, arg, op) }
                     : fail(
                         i,
-                        `${alias}: ${op} is not supported here (count, sum, avg, min, max, addToSet)`,
+                        `${alias}: ${op} is not supported here (count, sum, avg, min, max, addToSet, stdDevPop, stdDevSamp)`,
                       );
           measures.push(m);
         }
@@ -302,7 +320,7 @@ type Builder = (...args: unknown[]) => unknown;
 /**
  * The aggregate descriptor of a plan on a collection's builders: groupBy g0..gn, measures m0..mn, orderBy.
  */
-export function aggregateDescriptor(plan: PipelinePlan, q: unknown): Doc {
+export function aggregateDescriptor(plan: PipelinePlan, q: unknown, options: TranslateOptions = {}): Doc {
   const b = q as Record<string, Builder | undefined>;
   const call = (name: string, ...args: unknown[]) => {
     const fn = b[name];
@@ -316,14 +334,15 @@ export function aggregateDescriptor(plan: PipelinePlan, q: unknown): Doc {
     const r = ref(k.field);
     if (k.by === 'value') return r;
     if (k.by === 'lower' || k.by === 'upper' || k.by === 'each') return call(k.by, r);
-    return call('dateTrunc', r, k.by, k.zone ? { timeZone: k.zone } : undefined);
+    const calendar = { ...(k.zone ? { timeZone: k.zone } : {}), ...(k.bin ? { binSize: k.bin } : {}), ...(k.weekStart ? { startOfWeek: k.weekStart } : {}) };
+    return call('dateTrunc', r, k.by, Object.keys(calendar).length ? calendar : undefined);
   };
   const measure = (m: PipelineMeasure) => {
     if (m.op === 'count') return m.field ? call('count', ref(m.field)) : call('count');
     // sums and averages read numbers; the others compare any value (text, dates)
-    return m.op === 'sum' || m.op === 'avg' ? call(m.op, num(m.field!)) : call(m.op, ref(m.field!));
+    return m.op === 'sum' || m.op === 'avg' || m.op === 'stdDevPop' || m.op === 'stdDevSamp' ? call(m.op, num(m.field!)) : call(m.op, ref(m.field!));
   };
-  const { filters, where } = mongoRequest(q, plan.match ?? {});
+  const { filters, where } = mongoRequest(q, plan.match ?? {}, undefined, options);
   const orderBy =
     plan.sort.by === 'key' && plan.keys.length
       ? [{ field: `g${plan.sort.key}`, direction: plan.sort.direction }]
@@ -379,7 +398,7 @@ export async function aggregateMongo<T = Doc>(
   pipeline: readonly Doc[] | string,
 ): Promise<T[]> {
   const plan = translatePipeline(typeof pipeline === 'string' ? parsePipeline(pipeline) : pipeline);
-  const descriptor = aggregateDescriptor(plan, collection.q);
+  const descriptor = aggregateDescriptor(plan, collection.q, await scalarOptions(collection));
   const result = await collection.aggregate(
     descriptor,
     plan.limit ? { limit: plan.limit } : undefined,

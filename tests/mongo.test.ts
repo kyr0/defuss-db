@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { openMemory } from '../src/index.js';
 import type { Collection, Database } from '../src/index.js';
@@ -9,6 +10,7 @@ import {
   parsePipeline,
   project,
   QueryError,
+  scalarOptions,
   stringify,
   translatePipeline,
   translateSort,
@@ -156,8 +158,10 @@ describe('findMongo against a real defuss-db', () => {
   });
   it('an index answers a top-level equality (explain names it); count() takes the same request', async () => {
     await orders.createIndex({ name: 'byCountry', fields: ['country'] });
-    const request = mongoRequest(orders.q, "{ country: 'DE' }");
+    // Indexes reject arrays, so an indexed field's conditions stay filters; without that knowledge they cannot.
+    const request = mongoRequest(orders.q, "{ country: 'DE' }", undefined, await scalarOptions(orders));
     expect((await orders.explain(request as never)).access.kind).toBe('equality');
+    expect((await orders.explain(mongoRequest(orders.q, "{ country: 'DE' }") as never)).access.kind).toBe('scan');
     expect(await orders.count(request as never)).toBe(
       docs.filter((d) => d.country === 'DE').length,
     );
@@ -176,6 +180,96 @@ describe('findMongo against a real defuss-db', () => {
 });
 
 describe('MongoDB matching rules', () => {
+  it('match arrays by their elements, step through arrays of documents and compare longs as numbers, as MongoDB does', async () => {
+    // VERIFIED: tests/mongo-semantics.json holds the ids MongoDB 9.0.8 returned for every filter over its documents
+    // (scalars of every type, null, missing, empty, nested and document arrays), written by
+    // scripts/mongo-semantics-fixture.mjs on 2026-11-22.
+    type Any = Record<string, unknown>;
+    const fixture = JSON.parse(readFileSync(new URL('./mongo-semantics.json', import.meta.url), 'utf8')) as {
+      documents: Any[];
+      cases: [Any, number[]][];
+    };
+    const decode = (v: unknown): unknown => {
+      if (Array.isArray(v)) return v.map(decode);
+      if (!v || typeof v !== 'object') return v;
+      const o = v as Any;
+      if ('$date' in o) return new Date(o.$date as number);
+      if ('$long' in o) return BigInt(o.$long as string);
+      if ('$bytes' in o) return new Uint8Array(o.$bytes as number[]);
+      if ('$number' in o) return Number(o.$number);
+      return Object.fromEntries(Object.entries(o).map(([k, x]) => [k, decode(x)]));
+    };
+    const local = await openMemory();
+    const c = local.collection<Any & { id: number }>('c');
+    const docs = fixture.documents.map(decode) as (Any & { id: number })[];
+    await c.insertMany(docs);
+    for (const [filter, expected] of fixture.cases)
+      expect(
+        (await findMongo<Any>(c, decode(filter) as Any, { sort: { id: 1 } })).map((d) => d.id),
+        JSON.stringify(filter),
+      ).toEqual(expected);
+    // The documents an index takes, with an index on a: the conditions become filters and answer the same, except
+    // that an indexed field compares only the operand's own kind of number, so BigInts stay out of this replay.
+    const indexable = (v: unknown) =>
+      v == null || ['number', 'string', 'boolean'].includes(typeof v) || v instanceof Date || v instanceof Uint8Array;
+    const scalar = docs.filter((d) => indexable(d.a));
+    const s = local.collection<Any & { id: number }>('s');
+    await s.createIndex({ name: 'byA', fields: ['a'] });
+    await s.insertMany(scalar);
+    const held = new Set(scalar.map((d) => d.id));
+    let replayed = 0;
+    for (const [filter, expected] of fixture.cases) {
+      if (JSON.stringify(filter).includes('$long')) continue;
+      replayed++;
+      expect(
+        (await findMongo<Any>(s, decode(filter) as Any, { sort: { id: 1 } })).map((d) => d.id),
+        `${JSON.stringify(filter)} with an index`,
+      ).toEqual(expected.filter((id) => held.has(id)));
+    }
+    expect(replayed).toBeGreaterThan(140);
+    const request = mongoRequest(s.q, { a: 'x' }, undefined, await scalarOptions(s));
+    expect(request.where).toBeUndefined();
+    expect((await s.explain(request as never)).access.kind).toBe('equality');
+    // $match takes the same translation.
+    expect(
+      await aggregateMongo(c, [{ $match: { a: 5 } }, { $group: { _id: null, ids: { $addToSet: '$id' } } }]),
+    ).toEqual([{ _id: null, ids: fixture.cases.find(([f]) => JSON.stringify(f) === '{"a":5}')![1] }]);
+    await local.close();
+  });
+  it('read a past version through where expressions, since it may hold an array in a field indexed later', async () => {
+    const local = await openMemory();
+    const c = await local.ensureCollection<{ id: number; a: unknown }>('c', { $trackHistory: true });
+    await local.transaction((tx) => tx.collection<{ id: number; a: unknown }>('c').put({ id: 1, a: [5, 6] }), {
+      $historic: new Date('2026-01-01T00:00:00Z'),
+    });
+    await c.put({ id: 1, a: 5 });
+    await c.createIndex({ name: 'byA', fields: ['a'] });
+    const past = c.at(new Date('2026-06-01T00:00:00Z'));
+    expect([c.historic, past.historic]).toEqual([false, true]);
+    expect(await scalarOptions(past)).toEqual({});
+    expect(await findMongo(past, { a: 6 })).toEqual([{ id: 1, a: [5, 6] }]);
+    expect(await aggregateMongo(past, [{ $match: { a: 6 } }, { $count: 'n' }])).toEqual([{ n: 1 }]);
+    expect(await findMongo(c, { a: 6 })).toEqual([]);
+    await local.close();
+  });
+  it('refuse what has no exact translation', () => {
+    const q = (filter: Record<string, unknown>) => () => mongoRequest(orders.q, filter);
+    expect(q({ a: { b: 1 } })).toThrow(/embedded documents/);
+    expect(q({ a: { $gt: [1] } })).toThrow(/takes a number/);
+    expect(q({ a: { $regex: 'a.c' } })).toThrow(/plain text/);
+    expect(q({ a: { $regex: 'a\\\\.c' } })).toThrow(/plain text/);
+    expect(q({ a: { $regex: '\\d' } })).toThrow(/plain text/);
+    expect(q({ a: { $gt: new Date(NaN) } })).toThrow(/valid Date/);
+    expect(q({ id: { $options: 'i' } })).toThrow(/needs \$regex/);
+    expect(q({ a: { $regex: 'a', $options: 'm' } })).toThrow(/option i only/);
+    expect(q({ a: { $options: 'i' } })).toThrow(/needs \$regex/);
+    expect(q({ a: { $type: 'fancy' } })).toThrow(/not a BSON type/);
+    expect(q({ a: { $mod: [0, 1] } })).toThrow(/divisor/);
+    expect(q({ a: { $bitsAllSet: [64] } })).toThrow(/0 to 63/);
+    expect(q({ a: { $size: -1 } })).toThrow(/nonnegative/);
+    expect(q({ a: { $where: 'x' } })).toThrow(/not supported/);
+    expect(q({ $expr: { $gt: ['$a', 1] } })).toThrow(/not supported/);
+  });
   it('match null with missing fields, keep comparisons in the operand type, and answer as MongoDB does', async () => {
     // VERIFIED: MongoDB 9.0.8 on this host returned these ids for the same documents and filters, 2026-11-21.
     const local = await openMemory();
@@ -209,8 +303,18 @@ describe('MongoDB matching rules', () => {
         (await findMongo(c, filter, { sort: { id: 1 } })).map((d) => d.id),
         filter,
       ).toEqual(expected);
+    // With an index on a, the field holds no arrays, so the conditions become filters the index answers.
+    await c.createIndex({ name: 'byA', fields: ['a'] });
+    for (const [filter, expected] of cases)
+      expect(
+        (await findMongo(c, filter, { sort: { id: 1 } })).map((d) => d.id),
+        `${filter} with an index`,
+      ).toEqual(expected);
+    const indexed = mongoRequest(c.q, { a: 5 }, undefined, await scalarOptions(c));
+    expect(indexed).toEqual({ filters: [{ field: 'a', op: 'eq', value: 5 }] });
+    expect((await c.explain(indexed as never)).access.kind).toBe('equality');
     // The type bound is one more filter, so an ordered index still answers the range.
-    expect(mongoRequest(c.q, { a: { $gt: 4 } }).filters).toEqual([
+    expect(mongoRequest(c.q, { a: { $gt: 4 } }, undefined, { scalarFields: ['a'] }).filters).toEqual([
       { field: 'a', op: 'gt', value: 4 },
       { field: 'a', op: 'lte', value: Infinity },
     ]);
@@ -356,8 +460,8 @@ describe('pipelines', () => {
     expect(() => parsePipeline('')).toThrow(/paste a list of stages/);
     const trunc = (options: string) =>
       plan(`[{ $group: { _id: { $dateTrunc: { date: '$at', ${options} } }, n: { $sum: 1 } } }]`);
-    expect(() => trunc("unit: 'week'")).toThrow(/startOfWeek: 'monday'/);
-    expect(() => trunc("unit: 'day', binSize: 2")).toThrow(/binSize: only 1/);
+    expect(() => trunc("unit: 'week', startOfWeek: 'funday'")).toThrow(/no weekday/);
+    expect(() => trunc("unit: 'day', binSize: 0")).toThrow(/positive integer/);
     expect(() =>
       plan(
         `[{ $group: { _id: { $dateToString: { format: '%Y', date: '$at', onNull: 0 } }, n: { $sum: 1 } } }]`,
@@ -392,6 +496,20 @@ describe('pipelines', () => {
     expect(
       await group({ $dateTrunc: { date: '$at', unit: 'week', startOfWeek: 'Monday' } }),
     ).toEqual([{ _id: new Date('2026-11-16T00:00:00Z'), n: 2 }]);
+    // VERIFIED: MongoDB 9.0.8 returned these groups for the same two documents and stages, 2026-11-22: weeks start
+    // on Sunday by default, five-hour bins in Europe/Berlin count from 2000-01-01 local time.
+    expect(await group({ $dateTrunc: { date: '$at', unit: 'week' } })).toEqual([
+      { _id: new Date('2026-11-15T00:00:00Z'), n: 2 },
+    ]);
+    expect(
+      await group({ $dateTrunc: { date: '$at', unit: 'hour', binSize: 5, timezone: 'Europe/Berlin' } }),
+    ).toEqual([
+      { _id: new Date('2026-11-18T12:00:00Z'), n: 1 },
+      { _id: new Date('2026-11-18T22:00:00Z'), n: 1 },
+    ]);
+    expect(
+      await aggregateMongo(events, [{ $group: { _id: null, sd: { $stdDevPop: '$id' }, s: { $stdDevSamp: '$id' } } }]),
+    ).toEqual([{ _id: null, sd: 0.5, s: Math.SQRT1_2 }]);
     await local.close();
   });
 });

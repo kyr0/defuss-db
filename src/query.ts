@@ -183,6 +183,10 @@ export class ReadCollection<T extends Document = Document> {
     this.context = period ? temporalContext(rawContext, name, period) : rawContext;
   }
   protected readonly context: ReadContext;
+  /** Whether this view reads the collection as it was at a date (`at(date)`), not as it is now. */
+  get historic(): boolean {
+    return this.period !== undefined;
+  }
   at(date: Date, options: Omit<HistoryReadOptions, '$historic'> = {}): ReadCollection<T> {
     return new ReadCollection<T>(
       this.name,

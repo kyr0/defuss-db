@@ -6,28 +6,7 @@ Agents append `<UTC ISO> s=<session> LESSON <VAE-DIALECT>` only for a falsified 
 Session start injects the 3 newest open entries: LESSON, FINDING learn=none, FAIL without a later DONE.
 Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC, then delete; OR delete BC evidence. -->
 
-2026-11-19T18:11:49Z s=19560c1d FAIL prose
-2026-11-19T18:38:34Z s=19560c1d FAIL env.example
-2026-11-19T22:12:27Z s=19560c1d DONE fp=72814822e6f1 cov=93.8% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+65)
-2026-11-19T22:12:27Z s=19560c1d FINDING src/scope.ts:TransactionScope.finish learn=test: tests/database.test.ts 'never commits part of a failed write started after the transaction callback returned' fails without the fix (mutation run) and passes wi
-2026-11-19T22:12:27Z s=19560c1d FINDING src/database.ts:Database.import + src/archive.ts:releaseImport learn=test: tests/archive.test.ts 'closes an archive input that an import rejects before reading it' fails without the fix (mutation run) and passes with it, on a real file
-2026-11-19T22:12:27Z s=19560c1d FINDING scripts/site-evidence.mjs:operationTable learn=verifier: scripts/check-site.mjs asserts no unrendered pipe table in any guide (runs in make site and make e2e)
-2026-11-19T22:12:27Z s=19560c1d FINDING Makefile:recipes learn=verifier: rule make.pinned-tools forbids bare bun/node recipe lines; assertPinnedRuntime in scripts/workload-report.mjs rejects reports from unpinned runtimes
 2026-11-19T22:12:27Z s=19560c1d FINDING scripts/serve-site.mjs learn=none: observability fix (error handler exits 1 with an ISO-8601 ERROR line, SIGTERM closes cleanly), observed via make start/status/stop/log; no rule kind expresses i
-2026-11-19T22:12:27Z s=19560c1d FINDING scripts/bench-mongo.mjs:transaction probe learn=memory: .vae/MEMORY.md line mongodb 9.0.8 standalone
-2026-11-19T22:12:27Z s=19560c1d FINDING website/index.html + docs/VALIDATION.md flush claims learn=memory: .vae/MEMORY.md flush@macOS line; scripts/mongo-report.mjs marks Bun-on-darwin write ratios not comparable
-2026-11-19T22:12:27Z s=19560c1d FINDING src/mutations.ts:putDocument + src/schema-cache.ts (first write to a new collection) learn=test: tests/database.test.ts 'accepts concurrent first writes to a new collection and lists, verifies and exports it' fails with the old s: write restored (mutation r
-2026-11-19T22:16:53Z s=19560c1d DONE fp=43c31ca48bd8 cov=93.8% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+65)
-2026-11-19T23:43:22Z s=19560c1d DONE fp=4bb9e129552b cov=93.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+69)
-2026-11-19T23:43:22Z s=19560c1d FINDING src/database.ts:Database (no compaction policy) learn=test: tests/compaction.test.ts bound and idle tests fail with escalation or the idle trigger removed (mutation runs)
-2026-11-19T23:43:22Z s=19560c1d FINDING src/compaction.ts:AutoCompactor.committed learn=memory: exclusive vs optimistic mode is not observable through the public API; no test can tell them apart without instrumentation
-2026-11-19T23:43:22Z s=19560c1d FINDING src/compaction.ts:AutoCompactor.run (idle CONFLICT) learn=memory: needs two processes and a sustained writer; timing-dependent, no deterministic test
-2026-11-19T23:43:22Z s=19560c1d FINDING src/database.ts:Database.compact learn=test: tests/compaction.test.ts 'does not copy the store again after a manual compaction' fails without the call (mutation run)
-2026-11-19T23:43:22Z s=19560c1d FINDING scripts/bench-mongo.mjs:compare learn=memory: .vae/MEMORY.md VERIFIED[bench fairness]
-2026-11-19T23:43:22Z s=19560c1d FINDING src/ARCH.md:15, tests/ARCH.md:7,13,15 learn=memory: MEMORY VERIFIED[versions] already records the rule; a regex rule would also match legitimate dependency versions
-2026-11-20T00:12:34Z s=19560c1d DONE fp=9357d7d171f4 cov=93.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+73)
-2026-11-20T00:12:34Z s=19560c1d FINDING src/database.ts:openDatabase (page cache) learn=memory: a test may not pin a config value (AGENTS.md); the rationale and numbers are in ARCH.md 'Read costs' and the PAGE_CACHE comment
-2026-11-20T00:12:34Z s=19560c1d FINDING src/query.ts:measuredOptions learn=test: tests/measured.test.ts checks one measurement per source row and direct measurement for any other row
 2026-11-20T00:12:34Z s=19560c1d FINDING scripts/site-evidence.mjs (warm cache sentence) learn=memory: wording only
 2026-11-20T19:40:17Z s=19560c1d FAIL tests.e2e.1,docs.performance-evidence
 2026-11-20T20:18:30Z s=19560c1d DONE fp=51f06e40c707 cov=92.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+91)
@@ -106,3 +85,24 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-21T20:21:43Z s=19560c1d FINDING src/mongo-pipeline.ts:keyOutput $dateToString learn=test: same test.
 2026-11-21T20:21:43Z s=19560c1d FINDING src/mongo-pipeline.ts:aggregateDescriptor; tests/mongo.test.ts grouping probe learn=none: YAGNI cleanup; no recurrence mechanism.
 2026-11-21T20:21:43Z s=19560c1d FINDING docs/API.md MongoDB syntax learn=none: needs a dataview any-element expression and a nullish sort option; follow-up for the user.
+2026-11-22T00:44:49Z s=19560c1d FAIL lint
+2026-11-22T00:51:55Z s=19560c1d DONE fp=a574a69e1e02 cov=93.8% paths=CHANGELOG.md,README.md,docs/API.md,docs/HISTORY.md(+10)
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:pattern learn=test: tests/mongo.test.ts refusal case and fixture regex cases
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:regexTest learn=test: tests/mongo-semantics.json regex cases
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:bitsTest learn=test: fixture $bits cases on 2^53, 2^60, -2^60
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:compareTest,twin learn=test: fixture cases around 2^53
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:elementMatch learn=test: fixture $elemMatch logic cases
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:compareTest,scalarFilters learn=test: fixture NaN cases, refusal test for an invalid Date
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:translateFilter learn=test: refusal test
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:scalarOptions learn=test: historic view test in tests/mongo.test.ts; MEMORY line for the unfixed history-view index crash
+2026-11-22T00:51:55Z s=19560c1d FINDING src/mongo-query.ts:rules comment, docs/API.md:176 learn=memory: .vae/MEMORY.md planner line; test asserts equality access for an indexed equality
+2026-11-22T00:51:55Z s=19560c1d FINDING tests/mongo.test.ts:aggregateMongo calendar test learn=none: comment fixed to name the probe it rests on
+2026-11-22T01:19:59Z s=19560c1d DONE fp=f8c824b2c913 cov=93.8% paths=CHANGELOG.md,README.md,docs/API.md,docs/HISTORY.md(+15)
+2026-11-22T01:19:59Z s=19560c1d FINDING src/history-view.ts:build learn=test: tests/history.test.ts compares five requests with access:'scan' answers; a mutation forcing complete=true fails it
+2026-11-22T01:19:59Z s=19560c1d FINDING src/source.ts:planAccess,choose learn=test: explain assertions for past, later and live views in tests/history.test.ts
+2026-11-22T01:19:59Z s=19560c1d FINDING src/history-view.ts:build (oversized keys) learn=test: tests/history.test.ts 'key limit' with a four-field compound index and a 450-unit ID
+2026-11-22T01:19:59Z s=19560c1d FINDING src/history-view.ts:scan learn=test: rejects assertions for pageByIndex and countByIndex at dt(4), and pageByIndex at dt(9) returns all three documents
+2026-11-22T01:19:59Z s=19560c1d FINDING src/mongo-query.ts:scalarOptions learn=test: historic view test in tests/mongo.test.ts
+2026-11-22T01:19:59Z s=19560c1d FINDING src/mongo-query.ts:rules comment, docs/API.md learn=memory: .vae/MEMORY.md planner line; test asserts equality access for an indexed equality
+2026-11-22T01:36:45Z s=19560c1d FAIL release.version-sync
+2026-11-22T01:41:52Z s=19560c1d DONE fp=3fbf50dcb581 cov=93.8% paths=CHANGELOG.md,README.md,bun.lock,docs/API.md(+17)

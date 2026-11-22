@@ -135,6 +135,8 @@ export interface MutationLimits {
 }
 export interface Reader {
   readonly temporal?: boolean;
+  /** Historical views: whether an index left out no version a query could match (built lazily on the first call). */
+  readonly indexComplete?: (index: IndexDefinition) => Promise<boolean>;
   readonly searchGeneration?: () => Promise<string>;
   readonly temporalVersion?: () => Promise<number>;
   readonly revision: number;

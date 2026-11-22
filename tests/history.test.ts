@@ -761,3 +761,73 @@ it('keeps the temporal posting cache empty with a zero byte budget, including em
   expect((await c.at(dt(3)).pageIdsByIndex('amount')).rows).toEqual([]);
   expect(db.queryCacheStats()).toMatchObject({ temporalIndexes: 0, temporalIndexBytes: 0 });
 });
+it('answers over past versions that an index created later cannot key as a scan does, and refuses explicit pages of that index', async () => {
+  const db = await memory(),
+    c = await db.ensureCollection<{ id: number; tags: unknown }>('tagged', { $trackHistory: true });
+  await c.at(dt(1)).insertMany([
+    { id: 1, tags: ['a', 'b'] },
+    { id: 2, tags: 'a' },
+    { id: 3, tags: 'c' },
+  ]);
+  await c.at(dt(8)).update(1, { tags: 'b' });
+  // Indexes check the documents they are built on: today's versions, not the past array.
+  await c.createIndex({ name: 'byTags', fields: ['tags'] });
+  await c.createIndex({ name: 'tagsInOrder', fields: ['tags'], order: ['asc'] });
+  const past = c.at(dt(4));
+  const requests = [
+    { filters: [{ field: 'tags', op: 'eq' as const, value: 'a' }] },
+    { filters: [{ field: 'tags', op: 'eq' as const, value: ['a', 'b'] }] },
+    { filters: [{ field: 'tags', op: 'gte' as const, value: 'b' }] },
+    { sorters: [{ field: 'tags', direction: 'desc' as const }] },
+    { filters: [{ field: 'tags', op: 'gt' as const, value: 'a' }], sorters: [{ field: 'tags', direction: 'asc' as const }] },
+  ];
+  for (const request of requests) {
+    const scanned = await past.find({ ...request, access: 'scan' });
+    expect(await past.find(request), JSON.stringify(request)).toEqual(scanned);
+    expect(await past.count({ filters: request.filters ?? [] })).toBe(
+      (await past.find({ filters: request.filters ?? [], access: 'scan' })).length,
+    );
+    // The ordered index would leave the array out of ranges and sorts; the equality index stays exact.
+    expect(['ordered', 'range']).not.toContain((await past.explain(request)).access.kind);
+  }
+  expect((await past.explain(requests[0]!)).access.kind).toBe('equality');
+  expect((await past.find(requests[0]!)).map((d) => d.id)).toEqual([2]);
+  expect((await past.find(requests[3]!)).map((d) => d.id)).toEqual([1, 3, 2]);
+  // An index that names it explicitly would leave the past array out, so it says so instead.
+  await expect(past.pageByIndex('tagsInOrder', { limit: 10 })).rejects.toMatchObject({
+    code: 'INVALID_INDEX_VALUE',
+  });
+  await expect(past.countByIndex('tagsInOrder')).rejects.toMatchObject({ code: 'INVALID_INDEX_VALUE' });
+  // Where every visible version is keyable, the index answers as before.
+  const later = c.at(dt(9));
+  expect((await later.explain(requests[0]!)).access.kind).toBe('ordered');
+  expect((await later.explain(requests[2]!)).access.kind).toBe('range');
+  expect((await later.find(requests[0]!)).map((d) => d.id)).toEqual([2]);
+  expect((await later.pageByIndex('tagsInOrder', { limit: 10 })).rows.map((d) => d.id)).toEqual([2, 1, 3]);
+  expect((await c.explain(requests[2]!)).access.kind).toBe('range');
+  await db.verify();
+});
+it('leaves an equality index to a scan where a past key would exceed the key limit', async () => {
+  type Row = { id: string; a: string; b: string; c: string; d: string };
+  const db = await memory(),
+    c = await db.ensureCollection<Row>('long', { $trackHistory: true });
+  // The 4096-unit key limit counts the document's ID: these values fit as an operand, but not with this ID.
+  const id = 'k'.repeat(450),
+    [a, b, d] = ['a', 'b', 'd'].map((x) => x.repeat(1024)) as [string, string, string],
+    long = 'c'.repeat(600);
+  await c.at(dt(1)).insert({ id, a, b, c: long, d });
+  await c.at(dt(8)).update(id, { c: 'short' });
+  await c.createIndex({ name: 'byAll', fields: ['a', 'b', 'c', 'd'] });
+  const eq = (value: string) => ({
+    filters: (['a', 'b', 'c', 'd'] as const).map((field) => ({
+      field,
+      op: 'eq' as const,
+      value: field === 'c' ? value : { a, b, d }[field],
+    })),
+  });
+  const past = c.at(dt(4));
+  expect((await past.find(eq(long))).map((r) => r.id)).toEqual([id]);
+  expect((await past.explain(eq(long))).access.kind).toBe('scan');
+  expect((await c.explain(eq('short'))).access.kind).toBe('equality');
+  expect((await c.find(eq('short'))).map((r) => r.id)).toEqual([id]);
+});

@@ -50,6 +50,20 @@ export async function planAccess(
   selection: AccessSelection,
   signal?: ScanRequest<StoredRow<Document>>['signal'],
 ): Promise<Plan> {
+  const plan = await choose(reader, collection, selection, signal);
+  // A historical equality index may leave out a past version whose key would exceed the limit; the chosen one is
+  // checked here, after the ordered candidates, so a view never materializes an index it does not use.
+  // VERIFIED: tests/history.test.ts 'key limit' (a compound key that fits as an operand, not with a 450-unit ID).
+  if (plan.index && !plan.index.order && reader.indexComplete && !(await reader.indexComplete(plan.index)))
+    return { public: { kind: 'scan' } };
+  return plan;
+}
+async function choose(
+  reader: Reader,
+  collection: string,
+  selection: AccessSelection,
+  signal?: ScanRequest<StoredRow<Document>>['signal'],
+): Promise<Plan> {
   if (selection.access !== undefined && selection.access !== 'auto' && selection.access !== 'scan')
     throw new TypeError('access must be auto or scan.');
   if (selection.access === 'scan') return { public: { kind: 'scan' } };
@@ -124,7 +138,15 @@ export async function planAccess(
         throw error;
     }
   }
-  const ordered = orderedAccess(collection, schema.indexes, selection, equals);
+  let indexes = schema.indexes,
+    ordered = orderedAccess(collection, indexes, selection, equals);
+  // A historical view keys past versions with today's ordered indexes; one that cannot key a visible version would
+  // leave it out of ranges and sorts, so the next best index or a scan answers instead.
+  while (ordered && reader.indexComplete && !(await reader.indexComplete(ordered.index))) {
+    const skipped = ordered.index;
+    indexes = indexes.filter((index) => index !== skipped);
+    ordered = orderedAccess(collection, indexes, selection, equals);
+  }
   if (!ordered) return fallback;
   const info = {
     index: ordered.index.name,

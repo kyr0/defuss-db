@@ -70,7 +70,7 @@
   },
   "dependencies": {
     "defuss-brotli": "0.3.0",
-    "defuss-dataview": "0.9.0",
+    "defuss-dataview": "0.10.0",
     "defuss-dbsonl": "0.9.0",
     "defuss-dson": "1.5.1",
     "defuss-lexicalsearch": "0.4.0",
