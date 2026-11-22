@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/update",
+  "title": "Collection.update",
+  "namespace": "Collection",
+  "name": "update",
+  "signature": "update(id: PrimaryKey, updater: Updater<T>, options?: WriteOptions): Promise<boolean>",
+  "description": "Shallow own-property patch or complete replacement callback; return whether ID existed",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "updater",
+      "type": "Updater<T>",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<boolean>"
+  },
+  "markdown": "update.md"
+}

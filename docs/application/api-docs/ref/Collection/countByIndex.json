@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/countByIndex",
+  "title": "Collection.countByIndex",
+  "namespace": "Collection",
+  "name": "countByIndex",
+  "signature": "countByIndex(index: string, options?: IndexCountOptions): Promise<number>",
+  "description": "Exact number of ordered index entries matching prefix and bounds. Optional maxScannedEntries rejects excessive work. Accepts an abort signal.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "index",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "IndexCountOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<number>"
+  },
+  "markdown": "countByIndex.md"
+}

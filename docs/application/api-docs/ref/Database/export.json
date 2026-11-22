@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/export",
+  "title": "Database.export",
+  "namespace": "Database",
+  "name": "export",
+  "signature": "export(options?: ExportOptions): Promise<Uint8Array>",
+  "description": "Uint8Array Brotli archive; buffered, default 64 MiB compressed cap",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "ExportOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<Uint8Array>"
+  },
+  "markdown": "export.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/prepareSelect",
+  "title": "Collection.prepareSelect",
+  "namespace": "Collection",
+  "name": "prepareSelect",
+  "signature": "prepareSelect<const D extends RowsDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery<T, RowsOutput<D>>",
+  "description": "Bound prepared plan: evaluate, stream, explain",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "descriptor",
+      "type": "D",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "cacheKey",
+      "type": "boolean",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "BoundQuery<T, RowsOutput<D>>"
+  },
+  "markdown": "prepareSelect.md"
+}

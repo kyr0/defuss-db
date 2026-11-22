@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/transaction",
+  "title": "Database.transaction",
+  "namespace": "Database",
+  "name": "transaction",
+  "signature": "transaction<R>(callback: (tx: DatabaseTransaction) => R | Promise<R>, options?: WriteOptions): Promise<TransactionResult<R>>",
+  "description": "{ result, revision, storedEntries }; callback runs once",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "callback",
+      "type": "(tx: DatabaseTransaction) => R | Promise<R>",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<TransactionResult<R>>"
+  },
+  "markdown": "transaction.md"
+}

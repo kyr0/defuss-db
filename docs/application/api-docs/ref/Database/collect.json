@@ -1,0 +1,16 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/collect",
+  "title": "Database.collect",
+  "namespace": "Database",
+  "name": "collect",
+  "signature": "collect(): ReturnType<Dbsonl<unknown>['collect']>",
+  "description": "Delegated reclamation of unpinned generations",
+  "async": false,
+  "generator": false,
+  "params": [],
+  "returns": {
+    "type": "ReturnType<Dbsonl<unknown>['collect']>"
+  },
+  "markdown": "collect.md"
+}

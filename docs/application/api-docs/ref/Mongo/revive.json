@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/revive",
+  "title": "revive",
+  "namespace": "Mongo",
+  "name": "revive",
+  "signature": "revive(value: unknown): unknown",
+  "description": "Values as Extended JSON text and back.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "value",
+      "type": "unknown",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "unknown"
+  },
+  "markdown": "revive.md"
+}

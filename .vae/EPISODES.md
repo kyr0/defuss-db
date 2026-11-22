@@ -11,37 +11,20 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/assets/site.js:86 (displayMongo comment) learn=none: the docs gate already enforces the prefix
 2026-11-20T20:18:30Z s=19560c1d FINDING src/query-pool.ts:createQueryPool (worker 'error' listener) learn=none: no cheap way to inject an uncaught exception into the packaged worker without a test-only hook; the main error path (a failing partial) is covered by the maxGro
 2026-11-20T20:18:30Z s=19560c1d FINDING src/query-pool.ts:start learn=none: cause not reproduced; the recorded error makes the next occurrence diagnosable
-2026-11-20T20:18:30Z s=19560c1d FINDING scripts/bench-mongo.mjs:121, scripts/bench-history.mjs:settled learn=memory: .vae/MEMORY.md bench fairness line covers waiting for background state before timing
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/OPERATIONS.md: Answer aggregates in worker threads, rule S (style) learn=none: one-off wording; vae.py prose passes
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/assets/site.js:displayMongo (ratio chart) learn=none: label collisions inside a canvas are visual; scripts/e2e-site.mjs checks that every chart renders and the page has no horizontal overflow, not label geometry
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/assets/site.css:--db-chart-a/--db-chart-b learn=none: the tokens carry a comment with the validation; one-off palette choice
-2026-11-20T20:18:30Z s=19560c1d FINDING website/index.html code windows and setup snippets learn=verifier: Makefile lint recipe typechecks website/examples
-2026-11-20T20:18:30Z s=19560c1d FINDING scripts/check-site.mjs (MongoDB charts, scale card) learn=verifier: scripts/check-site.mjs runs in make site and make e2e
-2026-11-20T20:18:30Z s=19560c1d FINDING .vae/MEMORY.md bulk load line learn=memory: recorded so later agents do not re-test the falsified causes
-2026-11-20T20:27:58Z s=19560c1d FAIL release.version-sync
-2026-11-20T20:34:49Z s=19560c1d FAIL tests.e2e.1
-2026-11-20T20:50:21Z s=19560c1d FAIL prose
-2026-11-20T21:10:10Z s=19560c1d DONE fp=829a8efb661f cov=92.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
 2026-11-20T21:10:10Z s=19560c1d FINDING website/demo/data.ts:3, db/orders.ts:4,88, db/store.ts:3, db/treasury.ts treasury.pin learn=none: the docs gate enforces the prefix form
 2026-11-20T21:10:10Z s=19560c1d FINDING docs/ (generated) learn=none: generated output; its sources are reviewed
-2026-11-20T21:10:10Z s=19560c1d FINDING .vae/checks/version_sync.py learn=verifier: rule release.version-sync runs the check
 2026-11-20T21:10:10Z s=19560c1d FINDING scripts/release.mjs:26 learn=none: make release is not part of make verify; running it creates a release archive, so it was not executed here
 2026-11-20T21:10:10Z s=19560c1d FINDING scripts/site.mjs llms.txt template learn=none: make site already fails closed on a syntax error
-2026-11-20T21:10:10Z s=19560c1d FINDING scripts/check-site.mjs:21 link resolution learn=verifier: check-site runs in make site and the gate's e2e
 2026-11-20T21:10:10Z s=19560c1d FINDING scripts/e2e-site.mjs playground restart step learn=none: test harness detail, covered by the e2e itself
 2026-11-20T21:10:10Z s=19560c1d FINDING website/index.html #demo, docs/assets/site.css .db-playground* learn=none: visual collision of class names; e2e checks render, errors and overflow, not appearance
 2026-11-20T21:10:10Z s=19560c1d FINDING website/demo/app.css narrow bar learn=none: layout inside a frame; e2e-demo checks overflow of the page, not clipping of a flex row
 2026-11-20T21:10:10Z s=19560c1d FINDING website/demo/db/treasury.ts treasury.pin learn=none: the failure path needs snapshot() to reject, which no cheap probe produces
-2026-11-20T21:10:10Z s=19560c1d FINDING website/demo/** and scripts/demo-build.mjs, scripts/e2e-demo.mjs (sub-agent work) learn=test: scripts/e2e-demo.mjs runs in make e2e-site
 2026-11-20T21:10:10Z s=19560c1d FINDING tests/browser-examples.ts (was website/demo-worker.ts) learn=none: make e2e asserts the 18 checks
 2026-11-20T21:10:10Z s=19560c1d FINDING package.json lint and format scripts learn=none: make lint runs both
-2026-11-20T21:10:10Z s=19560c1d FINDING .vae/MEMORY.md write cost line learn=memory: recorded so later work starts from the measured breakdown
-2026-11-20T23:14:53Z s=19560c1d DONE fp=dfe07765a91e cov=92.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
 2026-11-20T23:14:53Z s=19560c1d FINDING website/index.html (whole file) learn=none: the author and content of the out-of-session edit are not known; the human was asked
-2026-11-20T23:14:53Z s=19560c1d FINDING website/index.html scale card, rule P (precision) learn=verifier: check-site's growth guard keeps the reworded claim true
-2026-11-20T23:14:53Z s=19560c1d FINDING .vae/MEMORY.md learn=memory: the dbsonl fix and prototype live outside this repo
-2026-11-21T00:21:19Z s=19560c1d FAIL release.version-sync
-2026-11-21T00:29:59Z s=19560c1d FAIL prose
 2026-11-21T00:31:58Z s=19560c1d DONE fp=299479a48bfb cov=92.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
 2026-11-21T00:31:58Z s=19560c1d FINDING package.json, bun.lock, README.md:5, docs/SOURCES.md:12, src/database.ts PAGE_CACHE comment, src/compaction.ts rationale, ARCH.md (format, cache, compaction, query workers), CHANGELOG.md, docs/API.md, docs/OPERATIONS.md, website/index.html comparison note, website/ARCH.md, docs/assets/site.js, scripts/check-site.mjs, docs/benchmarks/*.json learn=verifier: scripts/check-site.mjs now asserts every comparison claim against both runtime reports
 2026-11-21T00:45:37Z s=19560c1d DONE fp=f37be3bd505d cov=93.0% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
@@ -106,3 +89,20 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-22T02:28:34Z s=19560c1d FINDING website/index.html:#mongodb-queries Indexes term learn=memory: .vae/MEMORY.md planner line
 2026-11-22T02:28:34Z s=19560c1d FINDING website/examples/mongo.ts learn=verifier: make lint typechecks website/examples
 2026-11-22T02:28:34Z s=19560c1d FINDING website/index.html layout learn=none: scripts/e2e-site.mjs covers every page in the gate
+2026-11-22T13:44:29Z s=19560c1d FAIL coverage
+2026-11-22T13:50:05Z s=19560c1d DONE fp=7bd0e00730e9 cov=93.8% paths=bun.lock,docs/assets/site.js,docs/database-explorer/SOURCES.json,docs/database-explorer/db-explorer.min.css(+23)
+2026-11-22T13:50:05Z s=19560c1d FINDING docs/database-explorer/index.html seed (defuss-shadcn scaffold-db-explorer.mdx seed) learn=test: scripts/e2e-site.mjs runs both cases in fresh browser profiles: a visit after one was left during the seed, and a second tab during the seed
+2026-11-22T13:50:05Z s=19560c1d FINDING scripts/explorer-sync.mjs copy step learn=memory: .vae/MEMORY.md 'database explorer' line: wait until no build-docs runs, with a pgrep pattern that cannot match its own shell; check-site fails on any copied fil
+2026-11-22T13:50:05Z s=19560c1d FINDING docs/assets/site.js themeExplorer learn=test: scripts/e2e-site.mjs checks the theme after a switch and after a reload with a stored theme that differs from the system's
+2026-11-22T13:50:05Z s=19560c1d FINDING scripts/e2e-site.mjs explorer theme assertions learn=test: the mutation runs above fail the e2e
+2026-11-22T13:50:05Z s=19560c1d FINDING scripts/ARCH.md:11 P08, P05 learn=none: page text matching scripts/e2e-site.mjs
+2026-11-22T13:50:05Z s=19560c1d FINDING scripts/ARCH.md:13 P09, A10 learn=none: page text matching scripts/explorer-sync.mjs
+2026-11-22T13:50:05Z s=19560c1d FINDING website/ARCH.md:11 A10, B01 learn=none: page text
+2026-11-22T15:14:53Z s=19560c1d DONE fp=485d8ed43caf cov=93.8% paths=bun.lock,docs/assets/site.css,docs/assets/site.js,docs/database-explorer/SOURCES.json(+25)
+2026-11-22T15:54:55Z s=19560c1d DONE fp=6fd9fbb58afb cov=93.8% paths=Makefile,bun.lock,docs/API.md,docs/application/SOURCES.json(+226)
+2026-11-22T15:54:55Z s=19560c1d FINDING scripts/api-docs.mjs docOf learn=none: a presentation choice of the generator; the signature block still prints every overload
+2026-11-22T15:54:55Z s=19560c1d FINDING website/application/app-api-docs.html rpcArgs learn=test: scripts/e2e-site.mjs sends every member's example on a fresh sample and fails on any error
+2026-11-22T15:54:55Z s=19560c1d FINDING scripts/check-site.mjs comparison-paragraph claims learn=none: dead check removed; website/ARCH.md now names only the scale section
+2026-11-22T15:54:55Z s=19560c1d FINDING website/application/sample.mjs samples (Mongo) learn=none: sample text; the e2e checks the calls, not the wording
+2026-11-22T15:54:55Z s=19560c1d FINDING scripts/api-docs.mjs member tables learn=none: generated Markdown only; the app renders from the data block
+2026-11-22T15:54:55Z s=19560c1d FINDING scripts/shadcn-sync.mjs (was explorer-sync.mjs) learn=memory: .vae/MEMORY.md 'defuss-shadcn copies' line replaces the old wait-for-build advice

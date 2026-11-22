@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/dropSearchIndex",
+  "title": "Collection.dropSearchIndex",
+  "namespace": "Collection",
+  "name": "dropSearchIndex",
+  "signature": "dropSearchIndex(indexName: string, options?: WriteOptions): Promise<boolean>",
+  "description": "Atomic removal of search inputs, state and definition",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "indexName",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<boolean>"
+  },
+  "markdown": "dropSearchIndex.md"
+}

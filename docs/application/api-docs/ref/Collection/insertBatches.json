@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/insertBatches",
+  "title": "Collection.insertBatches",
+  "namespace": "Collection",
+  "name": "insertBatches",
+  "signature": "insertBatches(batches: AsyncIterable<readonly NewDocument<T>[]> | Iterable<readonly NewDocument<T>[]>, options?: WriteOptions): AsyncGenerator<{\n    ids: PrimaryKey[];\n    revision: number;\n    storedEntries: number;\n}>",
+  "description": "Async generator of { ids, revision, storedEntries }; one atomic commit per input batch",
+  "async": false,
+  "generator": true,
+  "params": [
+    {
+      "name": "batches",
+      "type": "AsyncIterable<readonly NewDocument<T>[]> | Iterable<readonly NewDocument<T>[]>",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "AsyncGenerator<{\n        ids: PrimaryKey[];\n        revision: number;\n        storedEntries: number;\n    }>"
+  },
+  "markdown": "insertBatches.md"
+}

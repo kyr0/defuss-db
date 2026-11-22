@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/pageIdsByIndex",
+  "title": "Collection.pageIdsByIndex",
+  "namespace": "Collection",
+  "name": "pageIdsByIndex",
+  "signature": "pageIdsByIndex(index: string, options?: IndexPageOptions): Promise<IndexPage<T['id']>>",
+  "description": "Keyset page of typed primary IDs. Returns { rows, nextCursor, revision }. Accepts document-page cursors for the same scope and range.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "index",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "IndexPageOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<IndexPage<T['id']>>"
+  },
+  "markdown": "pageIdsByIndex.md"
+}

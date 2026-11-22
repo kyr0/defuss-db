@@ -1,0 +1,133 @@
+{
+  "defuss-shadcn": {
+    "version": "0.9.17",
+    "commit": "71a305fac4a10df9a5b3fc3b5ebe1d9fdf394ac0",
+    "defussDb": "3.1.0",
+    "copied": "2026-11-22T15:31:04.747Z",
+    "note": "Built by defuss-shadcn, copied unchanged except the rewritten URLs. Source maps are not copied; only developer tools request them. The fonts come without licence files, as in defuss-shadcn.",
+    "files": {
+      "index.html": {
+        "from": "dist/documentation/application/app-db-explorer.html (URLs rewritten)",
+        "sha256": "9e241c3876514664eab005928cdfd784f022b68bb844064f31ecda736d6e58fc"
+      },
+      "docs-theme.css": {
+        "from": "dist/documentation/css/docs-theme.css (URLs rewritten)",
+        "sha256": "d629e50f09ef4017f8a452a7b3203b436d144daeb3cb30d56beb11b5b1a96ed4"
+      },
+      "db-explorer.min.css": {
+        "from": "dist/apps/db-explorer/db-explorer.min.css",
+        "sha256": "e0c850d0f27305af0c0a66e77e8108ef34ad159b45e373f5d6e1961cc5d93c55"
+      },
+      "db-explorer.min.js": {
+        "from": "dist/apps/db-explorer/db-explorer.min.js",
+        "sha256": "93f359513a5d2268feb4c2f7f6601003440bdd5d8c02e998bc3906dc0fb0d598"
+      },
+      "fonts/geist-300.woff2": {
+        "from": "dist/documentation/fonts/geist-300.woff2",
+        "sha256": "0e2b8a081774f7a372eabcfe44111e98b81a00ec1e15ec0feba7484dec817b6d"
+      },
+      "fonts/geist-400.woff2": {
+        "from": "dist/documentation/fonts/geist-400.woff2",
+        "sha256": "e6ef6abb39c762ed2259cc814e6f16888c540cd84835962227b56ab2354f27f1"
+      },
+      "fonts/geist-500.woff2": {
+        "from": "dist/documentation/fonts/geist-500.woff2",
+        "sha256": "40073e90816315c92e4f4381bd50b6fdc950b22b0dd010a4179046cf588d4f12"
+      },
+      "fonts/geist-600.woff2": {
+        "from": "dist/documentation/fonts/geist-600.woff2",
+        "sha256": "9d99fbd791968493fa507ac846de561cee47b00f8100c23cad333b3cb78392d6"
+      },
+      "fonts/geist-mono-400.woff2": {
+        "from": "dist/documentation/fonts/geist-mono-400.woff2",
+        "sha256": "616e37ca59a2afebe306751773a538b93f5a2d9a90fd3fc97ce73321cb93af51"
+      },
+      "fonts/geist-mono-500.woff2": {
+        "from": "dist/documentation/fonts/geist-mono-500.woff2",
+        "sha256": "9a494764f87c2e11d24001b910600bd2192230554c090a0ddc66e8221b32f3ce"
+      },
+      "fonts/fraunces-300.woff2": {
+        "from": "dist/documentation/fonts/fraunces-300.woff2",
+        "sha256": "eb7978600911337e093a9b339e355a5493c4a2a6609af2839e8298c0b5444174"
+      },
+      "fonts/fraunces-400.woff2": {
+        "from": "dist/documentation/fonts/fraunces-400.woff2",
+        "sha256": "e558f39453a9c611908be04294b50dea5f21ae6c49b41c6e47f4115e91f90209"
+      },
+      "fonts/fraunces-500.woff2": {
+        "from": "dist/documentation/fonts/fraunces-500.woff2",
+        "sha256": "7975c1ef7caf89d0606dd985d35abe31a619c19262cf13f5a05938cc68fb27b2"
+      },
+      "fonts/fraunces-300i.woff2": {
+        "from": "dist/documentation/fonts/fraunces-300i.woff2",
+        "sha256": "74cb64bfa9b1ce23f22cc323a0ab39430389e23c2e07446d05377c7a33296ca5"
+      },
+      "fonts/fraunces-400i.woff2": {
+        "from": "dist/documentation/fonts/fraunces-400i.woff2",
+        "sha256": "475b154af19c6b4ef371db22078b5044a078ce2467e11ef22a7b87f77837caf3"
+      },
+      "js/db/chunk-01tja6aj.js": {
+        "from": "dist/documentation/js/db/chunk-01tja6aj.js",
+        "sha256": "d53d5d1bcc642bbd49ea1f12c80926850de1c4d3491daa4261624aef2fc049d5"
+      },
+      "js/db/chunk-1waxrr9b.js": {
+        "from": "dist/documentation/js/db/chunk-1waxrr9b.js",
+        "sha256": "c06525e59d0fdcac8ecd50c9491da8bb6311c3ac86606628f4d75bbddc65ab76"
+      },
+      "js/db/chunk-89cvfea2.js": {
+        "from": "dist/documentation/js/db/chunk-89cvfea2.js",
+        "sha256": "c63e8103e0bb97e54e0e3bcc3ff6d23990b27a6b686d54aabf42df5e122bd725"
+      },
+      "js/db/chunk-ecm6arv0.js": {
+        "from": "dist/documentation/js/db/chunk-ecm6arv0.js",
+        "sha256": "cbed34f30a60d07710d93f2f71a2f2db478ec81e5cde8a348f2a07f807679e3f"
+      },
+      "js/db/chunk-g9w0aar1.js": {
+        "from": "dist/documentation/js/db/chunk-g9w0aar1.js",
+        "sha256": "b663d7970149bf1a22e6ac7049263c0449d3a0adc2229bf50aa03c8e11012fe6"
+      },
+      "js/db/chunk-h1trvd9t.js": {
+        "from": "dist/documentation/js/db/chunk-h1trvd9t.js",
+        "sha256": "da8be0873a4249ddc9fe1b4e87b894896332484aeaf83f31f5ebab80ebb600bf"
+      },
+      "js/db/chunk-h3q3pnda.js": {
+        "from": "dist/documentation/js/db/chunk-h3q3pnda.js",
+        "sha256": "b2b99882d802eabc3d4de3e680c04cfb6b29d08ebf516a08ab4ac0948fbcfe42"
+      },
+      "js/db/db-worker.js": {
+        "from": "dist/documentation/js/db/db-worker.js",
+        "sha256": "47313c30b46b40d9e8b99b5736e0fbd61626bab685c2d899ec54899902e8e05b"
+      },
+      "js/db/db.js": {
+        "from": "dist/documentation/js/db/db.js",
+        "sha256": "aab620a2607b0a307ba5e5144e41af2e1ae5cdde84de6a55b20469cb21a9501e"
+      }
+    }
+  },
+  "vendor": {
+    "defuss-dom-router": {
+      "version": "0.1.1",
+      "npmIntegrity": "sha512-tpCqkNYX55TiGnEU2Kni9x6jZV4fksVRhZ5zDRH8CVHLMobknw7PNDKNUkMJ3g+98r7LmnZVxZqtO7dYcLRZ9A==",
+      "files": [
+        "dist/index.js",
+        "LICENSE"
+      ]
+    },
+    "defuss-i18n": {
+      "version": "0.2.0",
+      "npmIntegrity": "sha512-ppZRhF5g2E0umpoD3Fl+ZSrhv6U1hWK06muiUsFaoMqeTxn7AjhkmfKm3UQG9uq3nxNeRXHS41+p6F8fLuTKjA==",
+      "files": [
+        "dist/core.js",
+        "LICENSE"
+      ]
+    },
+    "lucide": {
+      "version": "1.8.0",
+      "npmIntegrity": "sha512-JjV/QnadgFLj1Pyu9IKl0lknrolFEzo04B64QcYLLeRzZl/iEHpdbSrRRKbyXcv45SZNv+WGjIUCT33e7xHO6Q==",
+      "files": [
+        "dist/umd/lucide.min.js",
+        "LICENSE"
+      ]
+    }
+  }
+}

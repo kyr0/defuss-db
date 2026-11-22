@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/project",
+  "title": "project",
+  "namespace": "Mongo",
+  "name": "project",
+  "signature": "project(doc: Doc, projection: Doc): Doc",
+  "description": "The parts of findMongo.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "doc",
+      "type": "Doc",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "projection",
+      "type": "Doc",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Doc"
+  },
+  "markdown": "project.md"
+}

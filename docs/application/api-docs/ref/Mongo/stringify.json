@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/stringify",
+  "title": "stringify",
+  "namespace": "Mongo",
+  "name": "stringify",
+  "signature": "stringify(value: unknown, space?: number | string): string",
+  "description": "Values as Extended JSON text and back.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "value",
+      "type": "unknown",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "space",
+      "type": "number | string",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "string"
+  },
+  "markdown": "stringify.md"
+}

@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/translateFilter",
+  "title": "translateFilter",
+  "namespace": "Mongo",
+  "name": "translateFilter",
+  "signature": "translateFilter(doc: Doc, q: Builders, options?: TranslateOptions): Translated",
+  "description": "The parts of findMongo.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "doc",
+      "type": "Doc",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "q",
+      "type": "Builders",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "TranslateOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Translated"
+  },
+  "markdown": "translateFilter.md"
+}

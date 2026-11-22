@@ -24,6 +24,7 @@ The ordered read API is available on collections, snapshots and transactions. pa
 - [search](guides/search.html)
 - [sources](guides/sources.html)
 - [validation](guides/validation.html)
+- [API reference, every function and method with its signature, as Markdown](application/api-docs/llms.txt)
 
 ## Distribution and evidence
 

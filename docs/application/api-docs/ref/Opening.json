@@ -1,0 +1,14 @@
+{
+  "kind": "namespace",
+  "route": "#/ref/Opening",
+  "title": "Opening",
+  "namespaceKind": "module",
+  "description": "Functions that open a database: in memory or on a DBSONL backend (defuss-db), in a directory (defuss-db/server, Node.js and Bun) or in OPFS (defuss-db/browser, a dedicated worker). Each returns a Database.",
+  "members": [
+    "openMemory",
+    "openDatabase",
+    "openDirectory",
+    "openOPFS"
+  ],
+  "markdown": "Opening.md"
+}

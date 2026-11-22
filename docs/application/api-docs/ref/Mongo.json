@@ -1,0 +1,22 @@
+{
+  "kind": "namespace",
+  "route": "#/ref/Mongo",
+  "title": "Mongo",
+  "namespaceKind": "module",
+  "description": "defuss-db/mongo: MongoDB filter, sort, projection and pipeline documents on any collection - a Collection, a view from at(date) or a TransactionCollection.",
+  "members": [
+    "findMongo",
+    "aggregateMongo",
+    "mongoRequest",
+    "translatePipeline",
+    "aggregateDescriptor",
+    "parseDocument",
+    "parsePipeline",
+    "stringify",
+    "revive",
+    "translateFilter",
+    "translateSort",
+    "project"
+  ],
+  "markdown": "Mongo.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/find",
+  "title": "Collection.find",
+  "namespace": "Collection",
+  "name": "find",
+  "signature": "find(request?: FindRequest, input?: QueryOptions<T>): Promise<T[]>",
+  "description": "Document array",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<T[]>"
+  },
+  "markdown": "find.md"
+}

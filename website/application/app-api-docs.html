@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="The defuss-db API reference: every function and method with its signature, and Call it to run it on an in-memory database in this page." />
+<title>defuss-db API reference</title>
+<!-- adapted from defuss-shadcn 71a305fac dist/documentation/application/app-api-docs.html (sha256 6409f56dee6f9d9afddb2c56b4bc53141cc4e372a46908cf404bd4e85b9272b2),
+     the API Documentation scaffold; scripts/api-docs.mjs writes it to docs/application/ with its data block -->
+<script>
+  // the site's stored theme (docs/assets/site.js), else the system's
+  {
+    let stored = null;
+    try {
+      stored = localStorage.getItem('defuss-db-theme');
+    } catch {}
+    if (stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+  }
+</script>
+<link rel="stylesheet" href="apps/api-docs/api-docs.min.css" id="tokens-css" />
+<link rel="stylesheet" href="css/docs-theme.css" />
+<style>:root { --scaffold-height: 100dvh; } html, body { height: 100%; margin: 0; } body { overflow: hidden; background: var(--background); color: var(--foreground); }</style>
+</head>
+<body>
+<!-- the search model's modules import packages by name - this map names their pinned builds -->
+<script type="importmap">
+  {
+    "imports": {
+      "defuss-db": "https://cdn.jsdelivr.net/npm/defuss-db@2.0.2/dist/index.mjs",
+      "defuss-db/client.js": "https://cdn.jsdelivr.net/npm/defuss-db@2.0.2/dist/client.mjs",
+      "@huggingface/tokenizers": "https://cdn.jsdelivr.net/npm/@huggingface/tokenizers@0.2.0/dist/tokenizers.min.mjs",
+      "onnxruntime-web/webgpu": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.wasm.bundle.min.mjs",
+      "defuss-vectorsearch/turboquant.js": "https://cdn.jsdelivr.net/npm/defuss-vectorsearch@0.4.0/dist/turboquant.mjs",
+      "defuss-lexicalsearch": "https://cdn.jsdelivr.net/npm/defuss-lexicalsearch@0.4.0/dist/index.js"
+    }
+  }
+</script>
+<style>
+  /* Acme API: the scaffold's own glue - a three-column reference (navigation, the page, its code) in the system
+     tokens, so a theme or dark mode restyles it. Methods carry a hue each; the code panels stay dark in both modes. */
+  .ad {
+    --ad-code: oklch(0.18 0.012 260);
+    --ad-code-line: oklch(0.3 0.012 260);
+    container-type: inline-size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    height: var(--scaffold-height, 50rem);
+    overflow: hidden;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  .ad [hidden] {
+    display: none !important;
+  }
+  .ad-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.5rem;
+    padding-inline: 1rem;
+    border-block-end: 1px solid var(--border);
+    background: var(--card);
+  }
+  .ad-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    & svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: var(--primary);
+    }
+    & small {
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+  }
+  .ad-bar .select {
+    width: auto;
+  }
+  .ad-search {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 24rem;
+    margin-inline-start: auto;
+    padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    & svg {
+      width: 1rem;
+      height: 1rem;
+    }
+    & span {
+      flex: 1;
+      text-align: start;
+    }
+  }
+  .ad-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .ad-menu {
+    display: none;
+  }
+  .ad-body {
+    position: relative;
+    display: grid;
+    grid-template-columns: 16rem minmax(0, 1fr);
+    min-height: 0;
+  }
+  .ad-side {
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 1rem 0.75rem 1.5rem;
+    border-inline-end: 1px solid var(--border);
+    background: var(--card);
+  }
+  .ad-side .mk-docs-navigation {
+    font-size: 0.875rem;
+  }
+  .ad-side .mk-docs-navigation a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+  .ad-key-state {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-block-start: 1.25rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    & i,
+    & svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+  .ad-main {
+    container: ad-main / inline-size;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block-start: 1rem;
+  }
+  .ad-page {
+    max-width: 76rem;
+    padding: 1.75rem clamp(1rem, 3cqi, 2.5rem) 3rem;
+  }
+  .ad-version-note {
+    margin-block-end: 1.25rem;
+  }
+  /* the method tag: one hue per method, readable on the page and on the code panel */
+  .ad-method {
+    --ad-h: 150;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    align-self: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--radius-sm);
+    background: oklch(0.6 0.13 var(--ad-h) / 0.14);
+    color: oklch(0.45 0.13 var(--ad-h));
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    &[data-method='POST'] {
+      --ad-h: 255;
+    }
+    &[data-method='PATCH'] {
+      --ad-h: 70;
+    }
+    &[data-method='DELETE'] {
+      --ad-h: 25;
+    }
+  }
+  .dark .ad .ad-method,
+  .ad .ad-code-panel .ad-method {
+    background: oklch(0.7 0.12 var(--ad-h) / 0.18);
+    color: oklch(0.82 0.12 var(--ad-h));
+  }
+  .ad-side .ad-method {
+    min-width: 2.75rem;
+    font-size: 0.625rem;
+  }
+  .ad-article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 27rem);
+    gap: 2rem 2.5rem;
+    align-items: start;
+  }
+  .ad-article > .mk-docs-content {
+    max-width: none;
+  }
+  /* sticky, and never taller than the app below its bar: a long answer scrolls inside the aside, not out of reach */
+  .ad-aside {
+    position: sticky;
+    top: 0;
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    max-block-size: calc(var(--scaffold-height, 50rem) - 3.5rem - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .ad-endpoint-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-block: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    & code {
+      flex: 1;
+      background: none;
+      overflow-wrap: anywhere;
+    }
+  }
+  .ad-params {
+    display: grid;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    border-block-start: 1px solid var(--border);
+    & > li {
+      display: grid;
+      gap: 0.25rem;
+      padding-block: 0.75rem;
+      border-block-end: 1px solid var(--border);
+    }
+    & p {
+      margin: 0;
+      color: var(--muted-foreground);
+      font-size: 0.875rem;
+    }
+  }
+  .ad-param-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    & code {
+      font-weight: 600;
+    }
+    & .ad-type {
+      color: var(--muted-foreground);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    & .ad-required {
+      color: var(--destructive);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+  }
+  .ad-enum {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    & code {
+      font-size: 0.75rem;
+    }
+  }
+  .ad-responses {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    & li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: baseline;
+      font-size: 0.875rem;
+    }
+  }
+  .ad-status {
+    --ad-h: 150;
+    min-width: 2.5rem;
+    color: oklch(0.5 0.13 var(--ad-h));
+    font-family: var(--font-mono);
+    font-weight: 600;
+    &[data-class='4'] {
+      --ad-h: 40;
+    }
+    &[data-class='5'] {
+      --ad-h: 25;
+    }
+  }
+  .dark .ad .ad-status,
+  .ad .ad-code-panel .ad-status {
+    color: oklch(0.8 0.13 var(--ad-h));
+  }
+  /* the try-it form */
+  .ad-try {
+    margin-block-end: 1.5rem;
+  }
+  .ad-try .card-content {
+    display: grid;
+    gap: 0.875rem;
+  }
+  .ad-try-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.75rem 1rem;
+  }
+  .ad-field {
+    display: grid;
+    gap: 0.375rem;
+    & .label {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+    }
+  }
+  .ad-try-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  /* code panels: the request samples (a Code Example block) and the live response */
+  .ad-aside .mk-code-block {
+    margin: 0;
+  }
+  .ad .mk-code-block:has(input[value='curl']:checked) [data-tab='curl'],
+  .ad .mk-code-block:has(input[value='js']:checked) [data-tab='js'],
+  .ad .mk-code-block:has(input[value='python']:checked) [data-tab='python'] {
+    display: block;
+  }
+  /* an empty painted line keeps its height */
+  .ad .mk-code-block code > span:empty::before {
+    content: ' ';
+  }
+  .ad .mk-code-block pre {
+    max-height: 22rem;
+    overflow: auto;
+  }
+  .ad-code-panel {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--ad-code);
+    color: oklch(0.92 0 0);
+    font-size: 0.8125rem;
+  }
+  .ad-code-head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 2.5rem;
+    padding-inline: 1rem;
+    border-block-end: 1px solid var(--ad-code-line);
+    color: oklch(0.75 0 0);
+    font-size: 0.75rem;
+    & strong {
+      margin-inline-end: auto;
+      color: oklch(0.92 0 0);
+      font-weight: 600;
+    }
+    & .ad-meta {
+      font-family: var(--font-mono);
+    }
+  }
+  .ad-code-panel pre {
+    max-height: 22rem;
+    margin: 0;
+    padding: 0.875rem 1rem;
+    overflow: auto;
+    background: none;
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .ad-code-panel .ad-empty {
+    margin: 0;
+    padding: 1rem;
+    color: oklch(0.72 0 0);
+    font-size: 0.8125rem;
+  }
+  /* a member's tag: ASYNC returns a Promise, STREAM is an async generator, SYNC answers at once, PROP is a property */
+  .ad-method[data-method='ASYNC'] {
+    --ad-h: 300;
+  }
+  .ad-method[data-method='STREAM'] {
+    --ad-h: 200;
+  }
+  .ad-method[data-method='PROP'] {
+    --ad-h: 70;
+  }
+  /* each page as Markdown and JSON, for readers that do not run the app */
+  .ad-doc-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 0.75rem;
+    margin: -0.5rem 0 1.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    & a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: inherit;
+      text-underline-offset: 3px;
+    }
+    & svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+  .ad-signature {
+    margin: 0 0 1.25rem;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    background: var(--ad-code);
+    color: oklch(0.92 0 0);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    white-space: pre;
+  }
+  .ad-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-block-end: 1rem;
+  }
+  .ad-rpc-wide {
+    grid-column: 1 / -1;
+  }
+  /* trees as high as their rows (rpcFit), one row a fixed height */
+  .ad-rpc-tree,
+  .ad-rpc-result .property-tree {
+    --property-tree-row-height: 1.75rem;
+  }
+  /* a listing Shiki has not painted (offline, or still loading) keeps the inset of a painted line */
+  .ad .mk-code-block code:not(:has(> span)) {
+    padding-inline: 1rem;
+    white-space: pre;
+  }
+  .ad-rpc-frames {
+    display: grid;
+    gap: 0.25rem;
+    max-block-size: 10rem;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    overflow: auto;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    & li {
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      background: var(--muted);
+      overflow-wrap: anywhere;
+    }
+  }
+  .ad-rpc-error {
+    margin: 0 0 0.75rem;
+    color: var(--destructive);
+    font-size: 0.8125rem;
+  }
+  .ad .mk-code-block:has(input[value='ts']:checked) [data-tab='ts'],
+  .ad .mk-code-block:has(input[value='fetch']:checked) [data-tab='fetch'],
+  .ad .mk-code-block:has(input[value='rcurl']:checked) [data-tab='rcurl'] {
+    display: block;
+  }
+  /* the resource and home pages */
+  .ad-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1rem;
+    margin-block: 1rem 2rem;
+  }
+  .ad-cards .card {
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s;
+    &:hover {
+      border-color: var(--ring);
+    }
+  }
+  .ad-ops {
+    display: grid;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    & li + li {
+      border-block-start: 1px solid var(--border);
+    }
+    & a {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.625rem 0.875rem;
+      color: inherit;
+      text-decoration: none;
+      &:hover {
+        background: var(--muted);
+      }
+    }
+    & code {
+      color: var(--muted-foreground);
+      font-size: 0.8125rem;
+      overflow-wrap: anywhere;
+    }
+  }
+  .ad .mk-docs-content-prose pre {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--ad-code);
+    color: oklch(0.92 0 0);
+    overflow: auto;
+  }
+  .ad .mk-docs-content-prose pre code {
+    background: none;
+    color: inherit;
+  }
+  /* the search palette: a method and a path beside each hit, the timing below */
+  .ad .command .command-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: inherit;
+    text-decoration: none;
+    & .ad-hit-path {
+      margin-inline-start: auto;
+      color: var(--muted-foreground);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+  }
+  .ad-find-status {
+    margin: 0;
+    padding: 0.5rem 0.875rem;
+    border-block-start: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+  /* narrower: the code column goes under the page, then the navigation becomes a drawer behind the menu button */
+  @container ad-main (width < 56rem) {
+    .ad-article {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ad-aside {
+      position: static;
+    }
+  }
+  @container (width < 48rem) {
+    .ad-menu {
+      display: inline-flex;
+    }
+    .ad-search kbd,
+    .ad-brand small,
+    .ad-bar .select {
+      display: none;
+    }
+    /* the search and Authorize shrink to their icons; their labels stay the accessible names */
+    .ad-search {
+      flex: none;
+      padding: 0.5rem;
+    }
+    .ad-search span,
+    .ad-controls [data-ad-authorize] span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .ad-bar {
+      gap: 0.375rem;
+      padding-inline: 0.5rem;
+    }
+    .ad-body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ad-side {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 5;
+      width: min(18rem, 85%);
+      box-shadow: var(--shadow-lg);
+      translate: -100% 0;
+      visibility: hidden;
+      transition:
+        translate 0.2s,
+        visibility 0.2s;
+    }
+    .ad[data-menu-open] .ad-side {
+      translate: 0 0;
+      visibility: visible;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ad-side {
+      transition: none;
+    }
+  }
+</style>
+<div class="ad" data-ad>
+  <header class="ad-bar">
+    <button
+      class="btn ad-menu"
+      type="button"
+      data-variant="ghost"
+      data-size="icon"
+      data-ad-menu
+      aria-expanded="false"
+      aria-label="Menu"
+      data-i18n-aria-label-en="Menu"
+    >
+      <i data-lucide="menu"></i>
+    </button>
+    <a class="ad-brand" href="#/" data-router-link
+      ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="m18 16 4-4-4-4" />
+        <path d="m6 8-4 4 4 4" />
+        <path d="m14.5 4-5 16" /></svg
+      >defuss-db API <small data-i18n-target="brand-sub">reference</small></a
+    >
+    <span class="badge" data-variant="secondary">@@VERSION@@</span>
+    <button class="ad-search" type="button" data-command-trigger="ad-find">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" /></svg
+      ><span data-i18n-target="search">Search the API</span
+      ><kbd class="kbd-group"><kbd class="kbd">⌘</kbd><kbd class="kbd">K</kbd></kbd>
+    </button>
+    <div class="ad-controls">
+      <label class="swap" data-variant="rotate" data-size="sm">
+        <input
+          type="checkbox"
+          data-ad-mode
+          aria-label="Dark mode"
+          data-i18n-aria-label-en="Dark mode"
+        />
+        <span class="swap-on" aria-hidden="true"><i data-lucide="moon"></i></span>
+        <span class="swap-off" aria-hidden="true"><i data-lucide="sun"></i></span>
+      </label>
+    </div>
+  </header>
+  <div class="ad-body">
+    <aside class="ad-side">
+      <!-- the navigation is written from the data block: the guides, then each resource and its endpoints -->
+      <nav
+        class="mk-docs-navigation"
+        data-ad-nav
+        aria-label="API reference"
+        data-i18n-aria-label-en="API reference"
+      ></nav>
+      <p class="ad-key-state">
+        <span class="badge" data-variant="secondary" data-i18n-target="sandbox">In this page</span
+        ><span data-i18n-target="sandbox-note">Call it runs on an in-memory database here</span>
+      </p>
+    </aside>
+    <main class="ad-main" data-ad-main>
+      <div class="ad-page">
+        <!-- the guides and the home page -->
+        <section data-ad-view="guide" hidden>
+          <article class="mk-docs-content" aria-labelledby="ad-guide-title">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+              <ol class="breadcrumb-list">
+                <li class="breadcrumb-item"><a class="breadcrumb-link" href="#/" data-router-link>defuss-db API</a></li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                <li class="breadcrumb-item">
+                  <span class="breadcrumb-page" aria-current="page" data-ad-guide-crumb></span>
+                </li>
+              </ol>
+            </nav>
+            <h1 class="mk-docs-content-title" id="ad-guide-title" data-ad-guide-title></h1>
+            <p class="ad-doc-links" data-ad-doc-links></p>
+            <p class="mk-docs-content-lead" data-ad-guide-lead></p>
+            <div class="mk-docs-content-prose" data-ad-guide-body></div>
+            <div class="ad-cards" data-ad-home-cards></div>
+            <nav class="mk-docs-content-pager" aria-label="Pagination" data-ad-pager></nav>
+          </article>
+        </section>
+        <!-- the reference: its overview and a namespace - written from defuss-db's type declarations and docs/API.md -->
+        <section data-ad-view="rpc-ns" hidden>
+          <article class="mk-docs-content" aria-labelledby="ad-rn-title">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+              <ol class="breadcrumb-list">
+                <li class="breadcrumb-item">
+                  <a class="breadcrumb-link" href="#/ref" data-router-link data-i18n-target="crumb-rpc"
+                    >Reference</a
+                  >
+                </li>
+                <li class="breadcrumb-separator" aria-hidden="true" data-ad-rn-sep>/</li>
+                <li class="breadcrumb-item">
+                  <span class="breadcrumb-page" aria-current="page" data-ad-rn-crumb></span>
+                </li>
+              </ol>
+            </nav>
+            <h1 class="mk-docs-content-title" id="ad-rn-title" data-ad-rn-title></h1>
+            <p class="ad-doc-links" data-ad-doc-links></p>
+            <p class="mk-docs-content-lead" data-ad-rn-lead></p>
+            <div class="mk-docs-content-prose" data-ad-rn-body></div>
+            <div class="ad-cards" data-ad-rn-cards></div>
+            <ul class="ad-ops" data-ad-rn-ops></ul>
+            <nav class="mk-docs-content-pager" aria-label="Pagination" data-ad-pager></nav>
+          </article>
+        </section>
+        <!-- a method - its signature, parameters, return value, a call from the form and its sample -->
+        <section data-ad-view="rpc-method" hidden>
+          <div class="ad-article">
+            <article class="mk-docs-content" aria-labelledby="ad-rm-title">
+              <nav class="breadcrumb" aria-label="Breadcrumb">
+                <ol class="breadcrumb-list">
+                  <li class="breadcrumb-item">
+                    <a class="breadcrumb-link" href="#/ref" data-router-link data-i18n-target="crumb-rpc-2"
+                      >Reference</a
+                    >
+                  </li>
+                  <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                  <li class="breadcrumb-item">
+                    <a class="breadcrumb-link" href="#/ref" data-router-link data-ad-rm-crumb></a>
+                  </li>
+                  <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                  <li class="breadcrumb-item">
+                    <span class="breadcrumb-page" aria-current="page" data-ad-rm-crumb-page></span>
+                  </li>
+                </ol>
+              </nav>
+              <h1 class="mk-docs-content-title" id="ad-rm-title" data-ad-rm-title></h1>
+              <p class="ad-doc-links" data-ad-doc-links></p>
+              <div class="ad-badges" data-ad-rm-badges></div>
+              <pre class="ad-signature" data-lang="ts" data-ad-rm-signature></pre>
+              <p class="mk-docs-content-lead" data-ad-rm-lead></p>
+              <div data-ad-rm-docs></div>
+              <form class="card ad-try" data-ad-rpc-try novalidate>
+                <div class="card-header">
+                  <h2 class="card-title" data-i18n-target="h-call">Call it</h2>
+                  <p class="card-description" data-i18n-target="call-text">
+                    Change an argument - the sample follows. Send runs it on the sample database in this page; Reset
+                    starts that database over.
+                  </p>
+                </div>
+                <div class="card-content">
+                  <p class="ad-meta" role="status" data-ad-rpc-conn></p>
+                  <div class="ad-try-grid" data-ad-rpc-fields></div>
+                  <div class="ad-try-actions" data-ad-rpc-actions>
+                    <button class="btn" type="submit"
+                      ><i data-lucide="send"></i><span data-i18n-target="call">Send call</span></button
+                    >
+                    <button class="btn" type="reset" data-variant="outline" data-i18n-target="reset-call">Reset</button>
+                  </div>
+                </div>
+              </form>
+              <nav class="mk-docs-content-pager" aria-label="Pagination" data-ad-pager></nav>
+            </article>
+            <aside class="ad-aside">
+              <figure class="mk-code-block" data-ad-rpc-samples>
+                <div class="mk-code-block-head">
+                  <div
+                    class="mk-code-block-tabs"
+                    role="radiogroup"
+                    aria-label="Language"
+                    data-i18n-aria-label-en="Language"
+                  >
+                    <label><input type="radio" name="ad-rpc-lang" value="ts" checked />TypeScript</label>
+                  </div>
+                  <button
+                    class="mk-code-block-copy"
+                    type="button"
+                    data-ad-rpc-copy
+                    aria-label="Copy code"
+                    data-i18n-aria-label-en="Copy code"
+                  >
+                    <i data-lucide="copy"></i>
+                  </button>
+                </div>
+                <pre data-tab="ts" data-lang="ts"><code data-ad-rsample="ts"></code></pre>
+                <span class="mk-code-block-status" role="status"></span>
+              </figure>
+              <div class="card ad-rpc-result" data-ad-rpc-response aria-live="polite">
+                <div class="card-header">
+                  <h2 class="card-title" data-i18n-target="h-answer">Answer</h2>
+                  <p class="card-description">
+                    <span class="ad-status" data-ad-rpc-status></span> <span class="ad-meta" data-ad-rpc-time></span>
+                  </p>
+                </div>
+                <div class="card-content">
+                  <p class="ad-empty" data-ad-rpc-empty data-i18n-target="answer-empty"
+                    >Send the call to see its answer.</p
+                  >
+                  <p class="ad-rpc-error" data-ad-rpc-error hidden></p>
+                  <ol class="ad-rpc-frames" data-ad-rpc-frames hidden></ol>
+                  <div
+                    class="property-tree"
+                    data-readonly
+                    data-ad-rpc-result
+                    aria-label="Answer"
+                    data-i18n-aria-label-en="Answer"
+                    hidden
+                  ></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <!-- the search: a Command palette (also ⌘K) whose hits defuss-search ranks -->
+  <dialog
+    id="ad-find"
+    class="command"
+    data-filter="none"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Search the API"
+    data-i18n-aria-label-en="Search the API"
+  >
+    <div class="command-content">
+      <div class="command-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          class="command-input"
+          type="text"
+          data-ad-query
+          placeholder="Methods, parameters, guides..."
+          data-i18n-placeholder-en="Methods, parameters, guides..."
+          aria-label="Search"
+          data-i18n-aria-label-en="Search"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <div class="command-list" data-ad-hits></div>
+      <div class="command-empty" data-i18n-target="find-empty" hidden>Nothing found.</div>
+      <p class="ad-find-status" data-ad-find-status></p>
+    </div>
+  </dialog>
+  <!-- the reference: the guides (docs/API.md), the namespaces and their members (the type declarations in dist/)
+       and the words of the frame; scripts/api-docs.mjs writes it -->
+  <script type="application/json" id="ad-data">@@API_DATA@@</script>
+</div>
+<script type="module">
+  // routing: defuss-dom-router owns the address
+  import { createRouter } from 'https://cdn.jsdelivr.net/npm/defuss-dom-router@0.1.1/dist/index.js';
+
+  // the search: defuss-search over defuss-lexicalsearch - BM25 (prefix and fuzzy on the last word) answers as soon as
+  // its modules are there (until then, and if they never come, the palette compares names), and BM25 fused with a
+  // ColBERT scan (Winzling-reranker, 2.28 MB, on ONNX Runtime's 2.3 MB WASM build) once that model has loaded in the background
+  const SEARCH = Promise.all([
+    import('https://cdn.jsdelivr.net/npm/defuss-lexicalsearch@0.4.0/dist/index.js'),
+    import('https://cdn.jsdelivr.net/npm/defuss-lexicalsearch@0.4.0/dist/en.js'),
+    import('https://cdn.jsdelivr.net/npm/defuss-search@0.5.0/dist/strategies.js'),
+  ]);
+  const MODEL = () =>
+    Promise.all([
+      import('https://cdn.jsdelivr.net/npm/defuss-vectorsearch@0.4.0/dist/onnx.mjs'),
+      import('https://cdn.jsdelivr.net/npm/defuss-brotli@0.3.0/dist/decompressor-slim.js'),
+    ]);
+  const BROTLI_WASM = 'https://cdn.jsdelivr.net/npm/defuss-brotli@0.3.0/dist/decompressor.wasm';
+
+  // defuss-search's createProgressiveSearch (defuss-search/strategies), copied until its release: the lexical-only
+  // search answers until semantic(index) has built another one, then that one; a failed build keeps BM25 answering
+  const progressiveSearch = (strategies, index, { semantic, lexical }) => {
+    const plain = strategies.createLexicalOnlySearch(index, { lexical });
+    const listeners = new Set();
+    let state = 'lexical';
+    let built = null;
+    let pending = null;
+    const move = (next) => {
+      state = next;
+      for (const listener of listeners) listener(next);
+    };
+    const load = () =>
+      (pending ??= (async () => {
+        move('loading');
+        try {
+          built = await semantic(index);
+          move('semantic');
+        } catch (e) {
+          pending = null;
+          move('failed');
+          throw e;
+        }
+      })());
+    const searchWithStats = async (input, options) => {
+      const current = built;
+      return {
+        ...(await (current ?? plain).searchWithStats(input, options)),
+        source: current ? 'semantic' : 'lexical',
+      };
+    };
+    return {
+      get state() {
+        return state;
+      },
+      load,
+      searchWithStats,
+      search: async (input, options) => (await searchWithStats(input, options)).hits,
+      subscribe: (listener) => (listeners.add(listener), () => listeners.delete(listener)),
+    };
+  };
+
+  // the model's pinned files, downloaded as <file>.br from Hugging Face, decoded with defuss-brotli, checked against
+  // their SHA-256 and kept decoded in the Cache API where the page has one (a docs card's sandbox has none)
+  const sha256 = async (bytes) =>
+    [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('');
+  const modelCache = (async () => {
+    try {
+      return await caches.open('defuss-db-api-search');
+    } catch {
+      return null;
+    }
+  })();
+  const modelFile = (brotli, id, revision, pins) => async (path) => {
+    const sha = pins[path];
+    if (!sha) throw new Error(path + ' is not pinned');
+    const cache = await modelCache;
+    const key = 'https://models.invalid/' + sha;
+    const kept = await cache?.match(key).catch(() => null);
+    if (kept) {
+      const bytes = new Uint8Array(await kept.arrayBuffer());
+      if ((await sha256(bytes)) === sha) return bytes;
+    }
+    const res = await fetch('https://huggingface.co/' + id + '/resolve/' + revision + '/' + path + '.br');
+    if (!res.ok) throw new Error(path + ': HTTP ' + res.status);
+    const raw = new Uint8Array(await res.arrayBuffer());
+    let bytes;
+    try {
+      bytes = brotli.decompress(raw);
+    } catch {
+      bytes = raw; // sent with Content-Encoding: br - the browser decoded it already
+    }
+    if ((await sha256(bytes)) !== sha) throw new Error(path + ': SHA-256 differs from the pinned release');
+    await cache?.put(key, new Response(bytes)).catch(() => {});
+    return bytes;
+  };
+  // the model, loaded and warmed up once
+  let colbert = null;
+  const loadColbert = () =>
+    (colbert ??= (async () => {
+      const [onnx, brotli] = await MODEL();
+      await brotli.init(BROTLI_WASM);
+      const pin = onnx.MOEDERNCOLBERT_MODELS['1.5m'];
+      const model = onnx.createColbertReranker({
+        model: '1.5m',
+        precision: 'q8',
+        device: 'wasm',
+        numThreads: 1,
+        truncate: true,
+        loadFile: modelFile(brotli, pin.id, pin.revision, pin.files),
+      });
+      await model.encodeQueries(['defuss-db']);
+      return model;
+    })().catch((e) => {
+      colbert = null;
+      throw e;
+    }));
+
+  // df$ comes with the component bundle - a full-screen page loads it after this module
+  addEventListener('DOMContentLoaded', async () => {
+    const app = df$('[data-ad]').get(0);
+    const DATA = JSON.parse(df$('#ad-data').text());
+    // the reference reads from the data block; Call it needs the runtime - defuss-db and the sample database in one
+    // bundle beside the page (scripts/api-docs.mjs). Without it the reference reads alone.
+    const RPC_MODULE = 'js/api-docs/client.js';
+    const RPC = await import(new URL(RPC_MODULE, document.baseURI).href).catch(() => null);
+    const RPC_NS = DATA.reference.map((ns) => ({ name: ns.name, ns }));
+    // each page as Markdown and JSON (scripts/api-docs.mjs writes api-docs/ from the same data)
+    const DOC_FILES = 'api-docs/';
+
+    const words = () => DATA.words;
+    const fmt = (text, values) => text.replace(/%(\w)/g, (_m, k) => String(values[k] ?? ''));
+
+    // -- the reference as one flat order: the guides, the overview, then each namespace followed by its members (the
+    // pager walks it)
+    const href = {
+      guide: (g) => (g.id === 'introduction' ? '#/' : '#/guides/' + g.id),
+      rpc: () => '#/ref',
+      namespace: (name) => '#/ref/' + name,
+      method: (name, m) => '#/ref/' + name + '/' + m,
+    };
+    // a member's tag: a property, a stream (an async generator), a Promise, or a value at once
+    const tagOf = (doc) =>
+      doc.kind === 'property' ? 'PROP' : doc.generator ? 'STREAM' : doc.async ? 'ASYNC' : 'SYNC';
+    // a class member reads as Collection.find, a function by its own name
+    const memberTitle = (name, ns, m) => (ns.kind === 'class' ? name + '.' + m : m);
+    const ORDER = [
+      ...DATA.guides.map((g) => ({ kind: 'guide', item: g, href: href.guide(g) })),
+      { kind: 'rpc', item: { title: DATA.words.rpcTitle, lead: DATA.words.rpcLead }, href: href.rpc() },
+      ...RPC_NS.flatMap(({ name, ns }) => [
+        { kind: 'namespace', item: { title: name, lead: ns.description }, name, ns, href: href.namespace(name) },
+        ...Object.entries(ns.methods).map(([m, doc]) => ({
+          kind: 'method',
+          item: {
+            title: memberTitle(name, ns, m),
+            lead: doc.description,
+            method: tagOf(doc),
+            path: doc.signature.split('\n')[0],
+          },
+          name,
+          ns,
+          m,
+          doc,
+          href: href.method(name, m),
+        })),
+      ]),
+    ];
+
+    const el = (tag, attrs = {}, text) => {
+      const node = df$('<' + tag + '></' + tag + '>');
+      for (const [k, v] of Object.entries(attrs)) node.attr(k, v);
+      if (text !== undefined) node.text(text);
+      return node;
+    };
+    const method = (m) => el('span', { class: 'ad-method', 'data-method': m }, m);
+    const icons = () => globalThis.lucide?.createIcons();
+    const card = (to, title, text, badge) => {
+      const link = el('a', { class: 'card', href: to, 'data-router-link': '' });
+      const head = el('div', { class: 'card-header' });
+      head.append(el('h3', { class: 'card-title' }, title)).append(el('p', { class: 'card-description' }, text));
+      return link
+        .append(head)
+        .append(
+          el('div', { class: 'card-footer' }).append(el('span', { class: 'badge', 'data-variant': 'secondary' }, badge)),
+        );
+    };
+
+    // -- the navigation
+    const nav = df$('[data-ad-nav]');
+    const writeNav = () => {
+      nav.html('');
+      nav.append(el('p', { class: 'mk-docs-navigation-heading' }, words().guides));
+      const guides = el('ul');
+      for (const g of DATA.guides)
+        guides.append(el('li').append(el('a', { href: href.guide(g), 'data-router-link': '' }, g.title)));
+      nav.append(guides);
+      nav.append(el('p', { class: 'mk-docs-navigation-heading' }, words().rpcGroup));
+      const overview = el('ul');
+      overview.append(el('li').append(el('a', { href: href.rpc(), 'data-router-link': '' }, words().rpcOverview)));
+      nav.append(overview);
+      for (const { name, ns } of RPC_NS) {
+        const group = el('details', { open: '', 'data-ad-group': 'rpc-' + name });
+        group.append(el('summary', { class: 'mk-docs-navigation-heading' }, name));
+        const list = el('ul');
+        list.append(el('li').append(el('a', { href: href.namespace(name), 'data-router-link': '' }, name)));
+        for (const [m, doc] of Object.entries(ns.methods)) {
+          const link = el('a', { href: href.method(name, m), 'data-router-link': '' });
+          link.append(method(tagOf(doc))).append(el('span', {}, m));
+          list.append(el('li').append(link));
+        }
+        group.append(list);
+        nav.append(group);
+      }
+    };
+    const markCurrent = (target) => {
+      nav.find('a').each((_i, a) => {
+        if (a.getAttribute('href') === target) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
+    };
+
+    // -- prose from a body: paragraphs; "## " a heading, "$ " a command, "> " a note
+    const prose = (box, lines) => {
+      box.html('');
+      for (const line of lines) {
+        if (line.startsWith('## ')) box.append(el('h2', {}, line.slice(3)));
+        else if (line.startsWith('$ '))
+          box.append(
+            el('pre', { 'data-lang': line.startsWith('$ {') ? 'json' : 'bash' }).append(el('code', {}, line.slice(2))),
+          );
+        else if (line.startsWith('> ')) {
+          const note = el('aside', { class: 'mk-docs-content-callout', role: 'note' });
+          note.append(el('i', { 'data-lucide': 'info' })).append(el('p', {}, line.slice(2)));
+          box.append(note);
+        } else box.append(el('p', {}, line));
+      }
+    };
+    const pager = (view, at) => {
+      const box = df$(view).find('[data-ad-pager]');
+      box.html('');
+      const label = (o) => o.item.title;
+      const prev = ORDER[at - 1];
+      const next = ORDER[at + 1];
+      if (prev)
+        box.append(
+          el('a', { href: prev.href, 'data-router-link': '', rel: 'prev' })
+            .append(el('small', {}, words().prev))
+            .append(el('strong', {}, '← ' + label(prev))),
+        );
+      if (next)
+        box.append(
+          el('a', { href: next.href, 'data-router-link': '', rel: 'next' })
+            .append(el('small', {}, words().next))
+            .append(el('strong', {}, label(next) + ' →')),
+        );
+    };
+    const view = (name) => df$('[data-ad-view="' + name + '"]').get(0);
+
+    // -- code in colours: Shiki (pinned, loaded on first use) paints each listing in GitHub's dark theme - the panels
+    // stay dark in both modes. Offline the code stays plain.
+    let shiki = null;
+    let painting = Promise.resolve();
+    const paint = () =>
+      (painting = painting.then(async () => {
+        const listings = df$('.ad [data-lang]:not([data-painted])').toArray();
+        if (!listings.length) return;
+        try {
+          shiki ??= await import('https://esm.sh/shiki@3.0.0');
+        } catch {
+          return;
+        }
+        for (const listing of listings) {
+          const code = df$(listing).find('code').get(0) ?? listing;
+          const text = code.textContent;
+          const { tokens } = await shiki.codeToTokens(text, { lang: listing.dataset.lang, theme: 'github-dark' });
+          // a listing written again while Shiki worked keeps its new text
+          if (code.textContent !== text) continue;
+          // one span per line: a Code Example block lays its lines out as block spans, a plain listing keeps the newlines
+          const blocks = !!listing.closest('.mk-code-block');
+          df$(code).html('');
+          tokens.forEach((row, r) => {
+            if (r && !blocks) df$(code).append(document.createTextNode('\n'));
+            const line = el('span');
+            for (const token of row) line.append(el('span', { style: 'color:' + token.color }, token.content));
+            df$(code).append(line);
+          });
+          listing.dataset.painted = '';
+        }
+      }));
+    const write = (node, text) => {
+      df$(node).text(text);
+      node.removeAttribute('data-painted');
+      const parent = node.closest('[data-lang]');
+      if (parent) parent.removeAttribute('data-painted');
+    };
+
+    // -- the pages
+    let shown = null;
+    const guide = (g) => {
+      const box = view('guide');
+      df$(box).find('[data-ad-guide-crumb]').text(g.title);
+      df$(box).find('[data-ad-guide-title]').text(g.title);
+      df$(box).find('[data-ad-guide-lead]').text(g.lead);
+      // the guide's Markdown, rendered when the site is built (scripts/api-docs.mjs)
+      df$(box).find('[data-ad-guide-body]').html(g.html);
+      const cards = df$(box).find('[data-ad-home-cards]');
+      cards.html('');
+      cards.prop('hidden', g.id !== 'introduction');
+      if (g.id === 'introduction')
+        for (const { name, ns } of RPC_NS)
+          cards.append(
+            card(href.namespace(name), name, ns.description, fmt(words().methods, { n: Object.keys(ns.methods).length })),
+          );
+      return box;
+    };
+
+    // -- the reference: the overview, a namespace, a member
+    const rpcNamespace = (entry) => {
+      const box = view('rpc-ns');
+      df$(box)
+        .find('[data-ad-rn-crumb]')
+        .text(entry ? entry.name : '');
+      df$(box).find('[data-ad-rn-sep]').prop('hidden', !entry);
+      df$(box)
+        .find('[data-ad-rn-title]')
+        .text(entry ? entry.name : words().rpcTitle);
+      const lead = df$(box).find('[data-ad-rn-lead]');
+      if (entry) lead.html(entry.ns.descriptionHtml);
+      else lead.text(words().rpcLead);
+      prose(df$(box).find('[data-ad-rn-body]'), entry ? [] : words().rpcBody);
+      const cards = df$(box).find('[data-ad-rn-cards]');
+      cards.html('');
+      const ops = df$(box).find('[data-ad-rn-ops]');
+      ops.html('');
+      if (!entry)
+        for (const { name, ns } of RPC_NS)
+          cards.append(
+            card(href.namespace(name), name, ns.description, fmt(words().methods, { n: Object.keys(ns.methods).length })),
+          );
+      else
+        for (const [m, doc] of Object.entries(entry.ns.methods)) {
+          const link = el('a', { href: href.method(entry.name, m), 'data-router-link': '' });
+          link
+            .append(method(tagOf(doc)))
+            .append(el('span', {}, doc.description ?? m))
+            .append(el('code', {}, doc.signature.split('\n')[0]));
+          ops.append(el('li').append(link));
+        }
+      return box;
+    };
+
+    // a value in a line: JSON, with a Map as an object, a Set as a list and a BigInt as its digits
+    const line = (value) =>
+      JSON.stringify(value, (_k, v) =>
+        v instanceof Map ? Object.fromEntries(v) : v instanceof Set ? [...v] : typeof v === 'bigint' ? String(v) : v,
+      ) ?? 'undefined';
+    // a field's text, or a tree's value, as the argument the method declares: a date string becomes a Date, a list a
+    // Set where the schema says x-dson set - what the generated client would send
+    const revive = (value, schema) => {
+      if (!schema || value === null || value === undefined) return value;
+      if (Array.isArray(schema.anyOf))
+        return revive(value, schema.anyOf.find((x) => x.type !== 'null') ?? schema.anyOf[0]);
+      const kind = schema['x-dson'];
+      if (kind === 'date' && typeof value === 'string') return new Date(value);
+      if (kind === 'bigint' && (typeof value === 'string' || typeof value === 'number')) return BigInt(value);
+      if (kind === 'set' && Array.isArray(value)) return new Set(value.map((x) => revive(x, schema.items)));
+      if (kind === 'map' && value && typeof value === 'object' && !(value instanceof Map))
+        return new Map(Object.entries(value).map(([k, x]) => [k, revive(x, schema.additionalProperties)]));
+      if (Array.isArray(value)) return value.map((x) => revive(x, schema.items));
+      if (typeof value === 'object' && schema.properties)
+        return Object.fromEntries(Object.entries(value).map(([k, x]) => [k, revive(x, schema.properties[k])]));
+      return value;
+    };
+    // how a parameter is edited: a select for an enum or a boolean, a number field, a text field, else a Property Tree
+    const fieldKind = (schema = {}) => {
+      if (Array.isArray(schema.enum)) return 'enum';
+      const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+      if (type === 'boolean') return 'boolean';
+      if (type === 'number' || type === 'integer') return schema['x-dson'] === 'bigint' ? 'text' : 'number';
+      if (type === 'string') return 'text';
+      return 'tree';
+    };
+    // a tree as high as the rows it shows open: the root and its entries (at least `min`, at most 14)
+    const openRows = (value, expanded) => {
+      let n = 1;
+      const walk = (v, ptr) => {
+        if (!v || typeof v !== 'object' || (ptr !== '' && !expanded.has(ptr))) return;
+        const entries = v instanceof Map ? [...v] : v instanceof Set ? [...v].map((x, i) => [i, x]) : Object.entries(v);
+        for (const [k, x] of entries) {
+          n++;
+          if (n > 14) return;
+          walk(x, ptr + '/' + String(k).replace(/~/g, '~0').replace(/\//g, '~1'));
+        }
+      };
+      walk(value, '');
+      return n;
+    };
+    const rpcFit = (tree, value, min = 1) => {
+      const size = () => {
+        const expanded = new Set(tree.api?.getState().config.expanded ?? []);
+        const rows = openRows(df$.shadcn.propertyTree.value(tree) ?? value, expanded);
+        tree.style.blockSize = 'calc(' + Math.min(Math.max(rows, min), 14) + ' * 1.75rem + 2px)';
+      };
+      size();
+      // opening a row grows the tree (VERIFIED: a 4-row answer held 35 rows in 140px after three rows opened)
+      if (tree.store && !tree.dataset.adFit) {
+        tree.dataset.adFit = '';
+        tree.store.subscribe(size);
+      }
+    };
+    let call = null; // the member shown: { name, m, doc }
+    const rpcValues = new Map(); // "Namespace.member" -> the form's values, one per parameter
+    // the arguments the page supplies itself (the sample collection, its builders), by index - not form fields
+    const fixedOf = (c) => (RPC ? RPC.fixed(c.name, c.m) : {});
+    const rpcValuesOf = (c) => {
+      const key = c.name + '.' + c.m;
+      if (!rpcValues.has(key)) {
+        const args = RPC ? RPC.exampleArgs(c.name, c.m, c.doc) : [];
+        rpcValues.set(
+          key,
+          (c.doc.params ?? []).map((p, i) => {
+            const v = i < args.length ? args[i] : p.optional || !RPC ? undefined : RPC.exampleValue(p.schema, p.name);
+            return fieldKind(p.schema) === 'tree'
+              ? (v ?? RPC?.exampleValue(p.schema, p.name) ?? null)
+              : v === undefined
+                ? ''
+                : v instanceof Date
+                  ? v.toISOString()
+                  : String(v);
+          }),
+        );
+      }
+      return rpcValues.get(key);
+    };
+    // the arguments as the method takes them: the call and its sample
+    const rpcArgs = (c) => {
+      const params = c.doc.params ?? [];
+      const raw = rpcValuesOf(c);
+      const fixed = fixedOf(c);
+      const json = params.map((p, i) => {
+        if (i in fixed) return undefined;
+        const v = raw[i];
+        const kind = fieldKind(p.schema);
+        // an optional parameter left empty is left out, as a caller would omit it
+        if (kind === 'tree') return v === null && p.optional ? undefined : v;
+        if (v === '') return undefined;
+        if (kind === 'number') return Number(v);
+        if (kind === 'boolean') return v === 'true';
+        return v;
+      });
+      while (json.length && json[json.length - 1] === undefined && params[json.length - 1]?.optional) json.pop();
+      return { json, values: json.map((v, i) => revive(v, params[i].schema)) };
+    };
+    let rpcShownSamples = {};
+    const writeRpcSamples = () => {
+      if (!call) return;
+      const s = (rpcShownSamples = RPC ? RPC.samples(call.name, call.m, call.doc, rpcArgs(call).values) : { ts: '' });
+      df$('[data-ad-rsample]').each((_i, code) => {
+        write(code, s[code.dataset.adRsample]);
+      });
+      paint();
+    };
+    const resetAnswer = () => {
+      df$('[data-ad-rpc-status]').text('').attr('data-class', '');
+      df$('[data-ad-rpc-time]').text('');
+      df$('[data-ad-rpc-empty]').prop('hidden', false).text(words().answerEmpty);
+      df$('[data-ad-rpc-error]').prop('hidden', true).text('');
+      df$('[data-ad-rpc-frames]').prop('hidden', true).html('');
+      df$('[data-ad-rpc-result]').prop('hidden', true);
+    };
+    const rpcMethod = (entry, m) => {
+      const box = view('rpc-method');
+      const doc = entry.ns.methods[m];
+      const changed = !call || call.name !== entry.name || call.m !== m;
+      call = { name: entry.name, m, doc };
+      df$(box).find('[data-ad-rm-crumb]').attr('href', href.namespace(entry.name)).text(entry.name);
+      df$(box).find('[data-ad-rm-crumb-page]').text(m);
+      df$(box)
+        .find('[data-ad-rm-title]')
+        .text(memberTitle(entry.name, entry.ns, m));
+      const badges = df$(box).find('[data-ad-rm-badges]');
+      badges.html('');
+      const tag = tagOf(doc);
+      badges.append(method(tag));
+      badges.append(el('span', { class: 'badge', 'data-variant': 'secondary' }, words()['tag-' + tag]));
+      if (doc.deprecated)
+        badges.append(el('span', { class: 'badge', 'data-variant': 'destructive' }, words().deprecated));
+      write(df$(box).find('[data-ad-rm-signature]').get(0), doc.signature);
+      df$(box).find('[data-ad-rm-lead]').html(doc.descriptionHtml);
+      // the documentation: parameters, the value (and a stream's values), errors, examples
+      const docs = df$(box).find('[data-ad-rm-docs]');
+      docs.html('');
+      if (typeof doc.deprecated === 'string')
+        docs.append(el('p', { class: 'ad-rpc-error' }, words().deprecated + ': ' + doc.deprecated));
+      const params = doc.params ?? [];
+      if (doc.kind !== 'property') {
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, words().params));
+        if (!params.length) docs.append(el('p', { class: 'mb-4' }, words().noParams));
+        else {
+          const ul = el('ul', { class: 'ad-params' });
+          for (const p of params) {
+            const head = el('div', { class: 'ad-param-head' })
+              .append(el('code', {}, (p.rest ? '...' : '') + p.name))
+              .append(el('span', { class: 'ad-type' }, p.type ?? ''));
+            head.append(
+              el(
+                'span',
+                { class: p.optional ? 'ad-type' : 'ad-required' },
+                p.optional ? words().optional : words().required,
+              ),
+            );
+            ul.append(el('li', { 'data-param': p.name }).append(head));
+          }
+          docs.append(ul);
+        }
+      }
+      for (const [label, value] of [
+        [doc.generator ? words().yields : words().returns, doc.generator ? doc.yields : doc.returns],
+        ...(doc.generator ? [[words().returns, doc.returns]] : []),
+      ]) {
+        if (!value) continue;
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, label));
+        const ul = el('ul', { class: 'ad-params' });
+        ul.append(
+          el('li', { 'data-returns': label }).append(
+            el('div', { class: 'ad-param-head' }).append(el('span', { class: 'ad-type' }, value.type ?? '')),
+          ),
+        );
+        docs.append(ul);
+      }
+      if (doc.throws?.length) {
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, words().throws));
+        const ul = el('ul', { class: 'ad-params' });
+        for (const text of doc.throws) ul.append(el('li').append(el('p', {}, text)));
+        docs.append(ul);
+      }
+      if (doc.examples?.length) {
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, words().examples));
+        for (const text of doc.examples)
+          docs.append(el('pre', { class: 'ad-signature', 'data-lang': 'ts', 'data-ad-rm-example': '' }, text));
+      }
+      // the form: one field per parameter, the values kept per member; what runs it says the status line, and a
+      // member the page cannot run says why instead
+      const fields = df$(box).find('[data-ad-rpc-fields]');
+      fields.html('');
+      const runs = RPC ? RPC.callable(entry.name, m) : words().noRuntime;
+      const callable = runs === true;
+      df$(box)
+        .find('[data-ad-rpc-conn]')
+        .text(callable ? RPC.target(entry.name, m) : runs);
+      df$(box).find('[data-ad-rpc-actions]').prop('hidden', !callable);
+      app.setAttribute('data-callable', String(callable));
+      const v = rpcValuesOf(call);
+      const fixed = fixedOf(call);
+      params.forEach((p, i) => {
+        if (!callable) return;
+        const id = 'ad-rpc-arg-' + p.name;
+        const kind = i in fixed ? 'fixed' : fieldKind(p.schema);
+        const field = el('div', {
+          class: 'ad-field' + (kind === 'tree' ? ' ad-rpc-wide' : ''),
+          'data-ad-rpc-arg': p.name,
+        });
+        field.append(el('label', { class: 'label', for: id }, p.name + (p.optional ? '' : ' *')));
+        if (kind === 'fixed') {
+          fields.append(
+            field.append(
+              el('input', { class: 'input', id, type: 'text', 'data-size': 'sm', disabled: '', value: fixed[i] }),
+            ),
+          );
+          return;
+        }
+        if (kind === 'tree') {
+          const tree = el('div', {
+            class: 'property-tree ad-rpc-tree',
+            id,
+            'data-ad-rpc-index': String(i),
+            'aria-label': p.name,
+          });
+          field.append(tree);
+          fields.append(field);
+          df$.shadcn.propertyTree.configure(tree.get(0), { value: structuredClone(v[i]) });
+          rpcFit(tree.get(0), v[i], 4);
+          return;
+        }
+        let input;
+        if (kind === 'enum' || kind === 'boolean') {
+          input = el('select', { class: 'select', id, 'data-ad-rpc-index': String(i), 'data-size': 'sm' });
+          if (p.optional) input.append(el('option', { value: '' }, '-'));
+          for (const value of kind === 'enum' ? p.schema.enum : [true, false])
+            input.append(el('option', { value: String(value) }, String(value)));
+        } else
+          input = el('input', {
+            class: 'input',
+            id,
+            'data-ad-rpc-index': String(i),
+            type: kind === 'number' ? 'number' : 'text',
+            autocomplete: 'off',
+            spellcheck: 'false',
+            'data-size': 'sm',
+            placeholder: p.type ?? '',
+          });
+        input.val(v[i]);
+        fields.append(field.append(input));
+      });
+      if (changed) resetAnswer();
+      writeRpcSamples();
+      return box;
+    };
+    const rpcForm = df$('[data-ad-rpc-try]');
+    const takeField = (event) => {
+      const i = event.target.dataset?.adRpcIndex;
+      if (!call || i === undefined || event.target.classList.contains('property-tree')) return;
+      rpcValuesOf(call)[Number(i)] = event.target.value;
+      writeRpcSamples();
+    };
+    rpcForm.on('input', takeField);
+    rpcForm.on('change', takeField);
+    rpcForm.on('property-tree-change', (event) => {
+      const tree = event.target.closest('.property-tree');
+      if (!call || !tree?.dataset.adRpcIndex) return;
+      rpcValuesOf(call)[Number(tree.dataset.adRpcIndex)] = df$.shadcn.propertyTree.value(tree);
+      rpcFit(tree, df$.shadcn.propertyTree.value(tree), 4);
+      writeRpcSamples();
+    });
+    rpcForm.on('reset', async (event) => {
+      event.preventDefault();
+      if (!call) return;
+      rpcValues.delete(call.name + '.' + call.m);
+      // the sample database starts over too
+      await RPC?.reset();
+      const { name, m } = call;
+      call = null;
+      rpcMethod(
+        RPC_NS.find((x) => x.name === name),
+        m,
+      );
+      icons();
+      app.dispatchEvent(new CustomEvent('ad-rpc-reset'));
+    });
+    rpcForm.on('submit', async (event) => {
+      event.preventDefault();
+      if (!call || RPC?.callable(call.name, call.m) !== true) return;
+      resetAnswer();
+      df$('[data-ad-rpc-empty]').prop('hidden', true);
+      const frames = df$('[data-ad-rpc-frames]');
+      const answer = await RPC.call(call.name, call.m, rpcArgs(call).values, (value) => {
+        frames.prop('hidden', false).append(el('li', {}, line(value)));
+      });
+      df$('[data-ad-rpc-status]')
+        .attr('data-class', answer.error ? '5' : '2')
+        .text(answer.error ? words().threw : words().returned);
+      df$('[data-ad-rpc-time]').text(fmt(words().ms, { t: answer.ms }) + ' · ' + words().inPage);
+      if (answer.error) df$('[data-ad-rpc-error]').prop('hidden', false).text(answer.error);
+      else if (!('value' in answer) && !answer.frames)
+        df$('[data-ad-rpc-empty]').prop('hidden', false).text(words().undefinedAnswer);
+      if ('value' in answer) {
+        const tree = df$('[data-ad-rpc-result]').prop('hidden', false).get(0);
+        df$.shadcn.propertyTree.configure(tree, { value: answer.value });
+        rpcFit(tree, answer.value);
+      }
+      app.dispatchEvent(
+        new CustomEvent('ad-rpc-answer', {
+          detail: { ok: !answer.error, error: answer.error ?? null, frames: answer.frames?.length ?? 0 },
+        }),
+      );
+    });
+    df$('[data-ad-rpc-copy]').on('click', () => {
+      copy(
+        rpcShownSamples.ts,
+        df$('[data-ad-rsample="ts"]').get(0),
+        df$('[data-ad-rpc-samples] .mk-code-block-status'),
+      );
+    });
+
+    // each page as Markdown and JSON: the route's file under api-docs/
+    const docPath = (route) =>
+      route === '#/' ? 'guides/introduction' : route === '#/ref' ? 'ref/index' : route.slice(2);
+    const docLinks = (box, route) => {
+      const links = df$(box).find('[data-ad-doc-links]');
+      links.html('');
+      const path = DOC_FILES + docPath(route);
+      links.append(el('span', {}, words().pageAs));
+      links.append(
+        el('a', { href: path + '.md', target: '_blank', rel: 'noopener', 'data-ad-doc-md': '' })
+          .append(el('i', { 'data-lucide': 'file-text' }))
+          .append(el('span', {}, words().asMarkdown)),
+      );
+      links.append(
+        el('a', { href: path + '.json', target: '_blank', rel: 'noopener', 'data-ad-doc-json': '' })
+          .append(el('i', { 'data-lucide': 'braces' }))
+          .append(el('span', {}, words().asJson)),
+      );
+    };
+
+    // -- copying: the sample shown (the Clipboard API; where a frame may not write to the clipboard, the text is
+    // selected)
+    const copy = (text, node, status) => {
+      const select = () => {
+        getSelection().selectAllChildren(node);
+        if (status) status.text(words().copyHint);
+      };
+      if (!navigator.clipboard) return select();
+      navigator.clipboard.writeText(text).then(() => {
+        if (status) status.text(words().copied);
+        df$.shadcn.toast.show({ title: words().copied, duration: 1800 });
+      }, select);
+    };
+
+    // -- dark mode: the Swap sets <html class="dark"> and follows it when something else sets it
+    const mode = df$('[data-ad-mode]');
+    const root = document.documentElement;
+    mode.prop('checked', root.classList.contains('dark'));
+    mode.on('change', () => {
+      root.classList.toggle('dark', mode.prop('checked'));
+      // the site's other pages read the same stored theme (docs/assets/site.js)
+      try {
+        localStorage.setItem('defuss-db-theme', mode.prop('checked') ? 'dark' : 'light');
+      } catch {}
+      document.dispatchEvent(new CustomEvent('defuss-theme-change'));
+    });
+    new MutationObserver(() => mode.prop('checked', root.classList.contains('dark'))).observe(root, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    // -- the menu: below 48rem the navigation is a drawer; a pick closes it
+    const menu = df$('[data-ad-menu]');
+    const openMenu = (open) => {
+      app.toggleAttribute('data-menu-open', open);
+      menu.attr('aria-expanded', String(open));
+    };
+    menu.on('click', () => openMenu(!app.hasAttribute('data-menu-open')));
+    nav.on('click', (event) => {
+      if (event.target.closest('a')) openMenu(false);
+    });
+
+    // -- the search: a BM25 index (English analyzer) over every guide, namespace, member and parameter
+    const documents = () =>
+      ORDER.map((o, i) => {
+        const t = o.item;
+        if (o.kind === 'guide') return { id: String(i), fields: { title: t.title, path: '', body: t.lead + ' ' + t.text } };
+        if (o.kind === 'rpc') return { id: String(i), fields: { title: t.title, path: '', body: t.lead } };
+        if (o.kind === 'namespace')
+          return {
+            id: String(i),
+            fields: {
+              title: t.title,
+              path: o.name,
+              body: (o.ns.description ?? '') + ' ' + Object.keys(o.ns.methods).join(' '),
+            },
+          };
+        return {
+          id: String(i),
+          fields: {
+            title: t.title + ' ' + o.m,
+            path: t.path,
+            body:
+              (o.doc.description ?? '') +
+              ' ' +
+              (o.doc.params ?? []).map((p) => p.name + ' ' + (p.type ?? '')).join(' ') +
+              ' ' +
+              (o.doc.returns?.type ?? ''),
+          },
+        };
+      });
+    let searches = null;
+    // search by meaning: the state the palette's status line names, on the app root for the tests too
+    const meaning = () => {
+      if (!searches) return 'off';
+      const states = Object.values(searches).map((x) => x.state);
+      return states.includes('failed') ? 'failed' : states.every((x) => x === 'semantic') ? 'semantic' : 'loading';
+    };
+    SEARCH.then(([lexical, en, strategies]) => {
+      searches = {};
+      const index = new lexical.LexicalSearch({
+        analyzer: en.default,
+        fields: { title: { weight: 3 }, path: { weight: 2 }, body: {} },
+      });
+      const docs = documents();
+      index.addAll(docs);
+      // the tiny strategy: ColBERT encodes the documents once and scans their tokens for each query
+      const texts = docs.map((d) => ({
+        id: d.id,
+        text: (d.fields.title + '. ' + d.fields.path + ' ' + d.fields.body).trim(),
+      }));
+      searches.en = progressiveSearch(strategies, index, {
+        lexical: { search: { prefix: true, fuzzy: true } },
+        semantic: async (built) =>
+          strategies.createLexicalSemanticTinySearch(built, {
+            documents: texts,
+            colbert: await loadColbert(),
+            lexical: { search: { prefix: true, fuzzy: true } },
+          }),
+      });
+      searches.en.subscribe(() => {
+        app.setAttribute('data-semantic', meaning());
+        if (df$('#ad-find').get(0).open) find();
+      });
+      app.setAttribute('data-search', 'ready');
+      // the model loads in the background once the page is idle - not under the data saver
+      if (navigator.connection?.saveData) app.setAttribute('data-semantic', 'saver');
+      else
+        (globalThis.requestIdleCallback ?? ((fn) => setTimeout(fn, 200)))(() => {
+          for (const x of Object.values(searches)) x.load().catch(() => {});
+        });
+      if (df$('#ad-find').get(0).open) find();
+    }).catch(() => app.setAttribute('data-search', 'plain'));
+
+    const query = df$('[data-ad-query]');
+    const hits = df$('[data-ad-hits]');
+    const status = df$('[data-ad-find-status]');
+    const hit = (o) => {
+      const item = el('a', { class: 'command-item', href: o.href, 'data-router-link': '' });
+      if (o.item.method) item.append(method(o.item.method));
+      else item.append(el('i', { 'data-lucide': o.kind === 'guide' || o.kind === 'rpc' ? 'book-open' : 'box' }));
+      item.append(el('span', {}, o.item.title));
+      if (o.item.path) item.append(el('span', { class: 'ad-hit-path' }, o.item.path));
+      return item;
+    };
+    const group = (heading, list) => {
+      if (!list.length) return;
+      const box = el('div', { class: 'command-group' });
+      if (heading) box.append(el('p', { class: 'command-group-heading' }, heading));
+      for (const o of list) box.append(hit(o));
+      hits.append(box);
+    };
+    let asked = 0;
+    const find = async () => {
+      const text = query.val().trim();
+      const ask = ++asked;
+      let list;
+      if (!text) {
+        // no query: the guides and the namespaces, to browse
+        list = ORDER.filter((o) => o.kind !== 'method');
+        const state = app.getAttribute('data-semantic');
+        status.text(!searches ? words().loading : (words()['meaning-' + state] ?? words()['meaning-loading']));
+      } else if (searches) {
+        const t0 = performance.now();
+        const found = await searches.en.searchWithStats({ text }, { limit: 12 });
+        if (ask !== asked) return;
+        list = found.hits.map((h) => ORDER[Number(h.id)]);
+        const line = found.source === 'semantic' ? words().resultsMeaning : words().results;
+        status.text(fmt(line, { n: list.length, t: (performance.now() - t0).toFixed(1) }));
+      } else {
+        const needle = text.toLowerCase();
+        list = ORDER.filter((o) => (o.item.title + ' ' + (o.item.path ?? '')).toLowerCase().includes(needle));
+        status.text(words().plain);
+      }
+      hits.html('');
+      if (text) group(null, list);
+      else {
+        group(
+          words().guidesGroup,
+          list.filter((o) => o.kind === 'guide'),
+        );
+        group(
+          words().rpcGroup,
+          list.filter((o) => o.kind !== 'guide'),
+        );
+      }
+      icons();
+    };
+    query.on('input', find);
+    df$('#ad-find').on('toggle', find);
+    df$('[data-command-trigger="ad-find"]').on('click', () => {
+      query.val('');
+      find();
+    });
+
+    // -- routing: a guide, the overview, a namespace or a member per address; anything unknown shows the introduction
+    const routes = [
+      { id: 'home', path: '/' },
+      { id: 'guide', path: '/guides/:guide' },
+      { id: 'rpc', path: '/ref' },
+      { id: 'namespace', path: '/ref/:ns' },
+      { id: 'method', path: '/ref/:ns/:method' },
+      { id: 'missing', path: '*' },
+    ];
+    let shownPath = null;
+    const show = (to) => {
+      shown = to;
+      const p = to.params ?? {};
+      const g = to.routeId === 'guide' ? DATA.guides.find((x) => x.id === p.guide) : null;
+      const rns = to.routeId === 'namespace' || to.routeId === 'method' ? RPC_NS.find((x) => x.name === p.ns) : null;
+      const rm = rns && to.routeId === 'method' && rns.ns.methods[p.method] ? p.method : null;
+      let box;
+      let target;
+      if (rm) {
+        box = rpcMethod(rns, rm);
+        target = href.method(rns.name, rm);
+      } else if (rns) {
+        box = rpcNamespace(rns);
+        target = href.namespace(rns.name);
+      } else if (to.routeId === 'rpc') {
+        box = rpcNamespace(null);
+        target = href.rpc();
+      } else {
+        const item = g ?? DATA.guides[0];
+        box = guide(item);
+        target = href.guide(item);
+      }
+      df$('[data-ad-view]').each((_i, section) => {
+        section.hidden = section !== box;
+      });
+      docLinks(box, target);
+      pager(
+        box,
+        ORDER.findIndex((o) => o.href === target),
+      );
+      markCurrent(target);
+      icons();
+      paint();
+      // a new page opens at its start - the first view stays where the reader is
+      if (shownPath !== null && shownPath !== to.path)
+        df$('[data-ad-main]').get(0).scrollTo({ top: 0, behavior: 'instant' });
+      shownPath = to.path;
+      app.setAttribute('data-route', target);
+    };
+    writeNav();
+    find();
+    const router = createRouter({
+      mode: 'hash',
+      routes,
+      scroll: 'manual',
+      prepare: ({ to }) => ({ commit: () => show(to) }),
+    });
+    router.attachLinks(app);
+    if ((await router.start()).status === 'rejected') {
+      // no address the router may own - a docs preview is an about:srcdoc frame: the same routes match its hash
+      const preview = createRouter({ mode: 'hash', routes, baseUrl: 'https://preview.invalid/' });
+      const follow = () => show(preview.resolve(location.hash.startsWith('#/') ? location.hash : '#/'));
+      addEventListener('hashchange', follow);
+      follow();
+    }
+  });
+</script>
+<script type="module" src="apps/api-docs/api-docs.min.js"></script>
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+<script>globalThis.lucide && lucide.createIcons();</script>
+</body>
+</html>

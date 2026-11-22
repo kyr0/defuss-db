@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/insertMany",
+  "title": "Collection.insertMany",
+  "namespace": "Collection",
+  "name": "insertMany",
+  "signature": "insertMany(values: readonly NewDocument<T>[], options?: WriteOptions): Promise<PrimaryKey[]>",
+  "description": "One atomic bounded batch; return IDs",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "values",
+      "type": "readonly NewDocument<T>[]",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<PrimaryKey[]>"
+  },
+  "markdown": "insertMany.md"
+}

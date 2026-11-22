@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/exportStream",
+  "title": "Database.exportStream",
+  "namespace": "Database",
+  "name": "exportStream",
+  "signature": "exportStream(options?: ExportOptions): AsyncGenerator<Uint8Array>",
+  "description": "Pull-driven AsyncGenerator<Uint8Array> holding one snapshot",
+  "async": false,
+  "generator": true,
+  "params": [
+    {
+      "name": "options",
+      "type": "ExportOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "AsyncGenerator<Uint8Array>"
+  },
+  "markdown": "exportStream.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/deleteMany",
+  "title": "Collection.deleteMany",
+  "namespace": "Collection",
+  "name": "deleteMany",
+  "signature": "deleteMany(request?: FindRequest, options?: WriteOptions & QueryOptions<T>): Promise<number>",
+  "description": "Atomic bounded set deletion; return affected document count",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions & QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<number>"
+  },
+  "markdown": "deleteMany.md"
+}

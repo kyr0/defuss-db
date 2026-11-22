@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/audit",
+  "title": "Collection.audit",
+  "namespace": "Collection",
+  "name": "audit",
+  "signature": "audit(id: PrimaryKey, options?: HistoryListOptions): Promise<HistoryChange<T>[]>",
+  "description": "Recorded changes, newest first: kind, the asserted interval and recorded: { storeId, revision }",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "HistoryListOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<HistoryChange<T>[]>"
+  },
+  "markdown": "audit.md"
+}

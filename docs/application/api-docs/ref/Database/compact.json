@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/compact",
+  "title": "Database.compact",
+  "namespace": "Database",
+  "name": "compact",
+  "signature": "compact(options?: Parameters<Dbsonl<unknown>['compact']>[0]): ReturnType<Dbsonl<unknown>['compact']>",
+  "description": "Delegated DBSONL compaction; default optimistic, or { mode: 'exclusive' }",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "Parameters<Dbsonl<unknown>['compact']>[0]",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "ReturnType<Dbsonl<unknown>['compact']>"
+  },
+  "markdown": "compact.md"
+}

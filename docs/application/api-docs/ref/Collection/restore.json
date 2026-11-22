@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/restore",
+  "title": "Collection.restore",
+  "namespace": "Collection",
+  "name": "restore",
+  "signature": "restore(id: PrimaryKey, options?: Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise<boolean>",
+  "description": "Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<boolean>"
+  },
+  "markdown": "restore.md"
+}

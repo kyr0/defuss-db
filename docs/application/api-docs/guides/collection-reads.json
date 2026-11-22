@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/guides/collection-reads",
+  "title": "Collection reads",
+  "id": "collection-reads",
+  "lead": "",
+  "markdown": "collection-reads.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/count",
+  "title": "Collection.count",
+  "namespace": "Collection",
+  "name": "count",
+  "signature": "count(selection?: Selection, input?: QueryOptions<T>): Promise<number>",
+  "description": "Exact count of matching documents",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "selection",
+      "type": "Selection",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<number>"
+  },
+  "markdown": "count.md"
+}

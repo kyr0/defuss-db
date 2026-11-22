@@ -1,0 +1,13 @@
+{
+  "kind": "reference",
+  "route": "#/ref",
+  "title": "Reference",
+  "namespaces": [
+    "Opening",
+    "Database",
+    "Collection",
+    "Mongo"
+  ],
+  "version": "3.1.0",
+  "markdown": "index.md"
+}

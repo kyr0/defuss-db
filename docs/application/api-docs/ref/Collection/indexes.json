@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/indexes",
+  "title": "Collection.indexes",
+  "namespace": "Collection",
+  "name": "indexes",
+  "signature": "indexes(options?: HistoryReadOptions): Promise<IndexDefinition[]>",
+  "description": "Fresh persisted equality and ordered definitions",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "HistoryReadOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<IndexDefinition[]>"
+  },
+  "markdown": "indexes.md"
+}

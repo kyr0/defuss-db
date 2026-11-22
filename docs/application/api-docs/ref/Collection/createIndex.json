@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/createIndex",
+  "title": "Collection.createIndex",
+  "namespace": "Collection",
+  "name": "createIndex",
+  "signature": "createIndex(index: IndexDefinition, options?: WriteOptions): Promise<void>",
+  "description": "Atomic equality or ordered build. Set order to one direction per field. An identical declaration is idempotent; mismatched existing name rejects",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "index",
+      "type": "IndexDefinition",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<void>"
+  },
+  "markdown": "createIndex.md"
+}

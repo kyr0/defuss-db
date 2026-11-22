@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/createSearchIndex",
+  "title": "Collection.createSearchIndex",
+  "namespace": "Collection",
+  "name": "createSearchIndex",
+  "signature": "createSearchIndex(index: SearchIndexDefinition, options?: WriteOptions): Promise<void>",
+  "description": "Atomic lexical/vector/hybrid build; see Search",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "index",
+      "type": "SearchIndexDefinition",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<void>"
+  },
+  "markdown": "createSearchIndex.md"
+}

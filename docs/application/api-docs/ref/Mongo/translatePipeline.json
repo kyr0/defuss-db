@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/translatePipeline",
+  "title": "translatePipeline",
+  "namespace": "Mongo",
+  "name": "translatePipeline",
+  "signature": "translatePipeline(stages: readonly Doc[]): PipelinePlan",
+  "description": "The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "stages",
+      "type": "readonly Doc[]",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "PipelinePlan"
+  },
+  "markdown": "translatePipeline.md"
+}

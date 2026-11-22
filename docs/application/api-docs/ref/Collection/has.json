@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/has",
+  "title": "Collection.has",
+  "namespace": "Collection",
+  "name": "has",
+  "signature": "has(id: PrimaryKey, options?: HistoryReadOptions): Promise<boolean>",
+  "description": "Boolean",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "HistoryReadOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<boolean>"
+  },
+  "markdown": "has.md"
+}

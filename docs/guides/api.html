@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>API reference · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="api-reference">API reference</h1>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>API reference · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide"><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="../application/app-api-docs.html">API reference</a><a href="../index.html#install">Install</a></nav><article><h1 id="api-reference">API reference</h1>
 <h2 id="historical-collections">Historical collections</h2>
 <p>Use <code>await db.ensureCollection&lt;T&gt;(name, { $trackHistory: true })</code>. Calls on <code>collection.at(date)</code> share an effective instant. Add <code>{ $asOfRevision: receipt.revision }</code> to reproduce the database&#39;s earlier answer. <code>history(id)</code> lists effective segments and <code>audit(id)</code> lists recorded changes. <a href="history.html">API, correction boundaries, search and backup</a></p>
 <h2 id="timestamps">Timestamps</h2>
@@ -222,6 +222,18 @@
 <td>Document or <code>undefined</code></td>
 </tr>
 <tr>
+<td><code>at(date, options?)</code></td>
+<td>The collection at an effective date: reads see the documents of that instant, and on a live collection that tracks history, writes take effect then. <code>{ $asOfRevision }</code> reads only what that revision recorded. See <a href="history.html">Document history</a></td>
+</tr>
+<tr>
+<td><code>history(id, options?)</code></td>
+<td>Effective segments, newest start first: <code>from</code>, exclusive <code>until</code> (null while open), <code>document</code> (undefined for a delete), <code>revision</code>, <code>ordinal</code></td>
+</tr>
+<tr>
+<td><code>audit(id, options?)</code></td>
+<td>Recorded changes, newest first: <code>kind</code>, the asserted interval and <code>recorded: { storeId, revision }</code></td>
+</tr>
+<tr>
 <td><code>getMany(ids, { signal }?)</code></td>
 <td>Ordered documents/undefined; duplicate IDs preserved; one snapshot; at most 100,000 IDs</td>
 </tr>
@@ -387,4 +399,4 @@ try {
 <p>DBSONL errors (<code>CONFLICT</code>, <code>COMMIT_UNCERTAIN</code>, <code>LIMIT_EXCEEDED</code>, <code>QUEUE_FULL</code>, <code>ABORTED</code>, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. <code>COMMIT_UNCERTAIN</code> means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption.</p>
 <h2 id="archives-and-result-caching">Archives and result caching</h2>
 <p>See <a href="archive.html">Archive API</a> for options, framing, budgets and merge behavior. Explicit snapshots support both export methods, but no import. See <a href="cache.html">Query cache</a> for default automatic qualification, <code>{ cache: false | true | &#39;auto&#39; | &#39;refresh&#39; }</code>, manual mode, LRU/SLRU settings, bounded compiled plans, concurrent misses, independent result ownership and revision keys.</p>
-</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>
+</article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="../application/app-api-docs.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

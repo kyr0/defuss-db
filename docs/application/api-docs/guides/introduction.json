@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/",
+  "title": "Introduction",
+  "id": "introduction",
+  "lead": "defuss-db is a document database that runs inside your application - in a browser worker, Node.js or Bun - with the same API in each.",
+  "markdown": "introduction.md"
+}

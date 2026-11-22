@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/put",
+  "title": "Collection.put",
+  "namespace": "Collection",
+  "name": "put",
+  "signature": "put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey>",
+  "description": "Insert or replace whole document with required ID; return ID",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "value",
+      "type": "Replacement<T>",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<PrimaryKey>"
+  },
+  "markdown": "put.md"
+}

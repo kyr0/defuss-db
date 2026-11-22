@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Opening/openDatabase",
+  "title": "openDatabase",
+  "namespace": "Opening",
+  "name": "openDatabase",
+  "signature": "openDatabase(backend: Backend, options?: OpenOptions): Promise<Database>",
+  "description": "From defuss-db. Arguments: Coordinated DBSONL Backend, OpenOptions?.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "backend",
+      "type": "Backend",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "OpenOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<Database>"
+  },
+  "markdown": "openDatabase.md"
+}

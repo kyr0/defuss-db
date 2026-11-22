@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/guides/database",
+  "title": "Database",
+  "id": "database",
+  "lead": "",
+  "markdown": "database.md"
+}

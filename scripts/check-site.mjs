@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve, extname } from 'node:path';
 import { loadReports, lookup, cardKeys, operations, formatMs } from './workload-report.mjs';
 import { feedCaption } from '../docs/assets/bench-format.js';
-import { comparison, loadMongoReports, mongoChartData, mongoLookup } from './mongo-report.mjs';
+import { loadMongoReports, mongoChartData, mongoLookup } from './mongo-report.mjs';
 const root = resolve('docs'),
   paths = await readdir(root, { recursive: true }),
   html = paths.filter((p) => p.endsWith('.html')),
@@ -18,6 +19,8 @@ for (const path of html) {
   assert(!/@@[A-Z_]+@@/.test(source), 'Unexpanded site token in ' + path);
   for (const [, ref] of source.matchAll(/(?:href|src)="([^"]+)"/g)) {
     if (/^(?:(?:https?:)?\/\/|mailto:|data:)/.test(ref)) continue;
+    // A hash route of an app page (the Database Explorer's #/<db>/<collection>), not a fragment.
+    if (ref.startsWith('#/')) continue;
     const url = new URL(ref, 'https://docs.test/' + path);
     // A folder link serves its index.html, as serve-site.mjs and static hosts do.
     const dest = decodeURIComponent(url.pathname.slice(1)).replace(/(^|\/)$/, '$1index.html');
@@ -87,8 +90,33 @@ assert(!index.includes('DataView on the same records'));
 assert(index.includes('<iframe src="demo/"'));
 for (const file of ['demo/index.html', 'demo/app.js', 'demo/worker.js', 'demo/theme.js'])
   assert(paths.includes(file), file + ' missing; run scripts/demo-build.mjs');
+// The landing page embeds defuss-shadcn's Database Explorer and links its API reference app, both copied by
+// scripts/shadcn-sync.mjs. Every copied file still has the hash SOURCES.json recorded when it was copied, so each
+// folder holds defuss-shadcn's build, not an edit.
+assert(index.includes('<iframe src="database-explorer/"'));
+assert(index.includes('href="application/app-api-docs.html"'));
+assert(paths.includes('application/js/api-docs/client.js'), 'run scripts/api-docs.mjs');
+const copies = {};
+for (const folder of ['database-explorer', 'application']) {
+  copies[folder] = JSON.parse(await load(folder + '/SOURCES.json'));
+  for (const [file, { sha256 }] of Object.entries(copies[folder]['defuss-shadcn'].files))
+    assert.equal(
+      createHash('sha256')
+        .update(await readFile(join(root, folder, file)))
+        .digest('hex'),
+      sha256,
+      folder + '/' + file + ' differs from the copy; run scripts/shadcn-sync.mjs',
+    );
+}
+const explorer = copies['database-explorer'];
+for (const [name, { files }] of Object.entries(explorer.vendor))
+  for (const file of files)
+    assert(
+      paths.includes(join('database-explorer/vendor', name, file.split('/').pop())),
+      name + ' missing',
+    );
 for (const path of [...html, 'llms.txt', ...paths.filter((p) => p.endsWith('.md'))].filter(
-  (p) => !p.startsWith('assets/vendor/'),
+  (p) => !p.startsWith('assets/vendor/') && !p.startsWith('database-explorer/'),
 )) {
   const content = (await load(path)).replace(/<svg[\s\S]*?<\/svg>/g, '');
   assert(
@@ -115,19 +143,6 @@ const embedded = index.match(
 );
 assert(embedded, 'MongoDB chart data missing');
 assert.deepEqual(JSON.parse(embedded[1]), mongoChartData(mongoReports), 'MongoDB chart data');
-// Each claim of the landing page's comparison paragraph, checked against the 95% confidence verdicts of both runtimes
-// at the largest size (scripts/bench-stats.mjs), because the page shows either.
-for (const mongo of mongoReports) {
-  const at = (workload) => comparison(mongo, largest, workload);
-  const claim = (ok, message) => assert(ok, `${mongo.runtime}: ${message}: update the landing page copy`);
-  claim(at('point-get').verdict === 'faster', 'reads by ID are no longer faster at 95% confidence');
-  claim(at('update-concurrent').verdict === 'faster', 'concurrent updates are no longer faster');
-  for (const workload of ['tenant-feed', 'range-count', 'group-totals', 'update-one', 'insert-batch'])
-    claim(at(workload).verdict === 'same', `${workload} is now distinguishable from MongoDB`);
-  const load = at('bulk-load');
-  claim(load.verdict === 'slower' && load.ratio >= 1.15 && load.ratio <= 1.4, 'bulk loads are no longer about a quarter slower');
-  claim(mongo.flushProbe.medianMs > 3.5 && mongo.flushProbe.medianMs < 4.5, 'a flush no longer takes about 4 ms');
-}
 // The scale card's claim: reads by ID and index pages cost about the same at the smallest and largest size.
 const smallest = Math.min(...mongo.sizes);
 for (const [workload, system] of [

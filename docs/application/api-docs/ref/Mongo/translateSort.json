@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/translateSort",
+  "title": "translateSort",
+  "namespace": "Mongo",
+  "name": "translateSort",
+  "signature": "translateSort(doc: Doc): MongoSorter[]",
+  "description": "The parts of findMongo.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "doc",
+      "type": "Doc",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "MongoSorter[]"
+  },
+  "markdown": "translateSort.md"
+}

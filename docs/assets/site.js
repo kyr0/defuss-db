@@ -347,6 +347,23 @@ if ('IntersectionObserver' in window) {
   observer.observe($('mongo-ratio'));
 } else loadChart();
 
+// The Database Explorer frame, copied from defuss-shadcn, reads no stored theme: it starts from the system preference
+// and has its own switch. VERIFIED: that switch is the checkbox [data-dx-dark], which toggles the document's dark
+// class and dispatches defuss-theme-change (docs/database-explorer/index.html). The page does the same from outside,
+// when the frame loads and on every theme change, so the frame matches the site without a change to the copy.
+const explorer = document.querySelector('#explorer iframe');
+const themeExplorer = () => {
+  const doc = explorer.contentDocument;
+  const toggle = doc?.querySelector('[data-dx-dark]');
+  if (!toggle) return;
+  toggle.checked = root.classList.contains('dark');
+  doc.documentElement.classList.toggle('dark', toggle.checked);
+  doc.dispatchEvent(new CustomEvent('defuss-theme-change'));
+};
+explorer.addEventListener('load', themeExplorer);
+theme.addEventListener('change', themeExplorer);
+themeExplorer();
+
 // The playground frame is same-origin and follows the theme through the storage event (website/demo/theme.ts).
 // replace(): a restart must not add an entry to the tab's history.
 $('playground-restart').addEventListener('click', () => {

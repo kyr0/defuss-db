@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/findMongo",
+  "title": "findMongo",
+  "namespace": "Mongo",
+  "name": "findMongo",
+  "signature": "findMongo<T = Doc>(collection: MongoReadable, filter?: MongoDocument, options?: MongoFindOptions): Promise<T[]>",
+  "description": "Projected documents. Each document argument is an object or its text.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "collection",
+      "type": "MongoReadable",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "filter",
+      "type": "MongoDocument",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "MongoFindOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<T[]>"
+  },
+  "markdown": "findMongo.md"
+}

@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/search",
+  "title": "Collection.search",
+  "namespace": "Collection",
+  "name": "search",
+  "signature": "search(index: string, query: DocumentSearchQuery, options?: SearchRequest): Promise<DocumentSearchResult<T>>",
+  "description": "Revision-bound scored hits; see Search",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "index",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "query",
+      "type": "DocumentSearchQuery",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "SearchRequest",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<DocumentSearchResult<T>>"
+  },
+  "markdown": "search.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/delete",
+  "title": "Collection.delete",
+  "namespace": "Collection",
+  "name": "delete",
+  "signature": "delete(id: PrimaryKey, options?: WriteOptions): Promise<boolean>",
+  "description": "Return whether ID existed",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<boolean>"
+  },
+  "markdown": "delete.md"
+}

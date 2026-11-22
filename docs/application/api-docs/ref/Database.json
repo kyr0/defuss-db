@@ -1,0 +1,25 @@
+{
+  "kind": "namespace",
+  "route": "#/ref/Database",
+  "title": "Database",
+  "namespaceKind": "class",
+  "description": "What opening returns: typed collections, transactions across collections, snapshots, archives, statistics and maintenance.",
+  "members": [
+    "collection",
+    "ensureCollection",
+    "collections",
+    "transaction",
+    "snapshot",
+    "export",
+    "exportStream",
+    "import",
+    "queryCacheStats",
+    "clearQueryCache",
+    "stats",
+    "verify",
+    "compact",
+    "collect",
+    "close"
+  ],
+  "markdown": "Database.md"
+}

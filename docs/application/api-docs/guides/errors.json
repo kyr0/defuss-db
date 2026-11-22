@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/guides/errors",
+  "title": "Errors",
+  "id": "errors",
+  "lead": "",
+  "markdown": "errors.md"
+}

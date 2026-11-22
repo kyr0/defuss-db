@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Opening/openMemory",
+  "title": "openMemory",
+  "namespace": "Opening",
+  "name": "openMemory",
+  "signature": "openMemory(options?: OpenOptions): Promise<Database>",
+  "description": "From defuss-db. Arguments: OpenOptions?.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "OpenOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<Database>"
+  },
+  "markdown": "openMemory.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/query",
+  "title": "Collection.query",
+  "namespace": "Collection",
+  "name": "query",
+  "signature": "query(request?: FindRequest, input?: QueryOptions<T>): Promise<ComputeResult<T>>",
+  "description": "{ rows, summary }",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<ComputeResult<T>>"
+  },
+  "markdown": "query.md"
+}

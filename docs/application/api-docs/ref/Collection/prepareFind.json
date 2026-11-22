@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/prepareFind",
+  "title": "Collection.prepareFind",
+  "namespace": "Collection",
+  "name": "prepareFind",
+  "signature": "prepareFind(request?: FindRequest, cacheKey?: boolean): BoundQuery<T, T>",
+  "description": "Bound prepared plan: evaluate, stream, explain",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "cacheKey",
+      "type": "boolean",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "BoundQuery<T, T>"
+  },
+  "markdown": "prepareFind.md"
+}

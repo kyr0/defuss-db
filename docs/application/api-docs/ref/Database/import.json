@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/import",
+  "title": "Database.import",
+  "namespace": "Database",
+  "name": "import",
+  "signature": "import(input: ArchiveInput, options?: ImportOptions): Promise<ImportResult>",
+  "description": "Atomic archive import and index rebuild; receipt with counts/revisions",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "input",
+      "type": "ArchiveInput",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "ImportOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<ImportResult>"
+  },
+  "markdown": "import.md"
+}

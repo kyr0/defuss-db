@@ -91,6 +91,9 @@ Write options accept `ifRevision` for whole-store compare-and-swap and `signal`.
 | Method | Result |
 | --- | --- |
 | `get(id)` | Document or `undefined` |
+| `at(date, options?)` | The collection at an effective date: reads see the documents of that instant, and on a live collection that tracks history, writes take effect then. `{ $asOfRevision }` reads only what that revision recorded. See [Document history](HISTORY.md) |
+| `history(id, options?)` | Effective segments, newest start first: `from`, exclusive `until` (null while open), `document` (undefined for a delete), `revision`, `ordinal` |
+| `audit(id, options?)` | Recorded changes, newest first: `kind`, the asserted interval and `recorded: { storeId, revision }` |
 | `getMany(ids, { signal }?)` | Ordered documents/undefined; duplicate IDs preserved; one snapshot; at most 100,000 IDs |
 | `searchIndexes()` | Persisted search definitions |
 | `search(index, query, options?)` | Revision-bound scored hits; see [Search](SEARCH.md) |

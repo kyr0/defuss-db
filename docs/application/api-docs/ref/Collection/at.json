@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/at",
+  "title": "Collection.at",
+  "namespace": "Collection",
+  "name": "at",
+  "signature": "at(date: Date, options?: {\n    $until?: Date;\n    $asOfRevision?: undefined;\n}): Collection<T>\nat(date: Date, options: Omit<HistoryWriteOptions, '$historic'>): ReadCollection<T>",
+  "description": "The collection at an effective date: reads see the documents of that instant, and on a live collection that tracks history, writes take effect then. { $asOfRevision } reads only what that revision recorded. See Document history",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "date",
+      "type": "Date",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "{\n        $until?: Date;\n        $asOfRevision?: undefined;\n    }",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Collection<T>"
+  },
+  "markdown": "at.md"
+}

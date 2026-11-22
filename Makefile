@@ -82,6 +82,7 @@ site: build ## render docs/ from website/, docs/*.md and docs/benchmarks, then c
 	$(BUN) pm pack --destination output >/dev/null
 	$(NODE) scripts/site.mjs
 	$(NODE) scripts/demo-build.mjs
+	$(NODE) scripts/api-docs.mjs
 	$(NODE) scripts/check-site.mjs
 site-check:
 	$(NODE) scripts/check-site.mjs

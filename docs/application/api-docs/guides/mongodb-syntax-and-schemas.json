@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/guides/mongodb-syntax-and-schemas",
+  "title": "MongoDB syntax and schemas",
+  "id": "mongodb-syntax-and-schemas",
+  "lead": "",
+  "markdown": "mongodb-syntax-and-schemas.md"
+}

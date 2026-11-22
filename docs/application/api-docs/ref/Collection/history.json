@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/history",
+  "title": "Collection.history",
+  "namespace": "Collection",
+  "name": "history",
+  "signature": "history(id: PrimaryKey, options?: HistoryListOptions): Promise<HistorySegment<T>[]>",
+  "description": "Effective segments, newest start first: from, exclusive until (null while open), document (undefined for a delete), revision, ordinal",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "HistoryListOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<HistorySegment<T>[]>"
+  },
+  "markdown": "history.md"
+}

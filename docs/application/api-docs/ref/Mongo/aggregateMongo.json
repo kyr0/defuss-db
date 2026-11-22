@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/aggregateMongo",
+  "title": "aggregateMongo",
+  "namespace": "Mongo",
+  "name": "aggregateMongo",
+  "signature": "aggregateMongo<T = Doc>(collection: MongoAggregatable, pipeline: readonly Doc[] | string): Promise<T[]>",
+  "description": "MongoDB's result documents: { _id, ...accumulators }, or [{ [name]: n }] for $count (none when nothing matched).",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "collection",
+      "type": "MongoAggregatable",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "pipeline",
+      "type": "readonly Doc[] | string",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<T[]>"
+  },
+  "markdown": "aggregateMongo.md"
+}

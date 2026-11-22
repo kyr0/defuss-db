@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/parsePipeline",
+  "title": "parsePipeline",
+  "namespace": "Mongo",
+  "name": "parsePipeline",
+  "signature": "parsePipeline(text: string): Doc[]",
+  "description": "Shell or Extended JSON text as values: ISODate() and { $date } become a Date, NumberLong() and { $numberLong } a BigInt.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "text",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Doc[]"
+  },
+  "markdown": "parsePipeline.md"
+}

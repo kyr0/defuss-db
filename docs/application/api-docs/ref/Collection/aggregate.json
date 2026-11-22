@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/aggregate",
+  "title": "Collection.aggregate",
+  "namespace": "Collection",
+  "name": "aggregate",
+  "signature": "aggregate<const D extends AggregateDescriptor>(descriptor: D, page?: Page, input?: QueryOptions<T>): Promise<ComputeResult<AggregateOutput<D>>>",
+  "description": "Typed grouped/scalar rows and summary",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "descriptor",
+      "type": "D",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "page",
+      "type": "Page",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<ComputeResult<AggregateOutput<D>>>"
+  },
+  "markdown": "aggregate.md"
+}

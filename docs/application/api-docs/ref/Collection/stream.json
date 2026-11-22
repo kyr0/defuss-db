@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/stream",
+  "title": "Collection.stream",
+  "namespace": "Collection",
+  "name": "stream",
+  "signature": "stream(request?: FindRequest, input?: QueryOptions<T>): AsyncGenerator<ComputeEvent<T>>",
+  "description": "DataView batch / complete events",
+  "async": false,
+  "generator": true,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "AsyncGenerator<ComputeEvent<T>>"
+  },
+  "markdown": "stream.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/insert",
+  "title": "Collection.insert",
+  "namespace": "Collection",
+  "name": "insert",
+  "signature": "insert(value: NewDocument<T>, options?: WriteOptions): Promise<PrimaryKey>",
+  "description": "Reject existing ID; return ID; omitted ID generates UUID",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "value",
+      "type": "NewDocument<T>",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<PrimaryKey>"
+  },
+  "markdown": "insert.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/pageByIndex",
+  "title": "Collection.pageByIndex",
+  "namespace": "Collection",
+  "name": "pageByIndex",
+  "signature": "pageByIndex(index: string, options?: IndexPageOptions): Promise<IndexPage<T>>",
+  "description": "Seek page of documents with rows, nextCursor and snapshot revision. Cursor contract",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "index",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "IndexPageOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<IndexPage<T>>"
+  },
+  "markdown": "pageByIndex.md"
+}

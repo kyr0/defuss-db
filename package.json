@@ -81,9 +81,12 @@
   "devDependencies": {
     "@types/node": "24.10.0",
     "@vitest/coverage-v8": "4.1.12",
+    "defuss-dom-router": "0.1.1",
+    "defuss-i18n": "0.2.0",
     "defuss-shadcn": "0.9.14",
     "esbuild": "0.28.2",
     "fflate": "0.8.2",
+    "lucide": "1.8.0",
     "marked": "17.0.1",
     "mongodb": "7.8.0",
     "oxlint": "1.90.0",
@@ -96,7 +99,7 @@
   "scripts": {
     "build": "pkgroll --clean-dist",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit && oxlint --deny-warnings src tests scripts examples website/demo",
+    "lint": "tsc --noEmit && oxlint --deny-warnings src tests scripts examples website/demo website/application",
     "test": "vitest run",
     "coverage": "vitest run --coverage --reporter=default --reporter=json --outputFile=output/tests.json",
     "e2e": "node scripts/e2e.mjs",

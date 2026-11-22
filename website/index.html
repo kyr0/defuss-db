@@ -44,7 +44,7 @@
   <div class="mk-header-inner">
     <a href="#top" class="mk-header-brand" aria-label="defuss-db home"><svg class="db-brand-mark" aria-hidden="true"><use href="#i-logo"/></svg><span class="mk-header-name">defuss-db</span></a>
     <nav class="mk-header-nav" aria-label="Main">
-      <ul class="nav-menu-list"><li class="nav-menu-item"><a class="nav-menu-link" href="#why">Features</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#mongodb">Comparison</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#demo">Playground</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#guarantees">Guarantees</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#install">Setup</a></li></ul>
+      <ul class="nav-menu-list"><li class="nav-menu-item"><a class="nav-menu-link" href="#why">Features</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#explorer">Explorer</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#mongodb">Comparison</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#demo">Playground</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#guarantees">Guarantees</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="#install">Setup</a></li><li class="nav-menu-item"><a class="nav-menu-link" href="application/app-api-docs.html">API</a></li></ul>
     </nav>
     <div class="mk-header-actions">
       <label class="swap" data-variant="rotate" data-size="sm">
@@ -61,7 +61,7 @@
   <div class="sheet-content">
     <div class="sheet-header"><h2 class="sheet-title" id="db-sheet-title">defuss-db</h2></div>
     <div class="sheet-body">
-      <ul class="mk-header-sheet-nav"><li><a data-sheet-close href="#why">Features</a></li><li><a data-sheet-close href="#mongodb">Comparison</a></li><li><a data-sheet-close href="#demo">Playground</a></li><li><a data-sheet-close href="#guarantees">Guarantees</a></li><li><a data-sheet-close href="#install">Setup</a></li></ul>
+      <ul class="mk-header-sheet-nav"><li><a data-sheet-close href="#why">Features</a></li><li><a data-sheet-close href="#explorer">Explorer</a></li><li><a data-sheet-close href="#mongodb">Comparison</a></li><li><a data-sheet-close href="#demo">Playground</a></li><li><a data-sheet-close href="#guarantees">Guarantees</a></li><li><a data-sheet-close href="#install">Setup</a></li><li><a data-sheet-close href="application/app-api-docs.html">API</a></li></ul>
     </div>
   </div>
 </dialog>
@@ -98,18 +98,21 @@
 <article class="db-feature"><div class="db-icon shape-squircle"><svg width="32" height="32" aria-hidden="true"><use href="#i-types"></use></svg></div><h3>Native values between runtimes</h3><p>Dates, maps, sets, bigints, typed arrays and cyclic references keep their JavaScript types in storage and in archives, so every runtime reads back the value that was written.</p><a href="guides/api.html">Read the API guide</a></article>
 <article class="db-feature"><div class="db-icon shape-squircle"><svg width="32" height="32" aria-hidden="true"><use href="#i-box"></use></svg></div><h3>Backup and restore</h3><p><code>db.export()</code> writes one snapshot as a Brotli archive, compressed by defuss-brotli's WebAssembly build, with or without document history; <code>exportStream()</code> yields it in blocks for a file or an upload. <code>db.import(archive)</code> restores it atomically and rebuilds every index, into an empty database or merged with a conflict policy. An archive from a browser imports on a server, and the other way round.</p><a href="guides/archive.html">Read the archive guide</a></article>
 </div></section>
+<section id="explorer" class="db-section" aria-labelledby="explorer-title">
+<h2 class="db-h2 db-display" id="explorer-title">Database Explorer</h2>
+<p class="db-lead">A database tool built with defuss-shadcn on defuss-db, in this browser. Query with MongoDB filters, edit documents, aggregate, read schemas and indexes, restore deleted documents, import and export.</p>
+<div class="db-playground">
+<div class="db-playground-frame"><iframe src="database-explorer/" loading="lazy" title="Database Explorer, a defuss-shadcn app on defuss-db"></iframe></div>
+<div class="db-playground-foot">
+<p class="db-playground-note">The first visit writes the sample databases shop, analytics and cms, about 24 MB, to this site's private browser storage.</p>
+<div class="db-playground-actions"><a class="btn" data-variant="outline" data-size="sm" href="database-explorer/" target="_blank" rel="noopener">Open in new tab</a></div>
+</div>
+</div>
+</section>
 <section id="mongodb" class="db-section" aria-labelledby="mongodb-title">
 <h2 class="db-h2 db-display" id="mongodb-title">defuss-db or MongoDB?</h2>
 <p class="db-lead">Both store schemaless documents with secondary indexes. MongoDB is a server that applications reach over the network; defuss-db is a library inside the application that uses it. Choose by where the data lives and how many machines must write it.</p>
-<div class="table-container db-capabilities"><table><caption>How the two systems differ</caption>
-<thead><tr><th scope="col">Question</th><th scope="col">defuss-db</th><th scope="col">MongoDB</th></tr></thead>
-<tbody>
-<tr><th scope="row">Where does it run?</th><td>Inside your process: a dedicated browser worker, Node.js or Bun</td><td>In its own server process, reached through a driver over the network</td></tr>
-<tr><th scope="row">Can it store data in the browser?</th><td>Yes, in OPFS, with the API the server uses</td><td>No; a browser reaches it through a service you build</td></tr>
-<tr><th scope="row">Transactions across documents and collections?</th><td>On every storage backend, without extra setup</td><td>Only on a replica set or sharded cluster. @@MONGO_TXN@@</td></tr>
-<tr><th scope="row">Several machines?</th><td>No. One machine; several processes or browser workers can share one store</td><td>Yes, through replica sets and sharded clusters</td></tr>
-<tr><th scope="row">Query language</th><td>Typed filter descriptors and DataView expressions, plus MongoDB filter, sort, projection and pipeline documents through <code>defuss-db/mongo</code>; no wire protocol</td><td>MongoDB query language and aggregation pipeline</td></tr>
-</tbody></table></div>
+<div class="db-choose"><div><h3>Choose defuss-db when</h3><ul><li>the data must live in the browser or keep working offline;</li><li>you want one data layer for browser and server code;</li><li>you need transactions across collections without running a replica set;</li><li>history, ranked search or native JavaScript values belong in the same store.</li></ul></div><div><h3>Choose MongoDB when</h3><ul><li>several machines or services must write the same data;</li><li>you need replication and failover;</li><li>query and write throughput matter more than running inside the application;</li><li>your code needs the MongoDB wire protocol, or operators and stages that <code>defuss-db/mongo</code> refuses, such as <code>$lookup</code> or <code>$expr</code>.</li></ul></div></div>
 <h3 class="db-h3" id="mongodb-queries">Run your MongoDB queries</h3>
 <figure class="db-window db-history-window">
 <div class="mockup-code" data-chrome="mac" data-title="mongo.ts" data-numbers data-wrap tabindex="0" role="region" aria-label="Find paid orders that contain one SKU and sum revenue per week with MongoDB documents">
@@ -134,8 +137,6 @@
 <noscript><p class="db-out">The charts need JavaScript; the <a href="guides/performance.html#compared-with-mongodb-on-one-machine">performance guide</a> lists every median.</p></noscript>
 <script type="application/json" id="mongo-data">@@MONGO_JSON@@</script>
 <p class="db-scope">@@MONGO_CONTEXT@@ <a href="guides/performance.html#compared-with-mongodb-on-one-machine">Table view and method</a> · <a href="benchmarks/mongodb-node.json">Raw samples</a></p>
-<p class="db-history-note">At 100,000 documents and 95% confidence, defuss-db was faster at reads by ID, which skip the network round trip, and at concurrent updates, which share a flush. Index pages, range counts, the aggregate over the whole collection, a flushed single-document update and a commit of 64 documents took as long as on MongoDB within the noise of the runs. Only bulk loads were slower, by about a quarter: every commit on either system waits for a flush of about 4 ms, and the difference is the work around it. A repeated aggregate served from the defuss-db result cache has no MongoDB counterpart.</p>
-<div class="db-choose"><div><h3>Choose defuss-db when</h3><ul><li>the data must live in the browser or keep working offline;</li><li>you want one data layer for browser and server code;</li><li>you need transactions across collections without running a replica set;</li><li>history, ranked search or native JavaScript values belong in the same store.</li></ul></div><div><h3>Choose MongoDB when</h3><ul><li>several machines or services must write the same data;</li><li>you need replication and failover;</li><li>query and write throughput matter more than running inside the application;</li><li>your code needs the MongoDB wire protocol, or operators and stages that <code>defuss-db/mongo</code> refuses, such as <code>$lookup</code> or <code>$expr</code>.</li></ul></div></div>
 </section>
 <section id="scale" class="db-section" aria-labelledby="scale-title">
 <h2 class="db-h2 db-display" id="scale-title">Built to scale without the bloat</h2>
@@ -185,7 +186,7 @@
 
 </section>
 <section id="demo" class="db-section" aria-labelledby="demo-title">
-<h2 class="db-h2 db-display" id="demo-title">100,000 orders, stored in this browser</h2>
+<h2 class="db-h2 db-display" id="demo-title">100k orders, stored in-browser</h2>
 <p class="db-lead">Ledger keeps orders, reports, prices, accounts and a product catalog in one defuss-db store in your browser. Sort and page the orders through indexes, run prepared reports, correct a price and read it as of an earlier revision, move money between accounts in transactions, and search the catalog. The inspector shows the TypeScript call behind each view, its measured time and its access plan.</p>
 <div class="db-playground">
 <div class="db-playground-frame"><iframe src="demo/" loading="lazy" title="Ledger, a defuss-db playground with orders, reports, price history, accounts and search"></iframe></div>
@@ -241,7 +242,7 @@
 <p class="db-lead">The package includes ESM, CommonJS and TypeScript declarations. Use Node.js 26 or later, Bun 1.4.4 or later, or a browser worker with OPFS and Web Locks.</p>
 <div class="tabs db-install"><div class="tab-list" role="tablist" aria-label="Setup examples"><button type="button" class="tab-trigger" role="tab" id="tab-install" data-tab-trigger="install" aria-controls="panel-install" aria-selected="true" tabindex="0">Install</button><button type="button" class="tab-trigger" role="tab" id="tab-server" data-tab-trigger="server" aria-controls="panel-server" aria-selected="false" tabindex="-1">Node.js / Bun</button><button type="button" class="tab-trigger" role="tab" id="tab-browser" data-tab-trigger="browser" aria-controls="panel-browser" aria-selected="false" tabindex="-1">Browser worker</button><button type="button" class="tab-trigger" role="tab" id="tab-query" data-tab-trigger="query" aria-controls="panel-query" aria-selected="false" tabindex="-1">Query</button></div><div class="tab-content" id="panel-install" role="tabpanel" aria-labelledby="tab-install" data-tab-content="install">@@SNIPPET:install.sh@@</div><div class="tab-content" id="panel-server" role="tabpanel" aria-labelledby="tab-server" data-tab-content="server" hidden>@@SNIPPET:server.ts@@</div><div class="tab-content" id="panel-browser" role="tabpanel" aria-labelledby="tab-browser" data-tab-content="browser" hidden>@@SNIPPET:browser.ts@@</div><div class="tab-content" id="panel-query" role="tabpanel" aria-labelledby="tab-query" data-tab-content="query" hidden>@@SNIPPET:query.ts@@</div></div>
 </section>
-<section class="db-section" aria-labelledby="cta-title"><div class="mk-cta db-cta"><div class="shader" data-variant="background" data-effect="nebula" data-colors="#102d32 #28676c #986d45" data-speed="0.5" aria-hidden="true"></div><div class="mk-cta-inner"><div class="mk-cta-copy"><h2 class="mk-cta-title" id="cta-title">A MongoDB alternative for the web</h2><p class="mk-cta-desc">The API reference covers queries, indexes, search, transactions, history, archives and the storage options of each runtime.</p></div><div class="mk-cta-actions"><a class="btn" data-size="lg" data-variant="" href="guides/api.html" >Open the API reference</a><a class="btn" data-size="lg" data-variant="outline" href="guides/architecture.html" >Read the architecture</a></div></div></div></section></main><footer class="mk-footer db-footer">
+<section class="db-section" aria-labelledby="cta-title"><div class="mk-cta db-cta"><div class="shader" data-variant="background" data-effect="nebula" data-colors="#102d32 #28676c #986d45" data-speed="0.5" aria-hidden="true"></div><div class="mk-cta-inner"><div class="mk-cta-copy"><h2 class="mk-cta-title" id="cta-title">A MongoDB alternative for the web</h2><p class="mk-cta-desc">The API reference covers queries, indexes, search, transactions, history, archives and the storage options of each runtime.</p></div><div class="mk-cta-actions"><a class="btn" data-size="lg" data-variant="" href="application/app-api-docs.html" >Open the API reference</a><a class="btn" data-size="lg" data-variant="outline" href="guides/architecture.html" >Read the architecture</a></div></div></div></section></main><footer class="mk-footer db-footer">
   <div class="mk-footer-inner">
     <nav class="mk-footer-nav db-footer-nav" aria-label="Footer">
       <div class="mk-footer-col">
@@ -255,7 +256,7 @@
       <div class="mk-footer-col">
         <h3 class="mk-footer-heading">Reference</h3>
         <ul class="mk-footer-list">
-          <li><a href="guides/api.html">API</a></li>
+          <li><a href="application/app-api-docs.html">API</a></li>
           <li><a href="guides/ordered.html">Ordered indexes</a></li>
           <li><a href="guides/performance.html">Performance evidence</a></li>
           <li><a href="llms.txt">Agent reference</a></li>

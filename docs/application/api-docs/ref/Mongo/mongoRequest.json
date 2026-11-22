@@ -1,0 +1,41 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/mongoRequest",
+  "title": "mongoRequest",
+  "namespace": "Mongo",
+  "name": "mongoRequest",
+  "signature": "mongoRequest(q: unknown, filter?: MongoDocument, sort?: MongoDocument, options?: TranslateOptions): MongoRequest",
+  "description": "{ filters, where?, sorters? } for find, query, count or explain. scalarFields names the top-level fields an index covers; scalarOptions(collection) reads them.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "q",
+      "type": "unknown",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "filter",
+      "type": "MongoDocument",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "sort",
+      "type": "MongoDocument",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "TranslateOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "MongoRequest"
+  },
+  "markdown": "mongoRequest.md"
+}

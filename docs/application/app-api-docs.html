@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="The defuss-db API reference: every function and method with its signature, and Call it to run it on an in-memory database in this page." />
+<title>defuss-db API reference</title>
+<!-- adapted from defuss-shadcn 71a305fac dist/documentation/application/app-api-docs.html (sha256 6409f56dee6f9d9afddb2c56b4bc53141cc4e372a46908cf404bd4e85b9272b2),
+     the API Documentation scaffold; scripts/api-docs.mjs writes it to docs/application/ with its data block -->
+<script>
+  // the site's stored theme (docs/assets/site.js), else the system's
+  {
+    let stored = null;
+    try {
+      stored = localStorage.getItem('defuss-db-theme');
+    } catch {}
+    if (stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+  }
+</script>
+<link rel="stylesheet" href="apps/api-docs/api-docs.min.css" id="tokens-css" />
+<link rel="stylesheet" href="css/docs-theme.css" />
+<style>:root { --scaffold-height: 100dvh; } html, body { height: 100%; margin: 0; } body { overflow: hidden; background: var(--background); color: var(--foreground); }</style>
+</head>
+<body>
+<!-- the search model's modules import packages by name - this map names their pinned builds -->
+<script type="importmap">
+  {
+    "imports": {
+      "defuss-db": "https://cdn.jsdelivr.net/npm/defuss-db@2.0.2/dist/index.mjs",
+      "defuss-db/client.js": "https://cdn.jsdelivr.net/npm/defuss-db@2.0.2/dist/client.mjs",
+      "@huggingface/tokenizers": "https://cdn.jsdelivr.net/npm/@huggingface/tokenizers@0.2.0/dist/tokenizers.min.mjs",
+      "onnxruntime-web/webgpu": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.wasm.bundle.min.mjs",
+      "defuss-vectorsearch/turboquant.js": "https://cdn.jsdelivr.net/npm/defuss-vectorsearch@0.4.0/dist/turboquant.mjs",
+      "defuss-lexicalsearch": "https://cdn.jsdelivr.net/npm/defuss-lexicalsearch@0.4.0/dist/index.js"
+    }
+  }
+</script>
+<style>
+  /* Acme API: the scaffold's own glue - a three-column reference (navigation, the page, its code) in the system
+     tokens, so a theme or dark mode restyles it. Methods carry a hue each; the code panels stay dark in both modes. */
+  .ad {
+    --ad-code: oklch(0.18 0.012 260);
+    --ad-code-line: oklch(0.3 0.012 260);
+    container-type: inline-size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    height: var(--scaffold-height, 50rem);
+    overflow: hidden;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  .ad [hidden] {
+    display: none !important;
+  }
+  .ad-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.5rem;
+    padding-inline: 1rem;
+    border-block-end: 1px solid var(--border);
+    background: var(--card);
+  }
+  .ad-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    & svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: var(--primary);
+    }
+    & small {
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+  }
+  .ad-bar .select {
+    width: auto;
+  }
+  .ad-search {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 24rem;
+    margin-inline-start: auto;
+    padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    & svg {
+      width: 1rem;
+      height: 1rem;
+    }
+    & span {
+      flex: 1;
+      text-align: start;
+    }
+  }
+  .ad-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .ad-menu {
+    display: none;
+  }
+  .ad-body {
+    position: relative;
+    display: grid;
+    grid-template-columns: 16rem minmax(0, 1fr);
+    min-height: 0;
+  }
+  .ad-side {
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 1rem 0.75rem 1.5rem;
+    border-inline-end: 1px solid var(--border);
+    background: var(--card);
+  }
+  .ad-side .mk-docs-navigation {
+    font-size: 0.875rem;
+  }
+  .ad-side .mk-docs-navigation a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+  .ad-key-state {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-block-start: 1.25rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    & i,
+    & svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+  .ad-main {
+    container: ad-main / inline-size;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block-start: 1rem;
+  }
+  .ad-page {
+    max-width: 76rem;
+    padding: 1.75rem clamp(1rem, 3cqi, 2.5rem) 3rem;
+  }
+  .ad-version-note {
+    margin-block-end: 1.25rem;
+  }
+  /* the method tag: one hue per method, readable on the page and on the code panel */
+  .ad-method {
+    --ad-h: 150;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    align-self: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--radius-sm);
+    background: oklch(0.6 0.13 var(--ad-h) / 0.14);
+    color: oklch(0.45 0.13 var(--ad-h));
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    &[data-method='POST'] {
+      --ad-h: 255;
+    }
+    &[data-method='PATCH'] {
+      --ad-h: 70;
+    }
+    &[data-method='DELETE'] {
+      --ad-h: 25;
+    }
+  }
+  .dark .ad .ad-method,
+  .ad .ad-code-panel .ad-method {
+    background: oklch(0.7 0.12 var(--ad-h) / 0.18);
+    color: oklch(0.82 0.12 var(--ad-h));
+  }
+  .ad-side .ad-method {
+    min-width: 2.75rem;
+    font-size: 0.625rem;
+  }
+  .ad-article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 27rem);
+    gap: 2rem 2.5rem;
+    align-items: start;
+  }
+  .ad-article > .mk-docs-content {
+    max-width: none;
+  }
+  /* sticky, and never taller than the app below its bar: a long answer scrolls inside the aside, not out of reach */
+  .ad-aside {
+    position: sticky;
+    top: 0;
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    max-block-size: calc(var(--scaffold-height, 50rem) - 3.5rem - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .ad-endpoint-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-block: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    & code {
+      flex: 1;
+      background: none;
+      overflow-wrap: anywhere;
+    }
+  }
+  .ad-params {
+    display: grid;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    border-block-start: 1px solid var(--border);
+    & > li {
+      display: grid;
+      gap: 0.25rem;
+      padding-block: 0.75rem;
+      border-block-end: 1px solid var(--border);
+    }
+    & p {
+      margin: 0;
+      color: var(--muted-foreground);
+      font-size: 0.875rem;
+    }
+  }
+  .ad-param-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    & code {
+      font-weight: 600;
+    }
+    & .ad-type {
+      color: var(--muted-foreground);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    & .ad-required {
+      color: var(--destructive);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+  }
+  .ad-enum {
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    & code {
+      font-size: 0.75rem;
+    }
+  }
+  .ad-responses {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    & li {
+      display: flex;
+      gap: 0.75rem;
+      align-items: baseline;
+      font-size: 0.875rem;
+    }
+  }
+  .ad-status {
+    --ad-h: 150;
+    min-width: 2.5rem;
+    color: oklch(0.5 0.13 var(--ad-h));
+    font-family: var(--font-mono);
+    font-weight: 600;
+    &[data-class='4'] {
+      --ad-h: 40;
+    }
+    &[data-class='5'] {
+      --ad-h: 25;
+    }
+  }
+  .dark .ad .ad-status,
+  .ad .ad-code-panel .ad-status {
+    color: oklch(0.8 0.13 var(--ad-h));
+  }
+  /* the try-it form */
+  .ad-try {
+    margin-block-end: 1.5rem;
+  }
+  .ad-try .card-content {
+    display: grid;
+    gap: 0.875rem;
+  }
+  .ad-try-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.75rem 1rem;
+  }
+  .ad-field {
+    display: grid;
+    gap: 0.375rem;
+    & .label {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+    }
+  }
+  .ad-try-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  /* code panels: the request samples (a Code Example block) and the live response */
+  .ad-aside .mk-code-block {
+    margin: 0;
+  }
+  .ad .mk-code-block:has(input[value='curl']:checked) [data-tab='curl'],
+  .ad .mk-code-block:has(input[value='js']:checked) [data-tab='js'],
+  .ad .mk-code-block:has(input[value='python']:checked) [data-tab='python'] {
+    display: block;
+  }
+  /* an empty painted line keeps its height */
+  .ad .mk-code-block code > span:empty::before {
+    content: ' ';
+  }
+  .ad .mk-code-block pre {
+    max-height: 22rem;
+    overflow: auto;
+  }
+  .ad-code-panel {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--ad-code);
+    color: oklch(0.92 0 0);
+    font-size: 0.8125rem;
+  }
+  .ad-code-head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 2.5rem;
+    padding-inline: 1rem;
+    border-block-end: 1px solid var(--ad-code-line);
+    color: oklch(0.75 0 0);
+    font-size: 0.75rem;
+    & strong {
+      margin-inline-end: auto;
+      color: oklch(0.92 0 0);
+      font-weight: 600;
+    }
+    & .ad-meta {
+      font-family: var(--font-mono);
+    }
+  }
+  .ad-code-panel pre {
+    max-height: 22rem;
+    margin: 0;
+    padding: 0.875rem 1rem;
+    overflow: auto;
+    background: none;
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .ad-code-panel .ad-empty {
+    margin: 0;
+    padding: 1rem;
+    color: oklch(0.72 0 0);
+    font-size: 0.8125rem;
+  }
+  /* a member's tag: ASYNC returns a Promise, STREAM is an async generator, SYNC answers at once, PROP is a property */
+  .ad-method[data-method='ASYNC'] {
+    --ad-h: 300;
+  }
+  .ad-method[data-method='STREAM'] {
+    --ad-h: 200;
+  }
+  .ad-method[data-method='PROP'] {
+    --ad-h: 70;
+  }
+  /* each page as Markdown and JSON, for readers that do not run the app */
+  .ad-doc-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 0.75rem;
+    margin: -0.5rem 0 1.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    & a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: inherit;
+      text-underline-offset: 3px;
+    }
+    & svg {
+      width: 0.875rem;
+      height: 0.875rem;
+    }
+  }
+  .ad-signature {
+    margin: 0 0 1.25rem;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    background: var(--ad-code);
+    color: oklch(0.92 0 0);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    white-space: pre;
+  }
+  .ad-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    margin-block-end: 1rem;
+  }
+  .ad-rpc-wide {
+    grid-column: 1 / -1;
+  }
+  /* trees as high as their rows (rpcFit), one row a fixed height */
+  .ad-rpc-tree,
+  .ad-rpc-result .property-tree {
+    --property-tree-row-height: 1.75rem;
+  }
+  /* a listing Shiki has not painted (offline, or still loading) keeps the inset of a painted line */
+  .ad .mk-code-block code:not(:has(> span)) {
+    padding-inline: 1rem;
+    white-space: pre;
+  }
+  .ad-rpc-frames {
+    display: grid;
+    gap: 0.25rem;
+    max-block-size: 10rem;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    overflow: auto;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    & li {
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      background: var(--muted);
+      overflow-wrap: anywhere;
+    }
+  }
+  .ad-rpc-error {
+    margin: 0 0 0.75rem;
+    color: var(--destructive);
+    font-size: 0.8125rem;
+  }
+  .ad .mk-code-block:has(input[value='ts']:checked) [data-tab='ts'],
+  .ad .mk-code-block:has(input[value='fetch']:checked) [data-tab='fetch'],
+  .ad .mk-code-block:has(input[value='rcurl']:checked) [data-tab='rcurl'] {
+    display: block;
+  }
+  /* the resource and home pages */
+  .ad-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1rem;
+    margin-block: 1rem 2rem;
+  }
+  .ad-cards .card {
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s;
+    &:hover {
+      border-color: var(--ring);
+    }
+  }
+  .ad-ops {
+    display: grid;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    & li + li {
+      border-block-start: 1px solid var(--border);
+    }
+    & a {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.625rem 0.875rem;
+      color: inherit;
+      text-decoration: none;
+      &:hover {
+        background: var(--muted);
+      }
+    }
+    & code {
+      color: var(--muted-foreground);
+      font-size: 0.8125rem;
+      overflow-wrap: anywhere;
+    }
+  }
+  .ad .mk-docs-content-prose pre {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--ad-code);
+    color: oklch(0.92 0 0);
+    overflow: auto;
+  }
+  .ad .mk-docs-content-prose pre code {
+    background: none;
+    color: inherit;
+  }
+  /* the search palette: a method and a path beside each hit, the timing below */
+  .ad .command .command-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: inherit;
+    text-decoration: none;
+    & .ad-hit-path {
+      margin-inline-start: auto;
+      color: var(--muted-foreground);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+  }
+  .ad-find-status {
+    margin: 0;
+    padding: 0.5rem 0.875rem;
+    border-block-start: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+  /* narrower: the code column goes under the page, then the navigation becomes a drawer behind the menu button */
+  @container ad-main (width < 56rem) {
+    .ad-article {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ad-aside {
+      position: static;
+    }
+  }
+  @container (width < 48rem) {
+    .ad-menu {
+      display: inline-flex;
+    }
+    .ad-search kbd,
+    .ad-brand small,
+    .ad-bar .select {
+      display: none;
+    }
+    /* the search and Authorize shrink to their icons; their labels stay the accessible names */
+    .ad-search {
+      flex: none;
+      padding: 0.5rem;
+    }
+    .ad-search span,
+    .ad-controls [data-ad-authorize] span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .ad-bar {
+      gap: 0.375rem;
+      padding-inline: 0.5rem;
+    }
+    .ad-body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ad-side {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 5;
+      width: min(18rem, 85%);
+      box-shadow: var(--shadow-lg);
+      translate: -100% 0;
+      visibility: hidden;
+      transition:
+        translate 0.2s,
+        visibility 0.2s;
+    }
+    .ad[data-menu-open] .ad-side {
+      translate: 0 0;
+      visibility: visible;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ad-side {
+      transition: none;
+    }
+  }
+</style>
+<div class="ad" data-ad>
+  <header class="ad-bar">
+    <button
+      class="btn ad-menu"
+      type="button"
+      data-variant="ghost"
+      data-size="icon"
+      data-ad-menu
+      aria-expanded="false"
+      aria-label="Menu"
+      data-i18n-aria-label-en="Menu"
+    >
+      <i data-lucide="menu"></i>
+    </button>
+    <a class="ad-brand" href="#/" data-router-link
+      ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="m18 16 4-4-4-4" />
+        <path d="m6 8-4 4 4 4" />
+        <path d="m14.5 4-5 16" /></svg
+      >defuss-db API <small data-i18n-target="brand-sub">reference</small></a
+    >
+    <span class="badge" data-variant="secondary">3.1.0</span>
+    <button class="ad-search" type="button" data-command-trigger="ad-find">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" /></svg
+      ><span data-i18n-target="search">Search the API</span
+      ><kbd class="kbd-group"><kbd class="kbd">⌘</kbd><kbd class="kbd">K</kbd></kbd>
+    </button>
+    <div class="ad-controls">
+      <label class="swap" data-variant="rotate" data-size="sm">
+        <input
+          type="checkbox"
+          data-ad-mode
+          aria-label="Dark mode"
+          data-i18n-aria-label-en="Dark mode"
+        />
+        <span class="swap-on" aria-hidden="true"><i data-lucide="moon"></i></span>
+        <span class="swap-off" aria-hidden="true"><i data-lucide="sun"></i></span>
+      </label>
+    </div>
+  </header>
+  <div class="ad-body">
+    <aside class="ad-side">
+      <!-- the navigation is written from the data block: the guides, then each resource and its endpoints -->
+      <nav
+        class="mk-docs-navigation"
+        data-ad-nav
+        aria-label="API reference"
+        data-i18n-aria-label-en="API reference"
+      ></nav>
+      <p class="ad-key-state">
+        <span class="badge" data-variant="secondary" data-i18n-target="sandbox">In this page</span
+        ><span data-i18n-target="sandbox-note">Call it runs on an in-memory database here</span>
+      </p>
+    </aside>
+    <main class="ad-main" data-ad-main>
+      <div class="ad-page">
+        <!-- the guides and the home page -->
+        <section data-ad-view="guide" hidden>
+          <article class="mk-docs-content" aria-labelledby="ad-guide-title">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+              <ol class="breadcrumb-list">
+                <li class="breadcrumb-item"><a class="breadcrumb-link" href="#/" data-router-link>defuss-db API</a></li>
+                <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                <li class="breadcrumb-item">
+                  <span class="breadcrumb-page" aria-current="page" data-ad-guide-crumb></span>
+                </li>
+              </ol>
+            </nav>
+            <h1 class="mk-docs-content-title" id="ad-guide-title" data-ad-guide-title></h1>
+            <p class="ad-doc-links" data-ad-doc-links></p>
+            <p class="mk-docs-content-lead" data-ad-guide-lead></p>
+            <div class="mk-docs-content-prose" data-ad-guide-body></div>
+            <div class="ad-cards" data-ad-home-cards></div>
+            <nav class="mk-docs-content-pager" aria-label="Pagination" data-ad-pager></nav>
+          </article>
+        </section>
+        <!-- the reference: its overview and a namespace - written from defuss-db's type declarations and docs/API.md -->
+        <section data-ad-view="rpc-ns" hidden>
+          <article class="mk-docs-content" aria-labelledby="ad-rn-title">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+              <ol class="breadcrumb-list">
+                <li class="breadcrumb-item">
+                  <a class="breadcrumb-link" href="#/ref" data-router-link data-i18n-target="crumb-rpc"
+                    >Reference</a
+                  >
+                </li>
+                <li class="breadcrumb-separator" aria-hidden="true" data-ad-rn-sep>/</li>
+                <li class="breadcrumb-item">
+                  <span class="breadcrumb-page" aria-current="page" data-ad-rn-crumb></span>
+                </li>
+              </ol>
+            </nav>
+            <h1 class="mk-docs-content-title" id="ad-rn-title" data-ad-rn-title></h1>
+            <p class="ad-doc-links" data-ad-doc-links></p>
+            <p class="mk-docs-content-lead" data-ad-rn-lead></p>
+            <div class="mk-docs-content-prose" data-ad-rn-body></div>
+            <div class="ad-cards" data-ad-rn-cards></div>
+            <ul class="ad-ops" data-ad-rn-ops></ul>
+            <nav class="mk-docs-content-pager" aria-label="Pagination" data-ad-pager></nav>
+          </article>
+        </section>
+        <!-- a method - its signature, parameters, return value, a call from the form and its sample -->
+        <section data-ad-view="rpc-method" hidden>
+          <div class="ad-article">
+            <article class="mk-docs-content" aria-labelledby="ad-rm-title">
+              <nav class="breadcrumb" aria-label="Breadcrumb">
+                <ol class="breadcrumb-list">
+                  <li class="breadcrumb-item">
+                    <a class="breadcrumb-link" href="#/ref" data-router-link data-i18n-target="crumb-rpc-2"
+                      >Reference</a
+                    >
+                  </li>
+                  <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                  <li class="breadcrumb-item">
+                    <a class="breadcrumb-link" href="#/ref" data-router-link data-ad-rm-crumb></a>
+                  </li>
+                  <li class="breadcrumb-separator" aria-hidden="true">/</li>
+                  <li class="breadcrumb-item">
+                    <span class="breadcrumb-page" aria-current="page" data-ad-rm-crumb-page></span>
+                  </li>
+                </ol>
+              </nav>
+              <h1 class="mk-docs-content-title" id="ad-rm-title" data-ad-rm-title></h1>
+              <p class="ad-doc-links" data-ad-doc-links></p>
+              <div class="ad-badges" data-ad-rm-badges></div>
+              <pre class="ad-signature" data-lang="ts" data-ad-rm-signature></pre>
+              <p class="mk-docs-content-lead" data-ad-rm-lead></p>
+              <div data-ad-rm-docs></div>
+              <form class="card ad-try" data-ad-rpc-try novalidate>
+                <div class="card-header">
+                  <h2 class="card-title" data-i18n-target="h-call">Call it</h2>
+                  <p class="card-description" data-i18n-target="call-text">
+                    Change an argument - the sample follows. Send runs it on the sample database in this page; Reset
+                    starts that database over.
+                  </p>
+                </div>
+                <div class="card-content">
+                  <p class="ad-meta" role="status" data-ad-rpc-conn></p>
+                  <div class="ad-try-grid" data-ad-rpc-fields></div>
+                  <div class="ad-try-actions" data-ad-rpc-actions>
+                    <button class="btn" type="submit"
+                      ><i data-lucide="send"></i><span data-i18n-target="call">Send call</span></button
+                    >
+                    <button class="btn" type="reset" data-variant="outline" data-i18n-target="reset-call">Reset</button>
+                  </div>
+                </div>
+              </form>
+              <nav class="mk-docs-content-pager" aria-label="Pagination" data-ad-pager></nav>
+            </article>
+            <aside class="ad-aside">
+              <figure class="mk-code-block" data-ad-rpc-samples>
+                <div class="mk-code-block-head">
+                  <div
+                    class="mk-code-block-tabs"
+                    role="radiogroup"
+                    aria-label="Language"
+                    data-i18n-aria-label-en="Language"
+                  >
+                    <label><input type="radio" name="ad-rpc-lang" value="ts" checked />TypeScript</label>
+                  </div>
+                  <button
+                    class="mk-code-block-copy"
+                    type="button"
+                    data-ad-rpc-copy
+                    aria-label="Copy code"
+                    data-i18n-aria-label-en="Copy code"
+                  >
+                    <i data-lucide="copy"></i>
+                  </button>
+                </div>
+                <pre data-tab="ts" data-lang="ts"><code data-ad-rsample="ts"></code></pre>
+                <span class="mk-code-block-status" role="status"></span>
+              </figure>
+              <div class="card ad-rpc-result" data-ad-rpc-response aria-live="polite">
+                <div class="card-header">
+                  <h2 class="card-title" data-i18n-target="h-answer">Answer</h2>
+                  <p class="card-description">
+                    <span class="ad-status" data-ad-rpc-status></span> <span class="ad-meta" data-ad-rpc-time></span>
+                  </p>
+                </div>
+                <div class="card-content">
+                  <p class="ad-empty" data-ad-rpc-empty data-i18n-target="answer-empty"
+                    >Send the call to see its answer.</p
+                  >
+                  <p class="ad-rpc-error" data-ad-rpc-error hidden></p>
+                  <ol class="ad-rpc-frames" data-ad-rpc-frames hidden></ol>
+                  <div
+                    class="property-tree"
+                    data-readonly
+                    data-ad-rpc-result
+                    aria-label="Answer"
+                    data-i18n-aria-label-en="Answer"
+                    hidden
+                  ></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <!-- the search: a Command palette (also ⌘K) whose hits defuss-search ranks -->
+  <dialog
+    id="ad-find"
+    class="command"
+    data-filter="none"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Search the API"
+    data-i18n-aria-label-en="Search the API"
+  >
+    <div class="command-content">
+      <div class="command-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          class="command-input"
+          type="text"
+          data-ad-query
+          placeholder="Methods, parameters, guides..."
+          data-i18n-placeholder-en="Methods, parameters, guides..."
+          aria-label="Search"
+          data-i18n-aria-label-en="Search"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <div class="command-list" data-ad-hits></div>
+      <div class="command-empty" data-i18n-target="find-empty" hidden>Nothing found.</div>
+      <p class="ad-find-status" data-ad-find-status></p>
+    </div>
+  </dialog>
+  <!-- the reference: the guides (docs/API.md), the namespaces and their members (the type declarations in dist/)
+       and the words of the frame; scripts/api-docs.mjs writes it -->
+  <script type="application/json" id="ad-data">{"words":{"guides":"Guides","guidesGroup":"Guides","prev":"Previous","next":"Next","copied":"Copied to the clipboard","copyHint":"Selected - press ⌘C to copy","results":"%n results in %t ms - defuss-search, BM25","resultsMeaning":"%n results in %t ms - defuss-search, BM25 + ColBERT","meaning-loading":"Keywords now - search by meaning loads in the background (4.6 MB)","meaning-semantic":"Keywords and meaning - BM25 fused with the Winzling-reranker ColBERT model","meaning-failed":"Search by meaning did not load - keywords only","meaning-saver":"Data saver on - keywords only","rpcGroup":"Reference","rpcOverview":"Overview","rpcTitle":"Reference","rpcLead":"Every documented function and method of defuss-db, grouped by what you call it on.","rpcBody":["Each signature comes from the type declarations the package ships, each description from the API guide. A member that returns a Promise is tagged ASYNC, an async generator STREAM, one that returns at once SYNC, and a property PROP.","> Call it runs a member on the sample database in this page. Reset starts the sample over."],"methods":"%n members","tag-ASYNC":"Returns a Promise","tag-STREAM":"An async generator","tag-SYNC":"Returns at once","tag-PROP":"A property","deprecated":"Deprecated","params":"Parameters","noParams":"This member takes no parameters.","returns":"Returns","yields":"Yields","throws":"Throws","examples":"Examples","optional":"optional","required":"required","asMarkdown":"Markdown","asJson":"JSON","pageAs":"This page as","inPage":"in this page","ms":"%t ms","loading":"Loading the search index...","plain":"The search index is not loaded - matching names","answerEmpty":"Send the call to see its answer.","undefinedAnswer":"Returned undefined.","returned":"returned","threw":"threw","noRuntime":"The runtime of this page did not load, so Call it is off."},"guides":[{"id":"introduction","title":"Introduction","lead":"defuss-db is a document database that runs inside your application - in a browser worker, Node.js or Bun - with the same API in each.","html":"\u003cp>Open a database, take a collection, then write and read. Each write commits in its own transaction unless you pass one, and a read sees one snapshot.\u003c/p>\n\u003cpre data-lang=\"ts\">\u003ccode>import { openMemory } from 'defuss-db'\ninterface Order {\n  id: string; customer: string\n  total: bigint; placedAt: Date\n}\ninterface Stock { id: string; reserved: number }\nconst db = await openMemory()\nconst orders = db.collection&lt;Order&gt;('orders')\nawait orders.createIndex({\n  name: 'byCustomer',\n  fields: ['customer', 'placedAt'],\n  order: ['asc', 'desc'],\n})\nawait db.transaction(async (tx) =&gt; {\n  await tx.collection&lt;Order&gt;('orders').insert({\n    customer: 'ada', total: 120n, placedAt: new Date(),\n  })\n  await tx.collection&lt;Stock&gt;('stock')\n    .put({ id: 'sku-7', reserved: 1 })\n})\nconst page = await orders.pageByIndex('byCustomer', {\n  prefix: ['ada'], limit: 20,\n})\nawait db.close()\u003c/code>\u003c/pre>\n\u003ch2>How this reference works\u003c/h2>\n\u003cp>The reference lists every documented function and method. Its signatures come from the type declarations the package ships, its descriptions from the \u003ca href=\"../guides/api.html\">API guide\u003c/a>. \u003cstrong>Call it\u003c/strong> runs a member on a sample database in this page - six orders with history, an ordered index and a search index - and the sample code beside the form follows your arguments. \u003cstrong>Reset\u003c/strong> starts the sample over.\u003c/p>\n\u003cp>Every page is also Markdown and JSON, linked under its title, and \u003ccode>api-docs/llms.txt\u003c/code> lists them all.\u003c/p>\n","text":"Open a database, take a collection, then write and read. Each write commits in its own transaction unless you pass one, and a read sees one snapshot. ## How this reference works The reference lists every documented function and method. Its signatures come from the type declarations the package ships, its descriptions from the API guide. Call it runs a member on a sample database in this page - six orders with history, an ordered index and a search index - and the sample code beside the form follows your arguments. Reset starts the sample over. Every page is also Markdown and JSON, linked under its title, and api-docs/llms.txt lists them all."},{"id":"historical-collections","title":"Historical collections","lead":"","html":"\u003cp>Use \u003ccode>await db.ensureCollection&lt;T&gt;(name, { $trackHistory: true })\u003c/code>. Calls on \u003ccode>collection.at(date)\u003c/code> share an effective instant. Add \u003ccode>{ $asOfRevision: receipt.revision }\u003c/code> to reproduce the database&#39;s earlier answer. \u003ccode>history(id)\u003c/code> lists effective segments and \u003ccode>audit(id)\u003c/code> lists recorded changes. \u003ca href=\"../guides/history.html\">API, correction boundaries, search and backup\u003c/a>\u003c/p>\n","text":"Use await db.ensureCollection\u003cT>(name, { $trackHistory: true }). Calls on collection.at(date) share an effective instant. Add { $asOfRevision: receipt.revision } to reproduce the database's earlier answer. history(id) lists effective segments and audit(id) lists recorded changes. API, correction boundaries, search and backup"},{"id":"timestamps","title":"Timestamps","lead":"","html":"\u003cp>\u003ccode>await db.ensureCollection&lt;Timestamped&lt;T&gt;&gt;(name, { $timestamps: true })\u003c/code> makes every write set \u003ccode>_createdAt\u003c/code> and \u003ccode>_updatedAt\u003c/code> as Dates. Use \u003ccode>Timestamped&lt;T&gt;\u003c/code> from the package as the document type; it removes both fields from the insert and patch types. A document type that keeps its own \u003ccode>_createdAt\u003c/code> in an ordinary collection still writes it. One transaction stamps all its documents with one time. In a tracked collection that time is the history clock, so \u003ccode>_updatedAt\u003c/code> equals the \u003ccode>from\u003c/code> of the version the write records. \u003ccode>_createdAt\u003c/code> survives updates, replacements and \u003ccode>restore()\u003c/code>. \u003ccode>_updatedAt\u003c/code> never moves back for one document, even after a write from a host whose clock ran ahead. Indexes may name both fields; an ordered index on \u003ccode>_updatedAt\u003c/code> stays current under patches that do not name it.\u003c/p>\n\u003cp>Callers omit both fields or pass their stored values unchanged, so a read document can go back through \u003ccode>put()\u003c/code>. Other values raise \u003ccode>INVALID_DOCUMENT\u003c/code>. Timestamped collections take current writes only; \u003ccode>at(date).put()\u003c/code> raises \u003ccode>HISTORY_READ_ONLY\u003c/code>, because a backdated version would leave the stamps of later versions wrong. The setting is persistent; \u003ccode>$timestamps: false\u003c/code> on a timestamped collection raises \u003ccode>SCHEMA_MISMATCH\u003c/code>.\u003c/p>\n\u003cp>Turning timestamps on for a collection that holds documents stamps them in batches of up to 128 per transaction, with the time of their batch, since their creation time is unknown. A document that already holds both fields as Dates, \u003ccode>_createdAt\u003c/code> not after \u003ccode>_updatedAt\u003c/code>, keeps them; one that holds only a valid \u003ccode>_createdAt\u003c/code> Date, or the pair in the wrong order, keeps its \u003ccode>_createdAt\u003c/code>. Writes between batches stamp themselves. An interrupted pass keeps a cursor; the next \u003ccode>ensureCollection\u003c/code> with \u003ccode>$timestamps: true\u003c/code>, from any process, resumes it, and once it has finished the call reads one key. Stamping runs before history activation, so the baseline seeds stamped documents. Archive imports keep the stamps they carry. VERIFIED: tests/timestamps.test.ts.\u003c/p>\n\u003cp>DSON stores a Date in 17 bytes, as many as an epoch-millisecond number. Dates work in ordered indexes, range filters, \u003ccode>min\u003c/code>/\u003ccode>max\u003c/code>, \u003ccode>dateTrunc\u003c/code> and \u003ccode>datePart\u003c/code>. For durations, \u003ccode>q.epochMs\u003c/code> turns a Date into epoch milliseconds: \u003ccode>q.sub(q.epochMs(q.field(&#39;_updatedAt&#39;)), q.epochMs(q.field(&#39;_createdAt&#39;)))\u003c/code> is the time between a document&#39;s creation and its last write, and \u003ccode>avg\u003c/code>, \u003ccode>max\u003c/code> or \u003ccode>percentile\u003c/code> over it aggregate durations. \u003ccode>sub\u003c/code> on two Dates still raises a TypeError, so a forgotten \u003ccode>epochMs\u003c/code> never gives \u003ccode>NaN\u003c/code>.\u003c/p>\n\u003cp>All methods use the same APIs on memory, files and OPFS. See generated \u003ccode>.d.mts\u003c/code>/\u003ccode>.d.cts\u003c/code> declarations for exact generic result inference.\u003c/p>\n","text":"await db.ensureCollection\u003cTimestamped\u003cT>>(name, { $timestamps: true }) makes every write set _createdAt and _updatedAt as Dates. Use Timestamped\u003cT> from the package as the document type; it removes both fields from the insert and patch types. A document type that keeps its own _createdAt in an ordinary collection still writes it. One transaction stamps all its documents with one time. In a tracked collection that time is the history clock, so _updatedAt equals the from of the version the write records. _createdAt survives updates, replacements and restore(). _updatedAt never moves back for one document, even after a write from a host whose clock ran ahead. Indexes may name both fields; an ordered index on _updatedAt stays current under patches that do not name it. Callers omit both fields or pass their stored values unchanged, so a read document can go back through put(). Other values raise INVALID_DOCUMENT. Timestamped collections take current writes only; at(date).put() raises HISTORY_READ_ONLY, because a backdated version would leave the stamps of later versions wrong. The setting is persistent; $timestamps: false on a timestamped collection raises SCHEMA_MISMATCH. Turning timestamps on for a collection that holds documents stamps them in batches of up to 128 per transaction, with the time of their batch, since their creation time is unknown. A document that already holds both fields as Dates, _createdAt not after _updatedAt, keeps them; one that holds only a valid _createdAt Date, or the pair in the wrong order, keeps its _createdAt. Writes between batches stamp themselves. An interrupted pass keeps a cursor; the next ensureCollection with $timestamps: true, from any process, resumes it, and once it has finished the call reads one key. Stamping runs before history activation, so the baseline seeds stamped documents. Archive imports keep the stamps they carry. VERIFIED: tests/timestamps.test.ts. DSON stores a Date in 17 bytes, as many as an epoch-millisecond number. Dates work in ordered indexes, range filters, min/max, dateTrunc and datePart. For durations, q.epochMs turns a Date into epoch milliseconds: q.sub(q.epochMs(q.field('_updatedAt')), q.epochMs(q.field('_createdAt'))) is the time between a document's creation and its last write, and avg, max or percentile over it aggregate durations. sub on two Dates still raises a TypeError, so a forgotten epochMs never gives NaN. All methods use the same APIs on memory, files and OPFS. See generated .d.mts/.d.cts declarations for exact generic result inference."},{"id":"opening","title":"Opening","lead":"","html":"\u003cp>The members are in the reference: \u003ca href=\"#/ref/Opening\">Opening\u003c/a>.\u003c/p>\n\u003cp>\u003ccode>OpenOptions\u003c/code>: \u003ccode>name\u003c/code> (default \u003ccode>default\u003c/code>), \u003ccode>create\u003c/code> (default \u003ccode>true\u003c/code>), \u003ccode>signal\u003c/code>, \u003ccode>queryCache\u003c/code> (automatic by default; false or cache configuration), \u003ccode>autoCompact\u003c/code> (on by default; false or \u003ccode>{ minBytes, growth, idleMs }\u003c/code>, see \u003ca href=\"../guides/operations.html#reclaim-space\">operations\u003c/a>), and DBSONL resource options. Existing storage opens with \u003ccode>create: false\u003c/code>. Logical database names follow DBSONL&#39;s lowercase 1–64-character name grammar. Collection/index names match \u003ccode>[A-Za-z][A-Za-z0-9_-]{0,63}\u003c/code>.\u003c/p>\n\u003ctable>\n\u003cthead>\n\u003ctr>\n\u003cth>Storage limit\u003c/th>\n\u003cth align=\"right\">Default\u003c/th>\n\u003c/tr>\n\u003c/thead>\n\u003ctbody>\u003ctr>\n\u003ctd>\u003ccode>maxRecordBytes\u003c/code>\u003c/td>\n\u003ctd align=\"right\">16 MiB\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>maxTransactionBytes\u003c/code>\u003c/td>\n\u003ctd align=\"right\">64 MiB\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>maxTransactionOperations\u003c/code>\u003c/td>\n\u003ctd align=\"right\">10,000\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>maxPendingOperations\u003c/code>\u003c/td>\n\u003ctd align=\"right\">256\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>maxPendingBytes\u003c/code>\u003c/td>\n\u003ctd align=\"right\">128 MiB\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>maxCacheBytes\u003c/code>\u003c/td>\n\u003ctd align=\"right\">64 MiB, counted in encoded page bytes; with DBSONL&#39;s compact pages \u003ccode>maxCachePages\u003c/code> (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached. DBSONL 0.9 also holds up to \u003ccode>maxCachePages\u003c/code> index pages of commits since its last checkpoint in memory\u003c/td>\n\u003c/tr>\n\u003ctr>\n\u003ctd>\u003ccode>maxCachePages\u003c/code>\u003c/td>\n\u003ctd align=\"right\">16,384\u003c/td>\n\u003c/tr>\n\u003c/tbody>\u003c/table>\n\u003cp>Operation counts include physical schema/index entries, not just documents. For example, a document plus two indexes consumes three distinct staged keys; each changed collection consumes one revision key per transaction, and initial schema creation consumes another. The underlying engine additionally checks encoded framing sizes. Index builds can need one entry per indexed document plus metadata.\u003c/p>\n\u003cp>Server \u003ccode>storage.io\u003c/code> accepts the Storage adapter&#39;s optional synchronous read mode; it can help dedicated database workers but can block the application&#39;s event loop. The default keeps the upstream asynchronous mode. \u003ccode>parallel\u003c/code> controls the query worker threads that answer mergeable full-scan aggregates and counts together. They are on by default; \u003ccode>false\u003c/code> turns them off, and \u003ccode>{ workers, minRows }\u003c/code> sets them, with \u003ccode>workers\u003c/code> default one fewer than the CPUs, at most 8, and \u003ccode>minRows\u003c/code> (documents the collection must hold) default 1,000. See \u003ca href=\"../guides/operations.html#answer-aggregates-in-worker-threads\">Answer aggregates in worker threads\u003c/a>. \u003ccode>storage\u003c/code> also takes DBSONL&#39;s scan pool and read options: \u003ccode>scanWorkers\u003c/code> (worker threads for large scans; default up to 4, one fewer than the CPUs; 0 turns the pool off), \u003ccode>scanThreshold\u003c/code> (rows a scan must cover before it runs in the pool; default 5,000) and \u003ccode>syncReadBytes\u003c/code> (reads up to this size are blocking calls; default 16 KiB; 0 sends every read through the thread pool, for network or slow storage). Memory factories reuse the same serialized storage path, not a special object-map database.\u003c/p>\n","text":"The members are in the reference: Opening. OpenOptions: name (default default), create (default true), signal, queryCache (automatic by default; false or cache configuration), autoCompact (on by default; false or { minBytes, growth, idleMs }, see operations), and DBSONL resource options. Existing storage opens with create: false. Logical database names follow DBSONL's lowercase 1–64-character name grammar. Collection/index names match [A-Za-z][A-Za-z0-9_-]{0,63}. | Storage limit | Default | | --- | ---: | | maxRecordBytes | 16 MiB | | maxTransactionBytes | 64 MiB | | maxTransactionOperations | 10,000 | | maxPendingOperations | 256 | | maxPendingBytes | 128 MiB | | maxCacheBytes | 64 MiB, counted in encoded page bytes; with DBSONL's compact pages maxCachePages (16,384) binds first; a cached page measured about 2 KiB of heap. Document values are not cached. DBSONL 0.9 also holds up to maxCachePages index pages of commits since its last checkpoint in memory | | maxCachePages | 16,384 | Operation counts include physical schema/index entries, not just documents. For example, a document plus two indexes consumes three distinct staged keys; each changed collection consumes one revision key per transaction, and initial schema creation consumes another. The underlying engine additionally checks encoded framing sizes. Index builds can need one entry per indexed document plus metadata. Server storage.io accepts the Storage adapter's optional synchronous read mode; it can help dedicated database workers but can block the application's event loop. The default keeps the upstream asynchronous mode. parallel controls the query worker threads that answer mergeable full-scan aggregates and counts together. They are on by default; false turns them off, and { workers, minRows } sets them, with workers default one fewer than the CPUs, at most 8, and minRows (documents the collection must hold) default 1,000. See Answer aggregates in worker threads. storage also takes DBSONL's scan pool and read options: scanWorkers (worker threads for large scans; default up to 4, one fewer than the CPUs; 0 turns the pool off), scanThreshold (rows a scan must cover before it runs in the pool; default 5,000) and syncReadBytes (reads up to this size are blocking calls; default 16 KiB; 0 sends every read through the thread pool, for network or slow storage). Memory factories reuse the same serialized storage path, not a special object-map database."},{"id":"database","title":"Database","lead":"","html":"\u003cp>The members are in the reference: \u003ca href=\"#/ref/Database\">Database\u003c/a>.\u003c/p>\n\u003cp>Write options accept \u003ccode>ifRevision\u003c/code> for whole-store compare-and-swap and \u003ccode>signal\u003c/code>. Revisions are database-wide, not per collection. A transaction object exposes \u003ccode>revision\u003c/code> and \u003ccode>collection&lt;T&gt;\u003c/code>. A transaction collection has the same read APIs and the mutation APIs below, without an independent commit option.\u003c/p>\n","text":"The members are in the reference: Database. Write options accept ifRevision for whole-store compare-and-swap and signal. Revisions are database-wide, not per collection. A transaction object exposes revision and collection\u003cT>. A transaction collection has the same read APIs and the mutation APIs below, without an independent commit option."},{"id":"collection-mutations","title":"Collection mutations","lead":"","html":"\u003cp>The members are in the reference: \u003ca href=\"#/ref/Collection\">Collection\u003c/a>.\u003c/p>\n\u003cp>\u003ccode>updateMany\u003c/code>/\u003ccode>deleteMany\u003c/code> accept DataView query resource options alongside write options. Their collected output caps cannot exceed the transaction limits. A callback update can be asynchronous; it executes once, receives the current decoded document, and must preserve its typed ID. Patches cannot contain \u003ccode>id\u003c/code>. Upsert-by-ID is \u003ccode>put\u003c/code>; there is no ambiguous selector-based upsert.\u003c/p>\n\u003cp>\u003ccode>IndexDefinition\u003c/code>: \u003ccode>{ name, fields: string[], unique?: boolean }\u003c/code>. Unique indexes treat missing/undefined and null as distinct values, each allowed at most once for a given compound tuple. Ordinary objects/arrays/Maps/Sets cannot be index components. No prefix/range index use is claimed.\u003c/p>\n","text":"The members are in the reference: Collection. updateMany/deleteMany accept DataView query resource options alongside write options. Their collected output caps cannot exceed the transaction limits. A callback update can be asynchronous; it executes once, receives the current decoded document, and must preserve its typed ID. Patches cannot contain id. Upsert-by-ID is put; there is no ambiguous selector-based upsert. IndexDefinition: { name, fields: string[], unique?: boolean }. Unique indexes treat missing/undefined and null as distinct values, each allowed at most once for a given compound tuple. Ordinary objects/arrays/Maps/Sets cannot be index components. No prefix/range index use is claimed."},{"id":"collection-reads","title":"Collection reads","lead":"","html":"\u003cp>The members are in the reference: \u003ca href=\"#/ref/Collection\">Collection\u003c/a>.\u003c/p>\n\u003cp>\u003ccode>FindRequest\u003c/code>: \u003ccode>filters\u003c/code>, \u003ccode>where\u003c/code>, \u003ccode>semantics\u003c/code>, \u003ccode>sorters\u003c/code>, \u003ccode>offset\u003c/code>, \u003ccode>limit\u003c/code>, \u003ccode>numberMode\u003c/code>, \u003ccode>invalidNumbers\u003c/code>, \u003ccode>access: &#39;auto&#39; | &#39;scan&#39;\u003c/code>. Filters support \u003ccode>eq\u003c/code>, \u003ccode>neq\u003c/code>, \u003ccode>gt\u003c/code>, \u003ccode>gte\u003c/code>, \u003ccode>lt\u003c/code>, \u003ccode>lte\u003c/code>, \u003ccode>in\u003c/code>, \u003ccode>contains\u003c/code>, \u003ccode>startsWith\u003c/code>, \u003ccode>endsWith\u003c/code>. Filters are ANDed. \u003ccode>where\u003c/code> uses \u003ccode>q.and\u003c/code>, \u003ccode>q.or\u003c/code>, \u003ccode>q.not\u003c/code>, comparisons, arithmetic and nullish tests. Query fields use DataView&#39;s safe own-property rules, not prototype traversal. A \u003ccode>prepareFind\u003c/code> plan captures its default page; passing a page to \u003ccode>evaluate\u003c/code> replaces that default page.\u003c/p>\n\u003cp>Projection descriptors contain \u003ccode>select: { alias: Expr }\u003c/code>, optional \u003ccode>filters/where\u003c/code>, and \u003ccode>orderBy: [{ expr, direction }]\u003c/code>. Aggregate descriptors contain optional \u003ccode>groupBy\u003c/code>, required \u003ccode>measures\u003c/code>, optional \u003ccode>having\u003c/code> over result aliases, and output-alias \u003ccode>orderBy\u003c/code>. View descriptors contain \u003ccode>select\u003c/code>, \u003ccode>totals\u003c/code> and row-expression ordering. These are DataView descriptors, not a separate SQL dialect.\u003c/p>\n\u003cp>Expressions include calendar buckets (\u003ccode>dateTrunc\u003c/code>, \u003ccode>datePart\u003c/code>, in UTC or an IANA time zone), text (\u003ccode>lower\u003c/code>, \u003ccode>upper\u003c/code>, \u003ccode>trim\u003c/code>, \u003ccode>substring\u003c/code>, \u003ccode>concat\u003c/code>, \u003ccode>length\u003c/code>), \u003ccode>cond\u003c/code> and rounding (\u003ccode>floor\u003c/code>, \u003ccode>ceil\u003c/code>, \u003ccode>round\u003c/code>, \u003ccode>abs\u003c/code>). The group key \u003ccode>each(expr)\u003c/code> unwinds arrays: a document joins one group per distinct element and none for an empty array. Measures are \u003ccode>count\u003c/code>, \u003ccode>sum\u003c/code>, \u003ccode>avg\u003c/code>, \u003ccode>min\u003c/code>, \u003ccode>max\u003c/code>, \u003ccode>sumBigInt\u003c/code>, \u003ccode>countDistinct\u003c/code>, \u003ccode>distinct\u003c/code>, \u003ccode>percentile\u003c/code> and \u003ccode>median\u003c/code>; each takes an optional \u003ccode>where\u003c/code>. Query workers answer a full-scan aggregate when every measure merges: all of them do except \u003ccode>sum\u003c/code> and \u003ccode>avg\u003c/code> outside \u003ccode>numberMode: &#39;exact&#39;\u003c/code>. DataView&#39;s COMPUTE_SEMANTICS.md defines each result, including time zone transitions and percentile interpolation.\u003c/p>\n\u003cp>There is no join. To combine collections, read them in one \u003ccode>db.snapshot()\u003c/code>: aggregate one collection, then fetch the documents its group keys name with \u003ccode>getMany\u003c/code> on the other. VERIFIED: both reads see the same revision, and the second reads only the documents the groups name (tests/database.test.ts &#39;aggregates one collection and reads another by its group keys in one snapshot&#39;).\u003c/p>\n\u003cpre data-lang=\"ts\">\u003ccode>const snapshot = await db.snapshot();\ntry {\n  const orders = snapshot.collection&lt;Order&gt;('orders'), q = orders.q;\n  const totals = await orders.aggregate({\n    groupBy: { customer: q.field('customer') }, // a customer ID\n    measures: { revenue: q.sum(q.field('amount')) },\n    orderBy: [{ field: 'revenue', direction: 'desc' }],\n  }, { limit: 10 });\n  const customers = await snapshot.collection&lt;Customer&gt;('customers')\n    .getMany(totals.rows.map((row) =&gt; row.customer)); // in the order of totals.rows\n} finally {\n  await snapshot.close();\n}\u003c/code>\u003c/pre>\n\u003cp>\u003ccode>ComputeOptions\u003c/code>: \u003ccode>count\u003c/code>, \u003ccode>batchSize\u003c/code>, \u003ccode>maxBatchBytes\u003c/code>, \u003ccode>maxRowBytes\u003c/code>, \u003ccode>maxScannedRows\u003c/code>, \u003ccode>maxWorkingBytes\u003c/code>, \u003ccode>maxGroups\u003c/code>, \u003ccode>maxOutputRows\u003c/code>, \u003ccode>maxOutputBytes\u003c/code>, \u003ccode>yieldEveryBatches\u003c/code>, \u003ccode>profile\u003c/code>, \u003ccode>sizeOf\u003c/code>, \u003ccode>sizeOfOutput\u003c/code>, \u003ccode>signal\u003c/code>. Custom \u003ccode>sizeOf\u003c/code> sees public documents. Custom \u003ccode>sizeOfOutput\u003c/code> sees actual public output rows, including whole documents for \u003ccode>find/query/stream\u003c/code>. Estimators must be pure and stable; they account memory and do not serialize values.\u003c/p>\n\u003cp>Default grouping/working-state capacity is 64 MiB and 100,000 groups; collected output is limited to 100,000 rows and 64 MiB. Use streaming for larger row output and explicit budgets for large sorts/groups. Streaming does not make an unbounded sort or grouping bounded without a cap.\u003c/p>\n\u003cp>Summary fields are DataView&#39;s \u003ccode>ComputeSummary\u003c/code>. \u003ccode>revision\u003c/code> identifies the snapshot; \u003ccode>scannedRows\u003c/code> counts candidate documents seen by the query executor. \u003ccode>sourceRows\u003c/code> describes the candidate source, not necessarily the entire collection. \u003ccode>totalInputMatches\u003c/code> and \u003ccode>totalResultRows\u003c/code> may be \u003ccode>null\u003c/code> if execution legitimately stops early; \u003ccode>count: &#39;exact&#39;\u003c/code> requires exact result totals. \u003ccode>hasMore\u003c/code>, \u003ccode>sourceExhausted\u003c/code>, strategy and peak accounting remain explicit. A failed/cancelled stream does not emit a successful complete event; earlier batches may already have been consumed.\u003c/p>\n\u003cp>Default ordering without \u003ccode>sorters/orderBy\u003c/code> follows typed storage keys. It is not insertion order or numeric ID order. Specify a deterministic tie-breaker such as \u003ccode>id\u003c/code> when pagination needs an explicit order. Use \u003ccode>pageByIndex\u003c/code> for keyset traversal in declared index order, including the storage-ID tie-breaker.\u003c/p>\n\u003cp>\u003ccode>explain().access.kind\u003c/code> can be \u003ccode>scan\u003c/code>, \u003ccode>primary\u003c/code>, \u003ccode>primary-in\u003c/code>, \u003ccode>equality\u003c/code>, \u003ccode>range\u003c/code> or \u003ccode>ordered\u003c/code>. Ordered/range plans expose the index name, length of the fixed equality prefix, and range field when present. \u003ccode>primary-in\u003c/code> and bounded \u003ccode>range\u003c/code> plans report their point-key count. Explaining a bounded range may probe index pointers.\u003c/p>\n","text":"The members are in the reference: Collection. FindRequest: filters, where, semantics, sorters, offset, limit, numberMode, invalidNumbers, access: 'auto' | 'scan'. Filters support eq, neq, gt, gte, lt, lte, in, contains, startsWith, endsWith. Filters are ANDed. where uses q.and, q.or, q.not, comparisons, arithmetic and nullish tests. Query fields use DataView's safe own-property rules, not prototype traversal. A prepareFind plan captures its default page; passing a page to evaluate replaces that default page. Projection descriptors contain select: { alias: Expr }, optional filters/where, and orderBy: [{ expr, direction }]. Aggregate descriptors contain optional groupBy, required measures, optional having over result aliases, and output-alias orderBy. View descriptors contain select, totals and row-expression ordering. These are DataView descriptors, not a separate SQL dialect. Expressions include calendar buckets (dateTrunc, datePart, in UTC or an IANA time zone), text (lower, upper, trim, substring, concat, length), cond and rounding (floor, ceil, round, abs). The group key each(expr) unwinds arrays: a document joins one group per distinct element and none for an empty array. Measures are count, sum, avg, min, max, sumBigInt, countDistinct, distinct, percentile and median; each takes an optional where. Query workers answer a full-scan aggregate when every measure merges: all of them do except sum and avg outside numberMode: 'exact'. DataView's COMPUTE_SEMANTICS.md defines each result, including time zone transitions and percentile interpolation. There is no join. To combine collections, read them in one db.snapshot(): aggregate one collection, then fetch the documents its group keys name with getMany on the other. VERIFIED: both reads see the same revision, and the second reads only the documents the groups name (tests/database.test.ts 'aggregates one collection and reads another by its group keys in one snapshot'). ComputeOptions: count, batchSize, maxBatchBytes, maxRowBytes, maxScannedRows, maxWorkingBytes, maxGroups, maxOutputRows, maxOutputBytes, yieldEveryBatches, profile, sizeOf, sizeOfOutput, signal. Custom sizeOf sees public documents. Custom sizeOfOutput sees actual public output rows, including whole documents for find/query/stream. Estimators must be pure and stable; they account memory and do not serialize values. Default grouping/working-state capacity is 64 MiB and 100,000 groups; collected output is limited to 100,000 rows and 64 MiB. Use streaming for larger row output and explicit budgets for large sorts/groups. Streaming does not make an unbounded sort or grouping bounded without a cap. Summary fields are DataView's ComputeSummary. revision identifies the snapshot; scannedRows counts candidate documents seen by the query executor. sourceRows describes the candidate source, not necessarily the entire collection. totalInputMatches and totalResultRows may be null if execution legitimately stops early; count: 'exact' requires exact result totals. hasMore, sourceExhausted, strategy and peak accounting remain explicit. A failed/cancelled stream does not emit a successful complete event; earlier batches may already have been consumed. Default ordering without sorters/orderBy follows typed storage keys. It is not insertion order or numeric ID order. Specify a deterministic tie-breaker such as id when pagination needs an explicit order. Use pageByIndex for keyset traversal in declared index order, including the storage-ID tie-breaker. explain().access.kind can be scan, primary, primary-in, equality, range or ordered. Ordered/range plans expose the index name, length of the fixed equality prefix, and range field when present. primary-in and bounded range plans report their point-key count. Explaining a bounded range may probe index pointers."},{"id":"mongodb-syntax-and-schemas","title":"MongoDB syntax and schemas","lead":"","html":"\u003cp>\u003ccode>defuss-db/mongo\u003c/code> is a separate entry, so an application that never reads MongoDB syntax never loads it. Every function takes any collection: a \u003ccode>Collection\u003c/code>, a \u003ccode>ReadCollection\u003c/code> bound with \u003ccode>at(date)\u003c/code> or a \u003ccode>TransactionCollection\u003c/code>.\u003c/p>\n\u003cp>The members are in the reference: \u003ca href=\"#/ref/Mongo\">Mongo\u003c/a>.\u003c/p>\n\u003cp>Filters: \u003ccode>$eq $ne $gt $gte $lt $lte $in $nin $exists $type $size $all $elemMatch $mod $regex $not\u003c/code>, \u003ccode>$bitsAllSet $bitsAnySet $bitsAllClear $bitsAnyClear\u003c/code> and \u003ccode>$and $or $nor\u003c/code>, on top-level fields and dot paths. \u003ccode>$regex\u003c/code> takes \u003ccode>^prefix\u003c/code>, \u003ccode>suffix$\u003c/code>, \u003ccode>^exact$\u003c/code> or plain text, with metacharacters escaped by \u003ccode>\\\u003c/code>, and the option \u003ccode>i\u003c/code>. Other patterns, other options, \u003ccode>$expr\u003c/code>, \u003ccode>$where\u003c/code>, \u003ccode>$text\u003c/code> and equality with an embedded document throw a \u003ccode>QueryError\u003c/code>; compare a subdocument&#39;s fields with dot paths instead. A projection includes or excludes fields (dot paths too); the id stays unless \u003ccode>{ id: 0 }\u003c/code>.\u003c/p>\n\u003cp>Matching follows MongoDB&#39;s rules:\u003c/p>\n\u003cul>\n\u003cli>\u003cp>\u003ccode>null\u003c/code> matches a null or missing field, and \u003ccode>$exists\u003c/code> tells them apart.\u003c/p>\n\u003c/li>\n\u003cli>\u003cp>A comparison matches only values of its operand&#39;s type, so \u003ccode>{ $gt: 4 }\u003c/code> matches no string or Date. Numbers and BigInts (\u003ccode>NumberLong\u003c/code>) compare as numbers.\u003c/p>\n\u003c/li>\n\u003cli>\u003cp>A condition matches an array when the array or one of its elements matches, so \u003ccode>{ tags: &#39;a&#39; }\u003c/code> matches \u003ccode>[&#39;a&#39;, &#39;b&#39;]\u003c/code>. \u003ccode>$ne\u003c/code> and \u003ccode>$nin\u003c/code> match when none does.\u003c/p>\n\u003c/li>\n\u003cli>\u003cp>A dot path steps through arrays of documents: \u003ccode>&#39;items.sku&#39;\u003c/code> reads the \u003ccode>sku\u003c/code> of every item. A numeric segment indexes an array: \u003ccode>&#39;items.0.sku&#39;\u003c/code>.\u003c/p>\n\u003c/li>\n\u003cli>\u003cp>In \u003ccode>$regex\u003c/code>, \u003ccode>$\u003c/code> also matches before a final line break, and NaN equals NaN.\u003c/p>\n\u003c/li>\n\u003c/ul>\n\u003cp>VERIFIED: tests/mongo-semantics.json holds the ids MongoDB 9.0.8 returned for 166 filters over 40 documents (scalars of every type, NaN, numbers around 2^53, null, missing, empty and nested arrays, arrays of documents). tests/mongo.test.ts gets the same ids from defuss-db. \u003ccode>scripts/mongo-semantics-fixture.mjs\u003c/code> records the file again against a server.\u003c/p>\n\u003cp>Most conditions become one \u003ccode>where\u003c/code> expression evaluated per document, since any field may hold an array. A top-level field that an index covers cannot hold one: indexes reject arrays when written and when built. Its \u003ccode>$eq $ne $gt $gte $lt $lte $in\u003c/code> conditions and its \u003ccode>$regex\u003c/code> conditions without \u003ccode>i\u003c/code>, except \u003ccode>suffix$\u003c/code>, therefore become \u003ccode>filters\u003c/code>. An equality or ordered index answers equality, and an ordered index answers ranges; the type rule adds one bound to a range, which the index still answers. \u003ccode>findMongo\u003c/code> and \u003ccode>aggregateMongo\u003c/code> read the collection&#39;s indexes for this; \u003ccode>mongoRequest\u003c/code> and \u003ccode>translateFilter\u003c/code> take them as \u003ccode>scalarFields\u003c/code>. One rule is narrower there: a filter on an indexed field matches only the operand&#39;s own kind of number, because the index keys numbers and BigInts apart. A view bound with \u003ccode>at(date)\u003c/code> (\u003ccode>historic\u003c/code> is true) keeps every condition in the \u003ccode>where\u003c/code> expression, because a past version may hold an array in a field indexed later.\u003c/p>\n\u003cp>A sort differs from MongoDB. It puts null and missing values last in ascending order, where MongoDB puts them first, and an array sorts after every scalar, in element order. MongoDB sorts an array by its smallest element ascending and its largest descending. VERIFIED: MongoDB 9.0.8 sorted \u003ccode>[1, 9]\u003c/code> before \u003ccode>3\u003c/code> ascending and before \u003ccode>5\u003c/code> descending, 2026-11-22.\u003c/p>\n\u003cp>Pipelines: \u003ccode>$match\u003c/code> (several are ANDed), \u003ccode>$unwind\u003c/code> (only as a group key: one group per element), \u003ccode>$group\u003c/code> (\u003ccode>_id\u003c/code>: a field, a document of fields, \u003ccode>$toLower\u003c/code>, \u003ccode>$toUpper\u003c/code>, \u003ccode>$year\u003c/code>, \u003ccode>$dateTrunc\u003c/code> with \u003ccode>binSize\u003c/code> and \u003ccode>startOfWeek\u003c/code> (Sunday by default, as in MongoDB), \u003ccode>$dateToString\u003c/code> with \u003ccode>%Y\u003c/code>, \u003ccode>%Y-%m\u003c/code>, \u003ccode>%Y-%m-%d\u003c/code> or \u003ccode>%Y-%m-%dT%H\u003c/code>, both with an optional IANA \u003ccode>timezone\u003c/code>; \u003ccode>$sum\u003c/code>, \u003ccode>$count\u003c/code>, \u003ccode>$avg\u003c/code>, \u003ccode>$min\u003c/code>, \u003ccode>$max\u003c/code>, \u003ccode>$addToSet\u003c/code>, \u003ccode>$stdDevPop\u003c/code>, \u003ccode>$stdDevSamp\u003c/code>), \u003ccode>$size\u003c/code> of an \u003ccode>$addToSet\u003c/code> in \u003ccode>$set\u003c/code> / \u003ccode>$addFields\u003c/code> / \u003ccode>$project\u003c/code>, \u003ccode>$sort\u003c/code> by one key or accumulator, \u003ccode>$limit\u003c/code> and the \u003ccode>$count\u003c/code> stage. Any other stage or operator throws a \u003ccode>QueryError\u003c/code> naming the stage.\u003c/p>\n\u003cp>\u003ccode>analyzeSchema(collection, { sample, at, $asOfRevision, maxDepth, examples, title }?)\u003c/code> (main entry) answers \u003ccode>{ schema, sampled, total, at }\u003c/code>. It reads at most \u003ccode>sample\u003c/code> documents (default 1,000): all of a smaller collection, else eight windows at even offsets, since default order follows storage keys and ids often follow insertion time. With \u003ccode>at\u003c/code> it reads the collection as it was then; a collection without history throws \u003ccode>HISTORY_NOT_ENABLED\u003c/code>. \u003ccode>inferSchema(docs, options?)\u003c/code> is the same inference over documents you hold. The schema is JSON Schema draft 2020-12: \u003ccode>type\u003c/code>, \u003ccode>properties\u003c/code>, \u003ccode>required\u003c/code> (properties every sampled object holds), \u003ccode>items\u003c/code>, \u003ccode>anyOf\u003c/code> where one place holds an object or array beside other types, and \u003ccode>examples\u003c/code> (up to three distinct scalars). A property some objects lack carries \u003ccode>x-presence\u003c/code>, the share that hold it. DSON values keep a JSON type and name their own in \u003ccode>x-dson\u003c/code>: a Date is \u003ccode>{ type: &#39;string&#39;, format: &#39;date-time&#39;, &#39;x-dson&#39;: &#39;date&#39; }\u003c/code>, a BigInt an integer, binary a base64 string, a Map an object of \u003ccode>additionalProperties\u003c/code>, a Set an array of \u003ccode>uniqueItems\u003c/code>. A value that contains itself is a \u003ccode>$comment\u003c/code>, not an endless schema.\u003c/p>\n","text":"defuss-db/mongo is a separate entry, so an application that never reads MongoDB syntax never loads it. Every function takes any collection: a Collection, a ReadCollection bound with at(date) or a TransactionCollection. The members are in the reference: Mongo. Filters: $eq $ne $gt $gte $lt $lte $in $nin $exists $type $size $all $elemMatch $mod $regex $not, $bitsAllSet $bitsAnySet $bitsAllClear $bitsAnyClear and $and $or $nor, on top-level fields and dot paths. $regex takes ^prefix, suffix$, ^exact$ or plain text, with metacharacters escaped by \\, and the option i. Other patterns, other options, $expr, $where, $text and equality with an embedded document throw a QueryError; compare a subdocument's fields with dot paths instead. A projection includes or excludes fields (dot paths too); the id stays unless { id: 0 }. Matching follows MongoDB's rules: - null matches a null or missing field, and $exists tells them apart. - A comparison matches only values of its operand's type, so { $gt: 4 } matches no string or Date. Numbers and BigInts (NumberLong) compare as numbers. - A condition matches an array when the array or one of its elements matches, so { tags: 'a' } matches ['a', 'b']. $ne and $nin match when none does. - A dot path steps through arrays of documents: 'items.sku' reads the sku of every item. A numeric segment indexes an array: 'items.0.sku'. - In $regex, $ also matches before a final line break, and NaN equals NaN. VERIFIED: tests/mongo-semantics.json holds the ids MongoDB 9.0.8 returned for 166 filters over 40 documents (scalars of every type, NaN, numbers around 2^53, null, missing, empty and nested arrays, arrays of documents). tests/mongo.test.ts gets the same ids from defuss-db. scripts/mongo-semantics-fixture.mjs records the file again against a server. Most conditions become one where expression evaluated per document, since any field may hold an array. A top-level field that an index covers cannot hold one: indexes reject arrays when written and when built. Its $eq $ne $gt $gte $lt $lte $in conditions and its $regex conditions without i, except suffix$, therefore become filters. An equality or ordered index answers equality, and an ordered index answers ranges; the type rule adds one bound to a range, which the index still answers. findMongo and aggregateMongo read the collection's indexes for this; mongoRequest and translateFilter take them as scalarFields. One rule is narrower there: a filter on an indexed field matches only the operand's own kind of number, because the index keys numbers and BigInts apart. A view bound with at(date) (historic is true) keeps every condition in the where expression, because a past version may hold an array in a field indexed later. A sort differs from MongoDB. It puts null and missing values last in ascending order, where MongoDB puts them first, and an array sorts after every scalar, in element order. MongoDB sorts an array by its smallest element ascending and its largest descending. VERIFIED: MongoDB 9.0.8 sorted [1, 9] before 3 ascending and before 5 descending, 2026-11-22. Pipelines: $match (several are ANDed), $unwind (only as a group key: one group per element), $group (_id: a field, a document of fields, $toLower, $toUpper, $year, $dateTrunc with binSize and startOfWeek (Sunday by default, as in MongoDB), $dateToString with %Y, %Y-%m, %Y-%m-%d or %Y-%m-%dT%H, both with an optional IANA timezone; $sum, $count, $avg, $min, $max, $addToSet, $stdDevPop, $stdDevSamp), $size of an $addToSet in $set / $addFields / $project, $sort by one key or accumulator, $limit and the $count stage. Any other stage or operator throws a QueryError naming the stage. analyzeSchema(collection, { sample, at, $asOfRevision, maxDepth, examples, title }?) (main entry) answers { schema, sampled, total, at }. It reads at most sample documents (default 1,000): all of a smaller collection, else eight windows at even offsets, since default order follows storage keys and ids often follow insertion time. With at it reads the collection as it was then; a collection without history throws HISTORY_NOT_ENABLED. inferSchema(docs, options?) is the same inference over documents you hold. The schema is JSON Schema draft 2020-12: type, properties, required (properties every sampled object holds), items, anyOf where one place holds an object or array beside other types, and examples (up to three distinct scalars). A property some objects lack carries x-presence, the share that hold it. DSON values keep a JSON type and name their own in x-dson: a Date is { type: 'string', format: 'date-time', 'x-dson': 'date' }, a BigInt an integer, binary a base64 string, a Map an object of additionalProperties, a Set an array of uniqueItems. A value that contains itself is a $comment, not an endless schema."},{"id":"errors","title":"Errors","lead":"","html":"\u003cp>\u003ccode>DatabaseError\u003c/code> codes: \u003ccode>DUPLICATE_KEY\u003c/code>, \u003ccode>SCHEMA_MISMATCH\u003c/code>, \u003ccode>INVALID_DOCUMENT\u003c/code>, \u003ccode>INVALID_INDEX_VALUE\u003c/code>, \u003ccode>CORRUPT\u003c/code>, \u003ccode>INVALID_CURSOR\u003c/code>, \u003ccode>STALE_CURSOR\u003c/code>, \u003ccode>CLOSED\u003c/code>, \u003ccode>BUSY\u003c/code>, \u003ccode>UNFINISHED_TRANSACTION\u003c/code>, and for history \u003ccode>HISTORY_ACTIVATING\u003c/code>, \u003ccode>HISTORY_NOT_ENABLED\u003c/code>, \u003ccode>HISTORY_UNAVAILABLE\u003c/code>, \u003ccode>HISTORY_READ_ONLY\u003c/code>, \u003ccode>HISTORY_FUTURE_WRITE\u003c/code>, \u003ccode>HISTORY_RANGE\u003c/code>. Input validation can also throw \u003ccode>TypeError\u003c/code>/\u003ccode>RangeError\u003c/code>; strict DSON errors remain intact.\u003c/p>\n\u003cp>DBSONL errors (\u003ccode>CONFLICT\u003c/code>, \u003ccode>COMMIT_UNCERTAIN\u003c/code>, \u003ccode>LIMIT_EXCEEDED\u003c/code>, \u003ccode>QUEUE_FULL\u003c/code>, \u003ccode>ABORTED\u003c/code>, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. \u003ccode>COMMIT_UNCERTAIN\u003c/code> means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption.\u003c/p>\n","text":"DatabaseError codes: DUPLICATE_KEY, SCHEMA_MISMATCH, INVALID_DOCUMENT, INVALID_INDEX_VALUE, CORRUPT, INVALID_CURSOR, STALE_CURSOR, CLOSED, BUSY, UNFINISHED_TRANSACTION, and for history HISTORY_ACTIVATING, HISTORY_NOT_ENABLED, HISTORY_UNAVAILABLE, HISTORY_READ_ONLY, HISTORY_FUTURE_WRITE, HISTORY_RANGE. Input validation can also throw TypeError/RangeError; strict DSON errors remain intact. DBSONL errors (CONFLICT, COMMIT_UNCERTAIN, LIMIT_EXCEEDED, QUEUE_FULL, ABORTED, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. COMMIT_UNCERTAIN means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption."},{"id":"archives-and-result-caching","title":"Archives and result caching","lead":"","html":"\u003cp>See \u003ca href=\"../guides/archive.html\">Archive API\u003c/a> for options, framing, budgets and merge behavior. Explicit snapshots support both export methods, but no import. See \u003ca href=\"../guides/cache.html\">Query cache\u003c/a> for default automatic qualification, \u003ccode>{ cache: false | true | &#39;auto&#39; | &#39;refresh&#39; }\u003c/code>, manual mode, LRU/SLRU settings, bounded compiled plans, concurrent misses, independent result ownership and revision keys.\u003c/p>\n","text":"See Archive API for options, framing, budgets and merge behavior. Explicit snapshots support both export methods, but no import. See Query cache for default automatic qualification, { cache: false | true | 'auto' | 'refresh' }, manual mode, LRU/SLRU settings, bounded compiled plans, concurrent misses, independent result ownership and revision keys."}],"reference":[{"name":"Opening","kind":"module","description":"Functions that open a database: in memory or on a DBSONL backend (defuss-db), in a directory (defuss-db/server, Node.js and Bun) or in OPFS (defuss-db/browser, a dedicated worker). Each returns a Database.","descriptionHtml":"Functions that open a database: in memory or on a DBSONL backend (\u003ccode>defuss-db\u003c/code>), in a directory (\u003ccode>defuss-db/server\u003c/code>, Node.js and Bun) or in OPFS (\u003ccode>defuss-db/browser\u003c/code>, a dedicated worker). Each returns a \u003ccode>Database\u003c/code>.","methods":{"openMemory":{"kind":"method","async":true,"generator":false,"signature":"openMemory(options?: OpenOptions): Promise\u003cDatabase>","description":"From defuss-db. Arguments: OpenOptions?.","descriptionHtml":"From \u003ccode>defuss-db\u003c/code>. Arguments: \u003ccode>OpenOptions?\u003c/code>.","params":[{"name":"options","type":"OpenOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cDatabase>"}},"openDatabase":{"kind":"method","async":true,"generator":false,"signature":"openDatabase(backend: Backend, options?: OpenOptions): Promise\u003cDatabase>","description":"From defuss-db. Arguments: Coordinated DBSONL Backend, OpenOptions?.","descriptionHtml":"From \u003ccode>defuss-db\u003c/code>. Arguments: Coordinated DBSONL \u003ccode>Backend\u003c/code>, \u003ccode>OpenOptions?\u003c/code>.","params":[{"name":"backend","type":"Backend","optional":false,"rest":false,"schema":{}},{"name":"options","type":"OpenOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cDatabase>"}},"openDirectory":{"kind":"method","async":true,"generator":false,"signature":"openDirectory(directory: string, options?: DirectoryOptions): Promise\u003cDatabase>","description":"From defuss-db/server. Arguments: Root path, OpenOptions & { storage?: FileBackendOptions; parallel?: boolean | ParallelOptions }.","descriptionHtml":"From \u003ccode>defuss-db/server\u003c/code>. Arguments: Root path, \u003ccode>OpenOptions &amp; { storage?: FileBackendOptions; parallel?: boolean | ParallelOptions }\u003c/code>.","params":[{"name":"directory","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"DirectoryOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cDatabase>"}},"openOPFS":{"kind":"method","async":true,"generator":false,"signature":"openOPFS(options?: BrowserOptions): Promise\u003cDatabase>","description":"From defuss-db/browser. Arguments: OpenOptions & { namespace?: string; storage?: OPFSStorageOptions without name }.","descriptionHtml":"From \u003ccode>defuss-db/browser\u003c/code>. Arguments: \u003ccode>OpenOptions &amp; { namespace?: string; storage?: OPFSStorageOptions without name }\u003c/code>.","params":[{"name":"options","type":"BrowserOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cDatabase>"}}}},{"name":"Database","kind":"class","description":"What opening returns: typed collections, transactions across collections, snapshots, archives, statistics and maintenance.","descriptionHtml":"What opening returns: typed collections, transactions across collections, snapshots, archives, statistics and maintenance.","methods":{"collection":{"kind":"method","async":false,"generator":false,"signature":"collection\u003cT extends Document = Document>(collection: string): Collection\u003cT>","description":"Typed live collection; no I/O merely to obtain it","descriptionHtml":"Typed live collection; no I/O merely to obtain it","params":[{"name":"collection","type":"string","optional":false,"rest":false,"schema":{"type":"string"}}],"returns":{"type":"Collection\u003cT>"}},"ensureCollection":{"kind":"method","async":true,"generator":false,"signature":"ensureCollection\u003cT extends Document = Document>(collection: string, options?: CollectionOptions): Promise\u003cCollection\u003cT>>","description":"Persist $trackHistory and $timestamps, then return the collection; idempotent, and both settings are permanent","descriptionHtml":"Persist \u003ccode>$trackHistory\u003c/code> and \u003ccode>$timestamps\u003c/code>, then return the collection; idempotent, and both settings are permanent","params":[{"name":"collection","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"CollectionOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cCollection\u003cT>>"}},"collections":{"kind":"method","async":true,"generator":false,"signature":"collections(): Promise\u003cstring[]>","description":"Persisted collection names, including now-empty collections","descriptionHtml":"Persisted collection names, including now-empty collections","params":[],"returns":{"type":"Promise\u003cstring[]>"}},"transaction":{"kind":"method","async":true,"generator":false,"signature":"transaction\u003cR>(callback: (tx: DatabaseTransaction) => R | Promise\u003cR>, options?: WriteOptions): Promise\u003cTransactionResult\u003cR>>","description":"{ result, revision, storedEntries }; callback runs once","descriptionHtml":"\u003ccode>{ result, revision, storedEntries }\u003c/code>; callback runs once","params":[{"name":"callback","type":"(tx: DatabaseTransaction) => R | Promise\u003cR>","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cTransactionResult\u003cR>>"}},"snapshot":{"kind":"method","async":true,"generator":false,"signature":"snapshot(): Promise\u003cDatabaseSnapshot>","description":"Read-only DatabaseSnapshot, with revision, collection\u003cT>, close","descriptionHtml":"Read-only \u003ccode>DatabaseSnapshot\u003c/code>, with \u003ccode>revision\u003c/code>, \u003ccode>collection&lt;T&gt;\u003c/code>, \u003ccode>close\u003c/code>","params":[],"returns":{"type":"Promise\u003cDatabaseSnapshot>"}},"export":{"kind":"method","async":true,"generator":false,"signature":"export(options?: ExportOptions): Promise\u003cUint8Array>","description":"Uint8Array Brotli archive; buffered, default 64 MiB compressed cap","descriptionHtml":"\u003ccode>Uint8Array\u003c/code> Brotli archive; buffered, default 64 MiB compressed cap","params":[{"name":"options","type":"ExportOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cUint8Array>"}},"exportStream":{"kind":"method","async":false,"generator":true,"signature":"exportStream(options?: ExportOptions): AsyncGenerator\u003cUint8Array>","description":"Pull-driven AsyncGenerator\u003cUint8Array> holding one snapshot","descriptionHtml":"Pull-driven \u003ccode>AsyncGenerator&lt;Uint8Array&gt;\u003c/code> holding one snapshot","params":[{"name":"options","type":"ExportOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"AsyncGenerator\u003cUint8Array>"}},"import":{"kind":"method","async":true,"generator":false,"signature":"import(input: ArchiveInput, options?: ImportOptions): Promise\u003cImportResult>","description":"Atomic archive import and index rebuild; receipt with counts/revisions","descriptionHtml":"Atomic archive import and index rebuild; receipt with counts/revisions","params":[{"name":"input","type":"ArchiveInput","optional":false,"rest":false,"schema":{}},{"name":"options","type":"ImportOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cImportResult>"}},"queryCacheStats":{"kind":"method","async":false,"generator":false,"signature":"queryCacheStats(): QueryCacheStats | undefined","description":"Result/plan/pending counters and accounted bytes, or undefined when disabled","descriptionHtml":"Result/plan/pending counters and accounted bytes, or undefined when disabled","params":[],"returns":{"type":"QueryCacheStats | undefined"}},"clearQueryCache":{"kind":"method","async":false,"generator":false,"signature":"clearQueryCache(): void","description":"Clear results/history/plans and invalidate in-flight admissions","descriptionHtml":"Clear results/history/plans and invalidate in-flight admissions","params":[],"returns":{"type":"void"}},"stats":{"kind":"method","async":true,"generator":false,"signature":"stats(): Promise\u003c{\n    parallel?: ParallelStats | undefined;\n    storedEntries: number;\n    autoCompaction: AutoCompactStats;\n    generation: string;\n    committedBytes: number;\n    cacheBytes: number;\n    cachePages: number;\n    durability: Backend[\"durability\"];\n    revision: number;\n}>","description":"DBSONL metadata; storedEntries includes documents, schemas, indexes and marker; autoCompaction holds state, runs, conflicts, failures and reclaimedBytes; on directory stores, parallel holds state (idle, starting, ready, failed, closed), workers, minRows, queries, fallbacks, starts and, after a failed start, error","descriptionHtml":"DBSONL metadata; \u003ccode>storedEntries\u003c/code> includes documents, schemas, indexes and marker; \u003ccode>autoCompaction\u003c/code> holds \u003ccode>state\u003c/code>, \u003ccode>runs\u003c/code>, \u003ccode>conflicts\u003c/code>, \u003ccode>failures\u003c/code> and \u003ccode>reclaimedBytes\u003c/code>; on directory stores, \u003ccode>parallel\u003c/code> holds \u003ccode>state\u003c/code> (\u003ccode>idle\u003c/code>, \u003ccode>starting\u003c/code>, \u003ccode>ready\u003c/code>, \u003ccode>failed\u003c/code>, \u003ccode>closed\u003c/code>), \u003ccode>workers\u003c/code>, \u003ccode>minRows\u003c/code>, \u003ccode>queries\u003c/code>, \u003ccode>fallbacks\u003c/code>, \u003ccode>starts\u003c/code> and, after a failed start, \u003ccode>error\u003c/code>","params":[],"returns":{"type":"Promise\u003c{\n        parallel?: ParallelStats | undefined;\n        storedEntries: number;\n        autoCompaction: AutoCompactStats;\n        generation: string;\n        committedBytes: number;\n        cacheBytes: number;\n        cachePages: number;\n        durability: Backend[\"durability\"];\n        revision: number;\n    }>"}},"verify":{"kind":"method","async":true,"generator":false,"signature":"verify(): Promise\u003c{\n    revision: number;\n    documents: number;\n    indexEntries: number;\n    collections: number;\n}>","description":"{ revision, documents, indexEntries, collections } after physical and logical audit","descriptionHtml":"\u003ccode>{ revision, documents, indexEntries, collections }\u003c/code> after physical and logical audit","params":[],"returns":{"type":"Promise\u003c{\n        revision: number;\n        documents: number;\n        indexEntries: number;\n        collections: number;\n    }>"}},"compact":{"kind":"method","async":false,"generator":false,"signature":"compact(options?: Parameters\u003cDbsonl\u003cunknown>['compact']>[0]): ReturnType\u003cDbsonl\u003cunknown>['compact']>","description":"Delegated DBSONL compaction; default optimistic, or { mode: 'exclusive' }","descriptionHtml":"Delegated DBSONL compaction; default optimistic, or \u003ccode>{ mode: &#39;exclusive&#39; }\u003c/code>","params":[{"name":"options","type":"Parameters\u003cDbsonl\u003cunknown>['compact']>[0]","optional":true,"rest":false,"schema":{}}],"returns":{"type":"ReturnType\u003cDbsonl\u003cunknown>['compact']>"}},"collect":{"kind":"method","async":false,"generator":false,"signature":"collect(): ReturnType\u003cDbsonl\u003cunknown>['collect']>","description":"Delegated reclamation of unpinned generations","descriptionHtml":"Delegated reclamation of unpinned generations","params":[],"returns":{"type":"ReturnType\u003cDbsonl\u003cunknown>['collect']>"}},"close":{"kind":"method","async":true,"generator":false,"signature":"close(): Promise\u003cvoid>","description":"Idempotent close; database and snapshots support Symbol.asyncDispose","descriptionHtml":"Idempotent close; database and snapshots support \u003ccode>Symbol.asyncDispose\u003c/code>","params":[],"returns":{"type":"Promise\u003cvoid>"}}}},{"name":"Collection","kind":"class","description":"A collection of documents. db.collection(name) returns one without I/O; each write commits in its own transaction, and the reads are the same on snapshots and in transactions.","descriptionHtml":"A collection of documents. \u003ccode>db.collection(name)\u003c/code> returns one without I/O; each write commits in its own transaction, and the reads are the same on snapshots and in transactions.","methods":{"insert":{"kind":"method","async":true,"generator":false,"signature":"insert(value: NewDocument\u003cT>, options?: WriteOptions): Promise\u003cPrimaryKey>","description":"Reject existing ID; return ID; omitted ID generates UUID","descriptionHtml":"Reject existing ID; return ID; omitted ID generates UUID","params":[{"name":"value","type":"NewDocument\u003cT>","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cPrimaryKey>"}},"insertMany":{"kind":"method","async":true,"generator":false,"signature":"insertMany(values: readonly NewDocument\u003cT>[], options?: WriteOptions): Promise\u003cPrimaryKey[]>","description":"One atomic bounded batch; return IDs","descriptionHtml":"One atomic bounded batch; return IDs","params":[{"name":"values","type":"readonly NewDocument\u003cT>[]","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cPrimaryKey[]>"}},"insertBatches":{"kind":"method","async":false,"generator":true,"signature":"insertBatches(batches: AsyncIterable\u003creadonly NewDocument\u003cT>[]> | Iterable\u003creadonly NewDocument\u003cT>[]>, options?: WriteOptions): AsyncGenerator\u003c{\n    ids: PrimaryKey[];\n    revision: number;\n    storedEntries: number;\n}>","description":"Async generator of { ids, revision, storedEntries }; one atomic commit per input batch","descriptionHtml":"Async generator of \u003ccode>{ ids, revision, storedEntries }\u003c/code>; one atomic commit per input batch","params":[{"name":"batches","type":"AsyncIterable\u003creadonly NewDocument\u003cT>[]> | Iterable\u003creadonly NewDocument\u003cT>[]>","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"AsyncGenerator\u003c{\n        ids: PrimaryKey[];\n        revision: number;\n        storedEntries: number;\n    }>"}},"put":{"kind":"method","async":true,"generator":false,"signature":"put(value: Replacement\u003cT>, options?: WriteOptions): Promise\u003cPrimaryKey>","description":"Insert or replace whole document with required ID; return ID","descriptionHtml":"Insert or replace whole document with required ID; return ID","params":[{"name":"value","type":"Replacement\u003cT>","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cPrimaryKey>"}},"update":{"kind":"method","async":true,"generator":false,"signature":"update(id: PrimaryKey, updater: Updater\u003cT>, options?: WriteOptions): Promise\u003cboolean>","description":"Shallow own-property patch or complete replacement callback; return whether ID existed","descriptionHtml":"Shallow own-property patch or complete replacement callback; return whether ID existed","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"updater","type":"Updater\u003cT>","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cboolean>"}},"delete":{"kind":"method","async":true,"generator":false,"signature":"delete(id: PrimaryKey, options?: WriteOptions): Promise\u003cboolean>","description":"Return whether ID existed","descriptionHtml":"Return whether ID existed","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cboolean>"}},"restore":{"kind":"method","async":true,"generator":false,"signature":"restore(id: PrimaryKey, options?: Omit\u003cWriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise\u003cboolean>","description":"Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted","descriptionHtml":"Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"Omit\u003cWriteOptions, '$historic' | '$until' | '$asOfRevision'>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cboolean>"}},"updateMany":{"kind":"method","async":true,"generator":false,"signature":"updateMany(request: FindRequest, updater: Updater\u003cT>, options?: WriteOptions & QueryOptions\u003cT>): Promise\u003cnumber>","description":"Atomic bounded set update; return affected document count","descriptionHtml":"Atomic bounded set update; return affected document count","params":[{"name":"request","type":"FindRequest","optional":false,"rest":false,"schema":{}},{"name":"updater","type":"Updater\u003cT>","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions & QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cnumber>"}},"deleteMany":{"kind":"method","async":true,"generator":false,"signature":"deleteMany(request?: FindRequest, options?: WriteOptions & QueryOptions\u003cT>): Promise\u003cnumber>","description":"Atomic bounded set deletion; return affected document count","descriptionHtml":"Atomic bounded set deletion; return affected document count","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions & QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cnumber>"}},"createIndex":{"kind":"method","async":true,"generator":false,"signature":"createIndex(index: IndexDefinition, options?: WriteOptions): Promise\u003cvoid>","description":"Atomic equality or ordered build. Set order to one direction per field. An identical declaration is idempotent; mismatched existing name rejects","descriptionHtml":"Atomic equality or ordered build. Set \u003ccode>order\u003c/code> to one direction per field. An identical declaration is idempotent; mismatched existing name rejects","params":[{"name":"index","type":"IndexDefinition","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cvoid>"}},"createSearchIndex":{"kind":"method","async":true,"generator":false,"signature":"createSearchIndex(index: SearchIndexDefinition, options?: WriteOptions): Promise\u003cvoid>","description":"Atomic lexical/vector/hybrid build; see Search","descriptionHtml":"Atomic lexical/vector/hybrid build; see \u003ca href=\"../guides/search.html\">Search\u003c/a>","params":[{"name":"index","type":"SearchIndexDefinition","optional":false,"rest":false,"schema":{}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cvoid>"}},"dropSearchIndex":{"kind":"method","async":true,"generator":false,"signature":"dropSearchIndex(indexName: string, options?: WriteOptions): Promise\u003cboolean>","description":"Atomic removal of search inputs, state and definition","descriptionHtml":"Atomic removal of search inputs, state and definition","params":[{"name":"indexName","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cboolean>"}},"dropIndex":{"kind":"method","async":true,"generator":false,"signature":"dropIndex(indexName: string, options?: WriteOptions): Promise\u003cboolean>","description":"Atomic removal; return whether it existed","descriptionHtml":"Atomic removal; return whether it existed","params":[{"name":"indexName","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"WriteOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cboolean>"}},"get":{"kind":"method","async":true,"generator":false,"signature":"get(id: PrimaryKey, options?: HistoryReadOptions): Promise\u003cT | undefined>","description":"Document or undefined","descriptionHtml":"Document or \u003ccode>undefined\u003c/code>","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"HistoryReadOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cT | undefined>"}},"at":{"kind":"method","async":false,"generator":false,"signature":"at(date: Date, options?: {\n    $until?: Date;\n    $asOfRevision?: undefined;\n}): Collection\u003cT>\nat(date: Date, options: Omit\u003cHistoryWriteOptions, '$historic'>): ReadCollection\u003cT>","description":"The collection at an effective date: reads see the documents of that instant, and on a live collection that tracks history, writes take effect then. { $asOfRevision } reads only what that revision recorded. See Document history","descriptionHtml":"The collection at an effective date: reads see the documents of that instant, and on a live collection that tracks history, writes take effect then. \u003ccode>{ $asOfRevision }\u003c/code> reads only what that revision recorded. See \u003ca href=\"../guides/history.html\">Document history\u003c/a>","params":[{"name":"date","type":"Date","optional":false,"rest":false,"schema":{"type":"string","x-dson":"date"}},{"name":"options","type":"{\n        $until?: Date;\n        $asOfRevision?: undefined;\n    }","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Collection\u003cT>"}},"history":{"kind":"method","async":true,"generator":false,"signature":"history(id: PrimaryKey, options?: HistoryListOptions): Promise\u003cHistorySegment\u003cT>[]>","description":"Effective segments, newest start first: from, exclusive until (null while open), document (undefined for a delete), revision, ordinal","descriptionHtml":"Effective segments, newest start first: \u003ccode>from\u003c/code>, exclusive \u003ccode>until\u003c/code> (null while open), \u003ccode>document\u003c/code> (undefined for a delete), \u003ccode>revision\u003c/code>, \u003ccode>ordinal\u003c/code>","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"HistoryListOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cHistorySegment\u003cT>[]>"}},"audit":{"kind":"method","async":true,"generator":false,"signature":"audit(id: PrimaryKey, options?: HistoryListOptions): Promise\u003cHistoryChange\u003cT>[]>","description":"Recorded changes, newest first: kind, the asserted interval and recorded: { storeId, revision }","descriptionHtml":"Recorded changes, newest first: \u003ccode>kind\u003c/code>, the asserted interval and \u003ccode>recorded: { storeId, revision }\u003c/code>","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"HistoryListOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cHistoryChange\u003cT>[]>"}},"getMany":{"kind":"method","async":true,"generator":false,"signature":"getMany(ids: readonly PrimaryKey[], options?: {\n    signal?: AbortSignal;\n} & HistoryReadOptions): Promise\u003c(T | undefined)[]>","description":"Ordered documents/undefined; duplicate IDs preserved; one snapshot; at most 100,000 IDs","descriptionHtml":"Ordered documents/undefined; duplicate IDs preserved; one snapshot; at most 100,000 IDs","params":[{"name":"ids","type":"readonly PrimaryKey[]","optional":false,"rest":false,"schema":{}},{"name":"options","type":"{\n        signal?: AbortSignal;\n    } & HistoryReadOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003c(T | undefined)[]>"}},"searchIndexes":{"kind":"method","async":true,"generator":false,"signature":"searchIndexes(options?: HistoryReadOptions): Promise\u003cSearchIndexDefinition[]>","description":"Persisted search definitions","descriptionHtml":"Persisted search definitions","params":[{"name":"options","type":"HistoryReadOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cSearchIndexDefinition[]>"}},"search":{"kind":"method","async":true,"generator":false,"signature":"search(index: string, query: DocumentSearchQuery, options?: SearchRequest): Promise\u003cDocumentSearchResult\u003cT>>","description":"Revision-bound scored hits; see Search","descriptionHtml":"Revision-bound scored hits; see \u003ca href=\"../guides/search.html\">Search\u003c/a>","params":[{"name":"index","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"query","type":"DocumentSearchQuery","optional":false,"rest":false,"schema":{}},{"name":"options","type":"SearchRequest","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cDocumentSearchResult\u003cT>>"}},"has":{"kind":"method","async":true,"generator":false,"signature":"has(id: PrimaryKey, options?: HistoryReadOptions): Promise\u003cboolean>","description":"Boolean","descriptionHtml":"Boolean","params":[{"name":"id","type":"PrimaryKey","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"HistoryReadOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cboolean>"}},"find":{"kind":"method","async":true,"generator":false,"signature":"find(request?: FindRequest, input?: QueryOptions\u003cT>): Promise\u003cT[]>","description":"Document array","descriptionHtml":"Document array","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cT[]>"}},"findOne":{"kind":"method","async":true,"generator":false,"signature":"findOne(request?: FindRequest, input?: QueryOptions\u003cT>): Promise\u003cT | undefined>","description":"First matching document or undefined; effective limit is one","descriptionHtml":"First matching document or \u003ccode>undefined\u003c/code>; effective limit is one","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cT | undefined>"}},"query":{"kind":"method","async":true,"generator":false,"signature":"query(request?: FindRequest, input?: QueryOptions\u003cT>): Promise\u003cComputeResult\u003cT>>","description":"{ rows, summary }","descriptionHtml":"\u003ccode>{ rows, summary }\u003c/code>","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cComputeResult\u003cT>>"}},"pageIdsByIndex":{"kind":"method","async":true,"generator":false,"signature":"pageIdsByIndex(index: string, options?: IndexPageOptions): Promise\u003cIndexPage\u003cT['id']>>","description":"Keyset page of typed primary IDs. Returns { rows, nextCursor, revision }. Accepts document-page cursors for the same scope and range.","descriptionHtml":"Keyset page of typed primary IDs. Returns \u003ccode>{ rows, nextCursor, revision }\u003c/code>. Accepts document-page cursors for the same scope and range.","params":[{"name":"index","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"IndexPageOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cIndexPage\u003cT['id']>>"}},"countByIndex":{"kind":"method","async":true,"generator":false,"signature":"countByIndex(index: string, options?: IndexCountOptions): Promise\u003cnumber>","description":"Exact number of ordered index entries matching prefix and bounds. Optional maxScannedEntries rejects excessive work. Accepts an abort signal.","descriptionHtml":"Exact number of ordered index entries matching \u003ccode>prefix\u003c/code> and bounds. Optional \u003ccode>maxScannedEntries\u003c/code> rejects excessive work. Accepts an abort signal.","params":[{"name":"index","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"IndexCountOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cnumber>"}},"pageByIndex":{"kind":"method","async":true,"generator":false,"signature":"pageByIndex(index: string, options?: IndexPageOptions): Promise\u003cIndexPage\u003cT>>","description":"Seek page of documents with rows, nextCursor and snapshot revision. Cursor contract","descriptionHtml":"Seek page of documents with \u003ccode>rows\u003c/code>, \u003ccode>nextCursor\u003c/code> and snapshot \u003ccode>revision\u003c/code>. \u003ca href=\"../guides/ordered.html\">Cursor contract\u003c/a>","params":[{"name":"index","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"options","type":"IndexPageOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cIndexPage\u003cT>>"}},"stream":{"kind":"method","async":false,"generator":true,"signature":"stream(request?: FindRequest, input?: QueryOptions\u003cT>): AsyncGenerator\u003cComputeEvent\u003cT>>","description":"DataView batch / complete events","descriptionHtml":"DataView \u003ccode>batch\u003c/code> / \u003ccode>complete\u003c/code> events","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"AsyncGenerator\u003cComputeEvent\u003cT>>"}},"count":{"kind":"method","async":true,"generator":false,"signature":"count(selection?: Selection, input?: QueryOptions\u003cT>): Promise\u003cnumber>","description":"Exact count of matching documents","descriptionHtml":"Exact count of matching documents","params":[{"name":"selection","type":"Selection","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cnumber>"}},"select":{"kind":"method","async":true,"generator":false,"signature":"select\u003cconst D extends RowsDescriptor>(descriptor: D, page?: Page, input?: QueryOptions\u003cT>): Promise\u003cComputeResult\u003cRowsOutput\u003cD>>>","description":"Typed projected rows and summary","descriptionHtml":"Typed projected rows and summary","params":[{"name":"descriptor","type":"D","optional":false,"rest":false,"schema":{}},{"name":"page","type":"Page","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cComputeResult\u003cRowsOutput\u003cD>>>"}},"aggregate":{"kind":"method","async":true,"generator":false,"signature":"aggregate\u003cconst D extends AggregateDescriptor>(descriptor: D, page?: Page, input?: QueryOptions\u003cT>): Promise\u003cComputeResult\u003cAggregateOutput\u003cD>>>","description":"Typed grouped/scalar rows and summary","descriptionHtml":"Typed grouped/scalar rows and summary","params":[{"name":"descriptor","type":"D","optional":false,"rest":false,"schema":{}},{"name":"page","type":"Page","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cComputeResult\u003cAggregateOutput\u003cD>>>"}},"view":{"kind":"method","async":true,"generator":false,"signature":"view\u003cconst D extends ViewDescriptor>(descriptor: D, page?: Page, input?: QueryOptions\u003cT>): Promise\u003cViewResult\u003cRowsOutput\u003cD>, TotalsOutput\u003cD>>>","description":"Typed projected rows, totals and summary","descriptionHtml":"Typed projected rows, totals and summary","params":[{"name":"descriptor","type":"D","optional":false,"rest":false,"schema":{}},{"name":"page","type":"Page","optional":true,"rest":false,"schema":{}},{"name":"input","type":"QueryOptions\u003cT>","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cViewResult\u003cRowsOutput\u003cD>, TotalsOutput\u003cD>>>"}},"prepareFind":{"kind":"method","async":false,"generator":false,"signature":"prepareFind(request?: FindRequest, cacheKey?: boolean): BoundQuery\u003cT, T>","description":"Bound prepared plan: evaluate, stream, explain","descriptionHtml":"Bound prepared plan: \u003ccode>evaluate\u003c/code>, \u003ccode>stream\u003c/code>, \u003ccode>explain\u003c/code>","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}},{"name":"cacheKey","type":"boolean","optional":true,"rest":false,"schema":{"type":"boolean"}}],"returns":{"type":"BoundQuery\u003cT, T>"}},"prepareSelect":{"kind":"method","async":false,"generator":false,"signature":"prepareSelect\u003cconst D extends RowsDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery\u003cT, RowsOutput\u003cD>>","description":"Bound prepared plan: evaluate, stream, explain","descriptionHtml":"Bound prepared plan: \u003ccode>evaluate\u003c/code>, \u003ccode>stream\u003c/code>, \u003ccode>explain\u003c/code>","params":[{"name":"descriptor","type":"D","optional":false,"rest":false,"schema":{}},{"name":"cacheKey","type":"boolean","optional":true,"rest":false,"schema":{"type":"boolean"}}],"returns":{"type":"BoundQuery\u003cT, RowsOutput\u003cD>>"}},"prepareAggregate":{"kind":"method","async":false,"generator":false,"signature":"prepareAggregate\u003cconst D extends AggregateDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery\u003cT, AggregateOutput\u003cD>>","description":"Bound prepared plan: evaluate, stream, explain","descriptionHtml":"Bound prepared plan: \u003ccode>evaluate\u003c/code>, \u003ccode>stream\u003c/code>, \u003ccode>explain\u003c/code>","params":[{"name":"descriptor","type":"D","optional":false,"rest":false,"schema":{}},{"name":"cacheKey","type":"boolean","optional":true,"rest":false,"schema":{"type":"boolean"}}],"returns":{"type":"BoundQuery\u003cT, AggregateOutput\u003cD>>"}},"prepareView":{"kind":"method","async":false,"generator":false,"signature":"prepareView\u003cconst D extends ViewDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery\u003cT, RowsOutput\u003cD>, TotalsOutput\u003cD>>","description":"Bound prepared plan: evaluate, stream, explain","descriptionHtml":"Bound prepared plan: \u003ccode>evaluate\u003c/code>, \u003ccode>stream\u003c/code>, \u003ccode>explain\u003c/code>","params":[{"name":"descriptor","type":"D","optional":false,"rest":false,"schema":{}},{"name":"cacheKey","type":"boolean","optional":true,"rest":false,"schema":{"type":"boolean"}}],"returns":{"type":"BoundQuery\u003cT, RowsOutput\u003cD>, TotalsOutput\u003cD>>"}},"explain":{"kind":"method","async":true,"generator":false,"signature":"explain(request?: FindRequest): Promise\u003c{\n    revision: number;\n    access: AccessPlan;\n    query: defuss_dataview_compute.Explain;\n    history?: {\n        effective: Date;\n        recordedRevision: number;\n        secondaryIndexes: string;\n    } | undefined;\n}>","description":"{ revision, access, query }; access selection for the inspected snapshot","descriptionHtml":"\u003ccode>{ revision, access, query }\u003c/code>; access selection for the inspected snapshot","params":[{"name":"request","type":"FindRequest","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003c{\n        revision: number;\n        access: AccessPlan;\n        query: defuss_dataview_compute.Explain;\n        history?: {\n            effective: Date;\n            recordedRevision: number;\n            secondaryIndexes: string;\n        } | undefined;\n    }>"}},"source":{"kind":"method","async":false,"generator":false,"signature":"source(options?: HistoryReadOptions): RecordSource\u003cT>","description":"Document-level DataView RecordSource\u003cT>","descriptionHtml":"Document-level DataView \u003ccode>RecordSource&lt;T&gt;\u003c/code>","params":[{"name":"options","type":"HistoryReadOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"RecordSource\u003cT>"}},"indexes":{"kind":"method","async":true,"generator":false,"signature":"indexes(options?: HistoryReadOptions): Promise\u003cIndexDefinition[]>","description":"Fresh persisted equality and ordered definitions","descriptionHtml":"Fresh persisted equality and ordered definitions","params":[{"name":"options","type":"HistoryReadOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cIndexDefinition[]>"}},"q":{"kind":"property","async":false,"generator":false,"signature":"q: defuss_dataview_compute.ComputeFor\u003cT>","description":"DataView forRows\u003cT>() builders and plan factories","descriptionHtml":"DataView \u003ccode>forRows&lt;T&gt;()\u003c/code> builders and plan factories","params":[],"returns":{"type":"defuss_dataview_compute.ComputeFor\u003cT>"}}}},{"name":"Mongo","kind":"module","description":"defuss-db/mongo: MongoDB filter, sort, projection and pipeline documents on any collection - a Collection, a view from at(date) or a TransactionCollection.","descriptionHtml":"\u003ccode>defuss-db/mongo\u003c/code>: MongoDB filter, sort, projection and pipeline documents on any collection - a \u003ccode>Collection\u003c/code>, a view from \u003ccode>at(date)\u003c/code> or a \u003ccode>TransactionCollection\u003c/code>.","methods":{"findMongo":{"kind":"method","async":true,"generator":false,"signature":"findMongo\u003cT = Doc>(collection: MongoReadable, filter?: MongoDocument, options?: MongoFindOptions): Promise\u003cT[]>","description":"Projected documents. Each document argument is an object or its text.","descriptionHtml":"Projected documents. Each document argument is an object or its text.","params":[{"name":"collection","type":"MongoReadable","optional":false,"rest":false,"schema":{}},{"name":"filter","type":"MongoDocument","optional":true,"rest":false,"schema":{}},{"name":"options","type":"MongoFindOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cT[]>"}},"aggregateMongo":{"kind":"method","async":true,"generator":false,"signature":"aggregateMongo\u003cT = Doc>(collection: MongoAggregatable, pipeline: readonly Doc[] | string): Promise\u003cT[]>","description":"MongoDB's result documents: { _id, ...accumulators }, or [{ [name]: n }] for $count (none when nothing matched).","descriptionHtml":"MongoDB&#39;s result documents: \u003ccode>{ _id, ...accumulators }\u003c/code>, or \u003ccode>[{ [name]: n }]\u003c/code> for \u003ccode>$count\u003c/code> (none when nothing matched).","params":[{"name":"collection","type":"MongoAggregatable","optional":false,"rest":false,"schema":{}},{"name":"pipeline","type":"readonly Doc[] | string","optional":false,"rest":false,"schema":{}}],"returns":{"type":"Promise\u003cT[]>"}},"mongoRequest":{"kind":"method","async":false,"generator":false,"signature":"mongoRequest(q: unknown, filter?: MongoDocument, sort?: MongoDocument, options?: TranslateOptions): MongoRequest","description":"{ filters, where?, sorters? } for find, query, count or explain. scalarFields names the top-level fields an index covers; scalarOptions(collection) reads them.","descriptionHtml":"\u003ccode>{ filters, where?, sorters? }\u003c/code> for \u003ccode>find\u003c/code>, \u003ccode>query\u003c/code>, \u003ccode>count\u003c/code> or \u003ccode>explain\u003c/code>. \u003ccode>scalarFields\u003c/code> names the top-level fields an index covers; \u003ccode>scalarOptions(collection)\u003c/code> reads them.","params":[{"name":"q","type":"unknown","optional":false,"rest":false,"schema":{}},{"name":"filter","type":"MongoDocument","optional":true,"rest":false,"schema":{}},{"name":"sort","type":"MongoDocument","optional":true,"rest":false,"schema":{}},{"name":"options","type":"TranslateOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"MongoRequest"}},"translatePipeline":{"kind":"method","async":false,"generator":false,"signature":"translatePipeline(stages: readonly Doc[]): PipelinePlan","description":"The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor.","descriptionHtml":"The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor.","params":[{"name":"stages","type":"readonly Doc[]","optional":false,"rest":false,"schema":{}}],"returns":{"type":"PipelinePlan"}},"aggregateDescriptor":{"kind":"method","async":false,"generator":false,"signature":"aggregateDescriptor(plan: PipelinePlan, q: unknown, options?: TranslateOptions): Doc","description":"The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor.","descriptionHtml":"The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor.","params":[{"name":"plan","type":"PipelinePlan","optional":false,"rest":false,"schema":{}},{"name":"q","type":"unknown","optional":false,"rest":false,"schema":{}},{"name":"options","type":"TranslateOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Doc"}},"parseDocument":{"kind":"method","async":false,"generator":false,"signature":"parseDocument(text: string, what?: string): Doc","description":"Shell or Extended JSON text as values: ISODate() and { $date } become a Date, NumberLong() and { $numberLong } a BigInt.","descriptionHtml":"Shell or Extended JSON text as values: \u003ccode>ISODate()\u003c/code> and \u003ccode>{ $date }\u003c/code> become a Date, \u003ccode>NumberLong()\u003c/code> and \u003ccode>{ $numberLong }\u003c/code> a BigInt.","params":[{"name":"text","type":"string","optional":false,"rest":false,"schema":{"type":"string"}},{"name":"what","type":"string","optional":true,"rest":false,"schema":{"type":"string"}}],"returns":{"type":"Doc"}},"parsePipeline":{"kind":"method","async":false,"generator":false,"signature":"parsePipeline(text: string): Doc[]","description":"Shell or Extended JSON text as values: ISODate() and { $date } become a Date, NumberLong() and { $numberLong } a BigInt.","descriptionHtml":"Shell or Extended JSON text as values: \u003ccode>ISODate()\u003c/code> and \u003ccode>{ $date }\u003c/code> become a Date, \u003ccode>NumberLong()\u003c/code> and \u003ccode>{ $numberLong }\u003c/code> a BigInt.","params":[{"name":"text","type":"string","optional":false,"rest":false,"schema":{"type":"string"}}],"returns":{"type":"Doc[]"}},"stringify":{"kind":"method","async":false,"generator":false,"signature":"stringify(value: unknown, space?: number | string): string","description":"Values as Extended JSON text and back.","descriptionHtml":"Values as Extended JSON text and back.","params":[{"name":"value","type":"unknown","optional":false,"rest":false,"schema":{}},{"name":"space","type":"number | string","optional":true,"rest":false,"schema":{"type":"string"}}],"returns":{"type":"string"}},"revive":{"kind":"method","async":false,"generator":false,"signature":"revive(value: unknown): unknown","description":"Values as Extended JSON text and back.","descriptionHtml":"Values as Extended JSON text and back.","params":[{"name":"value","type":"unknown","optional":false,"rest":false,"schema":{}}],"returns":{"type":"unknown"}},"translateFilter":{"kind":"method","async":false,"generator":false,"signature":"translateFilter(doc: Doc, q: Builders, options?: TranslateOptions): Translated","description":"The parts of findMongo.","descriptionHtml":"The parts of \u003ccode>findMongo\u003c/code>.","params":[{"name":"doc","type":"Doc","optional":false,"rest":false,"schema":{}},{"name":"q","type":"Builders","optional":false,"rest":false,"schema":{}},{"name":"options","type":"TranslateOptions","optional":true,"rest":false,"schema":{}}],"returns":{"type":"Translated"}},"translateSort":{"kind":"method","async":false,"generator":false,"signature":"translateSort(doc: Doc): MongoSorter[]","description":"The parts of findMongo.","descriptionHtml":"The parts of \u003ccode>findMongo\u003c/code>.","params":[{"name":"doc","type":"Doc","optional":false,"rest":false,"schema":{}}],"returns":{"type":"MongoSorter[]"}},"project":{"kind":"method","async":false,"generator":false,"signature":"project(doc: Doc, projection: Doc): Doc","description":"The parts of findMongo.","descriptionHtml":"The parts of \u003ccode>findMongo\u003c/code>.","params":[{"name":"doc","type":"Doc","optional":false,"rest":false,"schema":{}},{"name":"projection","type":"Doc","optional":false,"rest":false,"schema":{}}],"returns":{"type":"Doc"}}}}]}</script>
+</div>
+<script type="module">
+  // routing: defuss-dom-router owns the address
+  import { createRouter } from 'https://cdn.jsdelivr.net/npm/defuss-dom-router@0.1.1/dist/index.js';
+
+  // the search: defuss-search over defuss-lexicalsearch - BM25 (prefix and fuzzy on the last word) answers as soon as
+  // its modules are there (until then, and if they never come, the palette compares names), and BM25 fused with a
+  // ColBERT scan (Winzling-reranker, 2.28 MB, on ONNX Runtime's 2.3 MB WASM build) once that model has loaded in the background
+  const SEARCH = Promise.all([
+    import('https://cdn.jsdelivr.net/npm/defuss-lexicalsearch@0.4.0/dist/index.js'),
+    import('https://cdn.jsdelivr.net/npm/defuss-lexicalsearch@0.4.0/dist/en.js'),
+    import('https://cdn.jsdelivr.net/npm/defuss-search@0.5.0/dist/strategies.js'),
+  ]);
+  const MODEL = () =>
+    Promise.all([
+      import('https://cdn.jsdelivr.net/npm/defuss-vectorsearch@0.4.0/dist/onnx.mjs'),
+      import('https://cdn.jsdelivr.net/npm/defuss-brotli@0.3.0/dist/decompressor-slim.js'),
+    ]);
+  const BROTLI_WASM = 'https://cdn.jsdelivr.net/npm/defuss-brotli@0.3.0/dist/decompressor.wasm';
+
+  // defuss-search's createProgressiveSearch (defuss-search/strategies), copied until its release: the lexical-only
+  // search answers until semantic(index) has built another one, then that one; a failed build keeps BM25 answering
+  const progressiveSearch = (strategies, index, { semantic, lexical }) => {
+    const plain = strategies.createLexicalOnlySearch(index, { lexical });
+    const listeners = new Set();
+    let state = 'lexical';
+    let built = null;
+    let pending = null;
+    const move = (next) => {
+      state = next;
+      for (const listener of listeners) listener(next);
+    };
+    const load = () =>
+      (pending ??= (async () => {
+        move('loading');
+        try {
+          built = await semantic(index);
+          move('semantic');
+        } catch (e) {
+          pending = null;
+          move('failed');
+          throw e;
+        }
+      })());
+    const searchWithStats = async (input, options) => {
+      const current = built;
+      return {
+        ...(await (current ?? plain).searchWithStats(input, options)),
+        source: current ? 'semantic' : 'lexical',
+      };
+    };
+    return {
+      get state() {
+        return state;
+      },
+      load,
+      searchWithStats,
+      search: async (input, options) => (await searchWithStats(input, options)).hits,
+      subscribe: (listener) => (listeners.add(listener), () => listeners.delete(listener)),
+    };
+  };
+
+  // the model's pinned files, downloaded as <file>.br from Hugging Face, decoded with defuss-brotli, checked against
+  // their SHA-256 and kept decoded in the Cache API where the page has one (a docs card's sandbox has none)
+  const sha256 = async (bytes) =>
+    [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('');
+  const modelCache = (async () => {
+    try {
+      return await caches.open('defuss-db-api-search');
+    } catch {
+      return null;
+    }
+  })();
+  const modelFile = (brotli, id, revision, pins) => async (path) => {
+    const sha = pins[path];
+    if (!sha) throw new Error(path + ' is not pinned');
+    const cache = await modelCache;
+    const key = 'https://models.invalid/' + sha;
+    const kept = await cache?.match(key).catch(() => null);
+    if (kept) {
+      const bytes = new Uint8Array(await kept.arrayBuffer());
+      if ((await sha256(bytes)) === sha) return bytes;
+    }
+    const res = await fetch('https://huggingface.co/' + id + '/resolve/' + revision + '/' + path + '.br');
+    if (!res.ok) throw new Error(path + ': HTTP ' + res.status);
+    const raw = new Uint8Array(await res.arrayBuffer());
+    let bytes;
+    try {
+      bytes = brotli.decompress(raw);
+    } catch {
+      bytes = raw; // sent with Content-Encoding: br - the browser decoded it already
+    }
+    if ((await sha256(bytes)) !== sha) throw new Error(path + ': SHA-256 differs from the pinned release');
+    await cache?.put(key, new Response(bytes)).catch(() => {});
+    return bytes;
+  };
+  // the model, loaded and warmed up once
+  let colbert = null;
+  const loadColbert = () =>
+    (colbert ??= (async () => {
+      const [onnx, brotli] = await MODEL();
+      await brotli.init(BROTLI_WASM);
+      const pin = onnx.MOEDERNCOLBERT_MODELS['1.5m'];
+      const model = onnx.createColbertReranker({
+        model: '1.5m',
+        precision: 'q8',
+        device: 'wasm',
+        numThreads: 1,
+        truncate: true,
+        loadFile: modelFile(brotli, pin.id, pin.revision, pin.files),
+      });
+      await model.encodeQueries(['defuss-db']);
+      return model;
+    })().catch((e) => {
+      colbert = null;
+      throw e;
+    }));
+
+  // df$ comes with the component bundle - a full-screen page loads it after this module
+  addEventListener('DOMContentLoaded', async () => {
+    const app = df$('[data-ad]').get(0);
+    const DATA = JSON.parse(df$('#ad-data').text());
+    // the reference reads from the data block; Call it needs the runtime - defuss-db and the sample database in one
+    // bundle beside the page (scripts/api-docs.mjs). Without it the reference reads alone.
+    const RPC_MODULE = 'js/api-docs/client.js';
+    const RPC = await import(new URL(RPC_MODULE, document.baseURI).href).catch(() => null);
+    const RPC_NS = DATA.reference.map((ns) => ({ name: ns.name, ns }));
+    // each page as Markdown and JSON (scripts/api-docs.mjs writes api-docs/ from the same data)
+    const DOC_FILES = 'api-docs/';
+
+    const words = () => DATA.words;
+    const fmt = (text, values) => text.replace(/%(\w)/g, (_m, k) => String(values[k] ?? ''));
+
+    // -- the reference as one flat order: the guides, the overview, then each namespace followed by its members (the
+    // pager walks it)
+    const href = {
+      guide: (g) => (g.id === 'introduction' ? '#/' : '#/guides/' + g.id),
+      rpc: () => '#/ref',
+      namespace: (name) => '#/ref/' + name,
+      method: (name, m) => '#/ref/' + name + '/' + m,
+    };
+    // a member's tag: a property, a stream (an async generator), a Promise, or a value at once
+    const tagOf = (doc) =>
+      doc.kind === 'property' ? 'PROP' : doc.generator ? 'STREAM' : doc.async ? 'ASYNC' : 'SYNC';
+    // a class member reads as Collection.find, a function by its own name
+    const memberTitle = (name, ns, m) => (ns.kind === 'class' ? name + '.' + m : m);
+    const ORDER = [
+      ...DATA.guides.map((g) => ({ kind: 'guide', item: g, href: href.guide(g) })),
+      { kind: 'rpc', item: { title: DATA.words.rpcTitle, lead: DATA.words.rpcLead }, href: href.rpc() },
+      ...RPC_NS.flatMap(({ name, ns }) => [
+        { kind: 'namespace', item: { title: name, lead: ns.description }, name, ns, href: href.namespace(name) },
+        ...Object.entries(ns.methods).map(([m, doc]) => ({
+          kind: 'method',
+          item: {
+            title: memberTitle(name, ns, m),
+            lead: doc.description,
+            method: tagOf(doc),
+            path: doc.signature.split('\n')[0],
+          },
+          name,
+          ns,
+          m,
+          doc,
+          href: href.method(name, m),
+        })),
+      ]),
+    ];
+
+    const el = (tag, attrs = {}, text) => {
+      const node = df$('<' + tag + '></' + tag + '>');
+      for (const [k, v] of Object.entries(attrs)) node.attr(k, v);
+      if (text !== undefined) node.text(text);
+      return node;
+    };
+    const method = (m) => el('span', { class: 'ad-method', 'data-method': m }, m);
+    const icons = () => globalThis.lucide?.createIcons();
+    const card = (to, title, text, badge) => {
+      const link = el('a', { class: 'card', href: to, 'data-router-link': '' });
+      const head = el('div', { class: 'card-header' });
+      head.append(el('h3', { class: 'card-title' }, title)).append(el('p', { class: 'card-description' }, text));
+      return link
+        .append(head)
+        .append(
+          el('div', { class: 'card-footer' }).append(el('span', { class: 'badge', 'data-variant': 'secondary' }, badge)),
+        );
+    };
+
+    // -- the navigation
+    const nav = df$('[data-ad-nav]');
+    const writeNav = () => {
+      nav.html('');
+      nav.append(el('p', { class: 'mk-docs-navigation-heading' }, words().guides));
+      const guides = el('ul');
+      for (const g of DATA.guides)
+        guides.append(el('li').append(el('a', { href: href.guide(g), 'data-router-link': '' }, g.title)));
+      nav.append(guides);
+      nav.append(el('p', { class: 'mk-docs-navigation-heading' }, words().rpcGroup));
+      const overview = el('ul');
+      overview.append(el('li').append(el('a', { href: href.rpc(), 'data-router-link': '' }, words().rpcOverview)));
+      nav.append(overview);
+      for (const { name, ns } of RPC_NS) {
+        const group = el('details', { open: '', 'data-ad-group': 'rpc-' + name });
+        group.append(el('summary', { class: 'mk-docs-navigation-heading' }, name));
+        const list = el('ul');
+        list.append(el('li').append(el('a', { href: href.namespace(name), 'data-router-link': '' }, name)));
+        for (const [m, doc] of Object.entries(ns.methods)) {
+          const link = el('a', { href: href.method(name, m), 'data-router-link': '' });
+          link.append(method(tagOf(doc))).append(el('span', {}, m));
+          list.append(el('li').append(link));
+        }
+        group.append(list);
+        nav.append(group);
+      }
+    };
+    const markCurrent = (target) => {
+      nav.find('a').each((_i, a) => {
+        if (a.getAttribute('href') === target) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
+    };
+
+    // -- prose from a body: paragraphs; "## " a heading, "$ " a command, "> " a note
+    const prose = (box, lines) => {
+      box.html('');
+      for (const line of lines) {
+        if (line.startsWith('## ')) box.append(el('h2', {}, line.slice(3)));
+        else if (line.startsWith('$ '))
+          box.append(
+            el('pre', { 'data-lang': line.startsWith('$ {') ? 'json' : 'bash' }).append(el('code', {}, line.slice(2))),
+          );
+        else if (line.startsWith('> ')) {
+          const note = el('aside', { class: 'mk-docs-content-callout', role: 'note' });
+          note.append(el('i', { 'data-lucide': 'info' })).append(el('p', {}, line.slice(2)));
+          box.append(note);
+        } else box.append(el('p', {}, line));
+      }
+    };
+    const pager = (view, at) => {
+      const box = df$(view).find('[data-ad-pager]');
+      box.html('');
+      const label = (o) => o.item.title;
+      const prev = ORDER[at - 1];
+      const next = ORDER[at + 1];
+      if (prev)
+        box.append(
+          el('a', { href: prev.href, 'data-router-link': '', rel: 'prev' })
+            .append(el('small', {}, words().prev))
+            .append(el('strong', {}, '← ' + label(prev))),
+        );
+      if (next)
+        box.append(
+          el('a', { href: next.href, 'data-router-link': '', rel: 'next' })
+            .append(el('small', {}, words().next))
+            .append(el('strong', {}, label(next) + ' →')),
+        );
+    };
+    const view = (name) => df$('[data-ad-view="' + name + '"]').get(0);
+
+    // -- code in colours: Shiki (pinned, loaded on first use) paints each listing in GitHub's dark theme - the panels
+    // stay dark in both modes. Offline the code stays plain.
+    let shiki = null;
+    let painting = Promise.resolve();
+    const paint = () =>
+      (painting = painting.then(async () => {
+        const listings = df$('.ad [data-lang]:not([data-painted])').toArray();
+        if (!listings.length) return;
+        try {
+          shiki ??= await import('https://esm.sh/shiki@3.0.0');
+        } catch {
+          return;
+        }
+        for (const listing of listings) {
+          const code = df$(listing).find('code').get(0) ?? listing;
+          const text = code.textContent;
+          const { tokens } = await shiki.codeToTokens(text, { lang: listing.dataset.lang, theme: 'github-dark' });
+          // a listing written again while Shiki worked keeps its new text
+          if (code.textContent !== text) continue;
+          // one span per line: a Code Example block lays its lines out as block spans, a plain listing keeps the newlines
+          const blocks = !!listing.closest('.mk-code-block');
+          df$(code).html('');
+          tokens.forEach((row, r) => {
+            if (r && !blocks) df$(code).append(document.createTextNode('\n'));
+            const line = el('span');
+            for (const token of row) line.append(el('span', { style: 'color:' + token.color }, token.content));
+            df$(code).append(line);
+          });
+          listing.dataset.painted = '';
+        }
+      }));
+    const write = (node, text) => {
+      df$(node).text(text);
+      node.removeAttribute('data-painted');
+      const parent = node.closest('[data-lang]');
+      if (parent) parent.removeAttribute('data-painted');
+    };
+
+    // -- the pages
+    let shown = null;
+    const guide = (g) => {
+      const box = view('guide');
+      df$(box).find('[data-ad-guide-crumb]').text(g.title);
+      df$(box).find('[data-ad-guide-title]').text(g.title);
+      df$(box).find('[data-ad-guide-lead]').text(g.lead);
+      // the guide's Markdown, rendered when the site is built (scripts/api-docs.mjs)
+      df$(box).find('[data-ad-guide-body]').html(g.html);
+      const cards = df$(box).find('[data-ad-home-cards]');
+      cards.html('');
+      cards.prop('hidden', g.id !== 'introduction');
+      if (g.id === 'introduction')
+        for (const { name, ns } of RPC_NS)
+          cards.append(
+            card(href.namespace(name), name, ns.description, fmt(words().methods, { n: Object.keys(ns.methods).length })),
+          );
+      return box;
+    };
+
+    // -- the reference: the overview, a namespace, a member
+    const rpcNamespace = (entry) => {
+      const box = view('rpc-ns');
+      df$(box)
+        .find('[data-ad-rn-crumb]')
+        .text(entry ? entry.name : '');
+      df$(box).find('[data-ad-rn-sep]').prop('hidden', !entry);
+      df$(box)
+        .find('[data-ad-rn-title]')
+        .text(entry ? entry.name : words().rpcTitle);
+      const lead = df$(box).find('[data-ad-rn-lead]');
+      if (entry) lead.html(entry.ns.descriptionHtml);
+      else lead.text(words().rpcLead);
+      prose(df$(box).find('[data-ad-rn-body]'), entry ? [] : words().rpcBody);
+      const cards = df$(box).find('[data-ad-rn-cards]');
+      cards.html('');
+      const ops = df$(box).find('[data-ad-rn-ops]');
+      ops.html('');
+      if (!entry)
+        for (const { name, ns } of RPC_NS)
+          cards.append(
+            card(href.namespace(name), name, ns.description, fmt(words().methods, { n: Object.keys(ns.methods).length })),
+          );
+      else
+        for (const [m, doc] of Object.entries(entry.ns.methods)) {
+          const link = el('a', { href: href.method(entry.name, m), 'data-router-link': '' });
+          link
+            .append(method(tagOf(doc)))
+            .append(el('span', {}, doc.description ?? m))
+            .append(el('code', {}, doc.signature.split('\n')[0]));
+          ops.append(el('li').append(link));
+        }
+      return box;
+    };
+
+    // a value in a line: JSON, with a Map as an object, a Set as a list and a BigInt as its digits
+    const line = (value) =>
+      JSON.stringify(value, (_k, v) =>
+        v instanceof Map ? Object.fromEntries(v) : v instanceof Set ? [...v] : typeof v === 'bigint' ? String(v) : v,
+      ) ?? 'undefined';
+    // a field's text, or a tree's value, as the argument the method declares: a date string becomes a Date, a list a
+    // Set where the schema says x-dson set - what the generated client would send
+    const revive = (value, schema) => {
+      if (!schema || value === null || value === undefined) return value;
+      if (Array.isArray(schema.anyOf))
+        return revive(value, schema.anyOf.find((x) => x.type !== 'null') ?? schema.anyOf[0]);
+      const kind = schema['x-dson'];
+      if (kind === 'date' && typeof value === 'string') return new Date(value);
+      if (kind === 'bigint' && (typeof value === 'string' || typeof value === 'number')) return BigInt(value);
+      if (kind === 'set' && Array.isArray(value)) return new Set(value.map((x) => revive(x, schema.items)));
+      if (kind === 'map' && value && typeof value === 'object' && !(value instanceof Map))
+        return new Map(Object.entries(value).map(([k, x]) => [k, revive(x, schema.additionalProperties)]));
+      if (Array.isArray(value)) return value.map((x) => revive(x, schema.items));
+      if (typeof value === 'object' && schema.properties)
+        return Object.fromEntries(Object.entries(value).map(([k, x]) => [k, revive(x, schema.properties[k])]));
+      return value;
+    };
+    // how a parameter is edited: a select for an enum or a boolean, a number field, a text field, else a Property Tree
+    const fieldKind = (schema = {}) => {
+      if (Array.isArray(schema.enum)) return 'enum';
+      const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+      if (type === 'boolean') return 'boolean';
+      if (type === 'number' || type === 'integer') return schema['x-dson'] === 'bigint' ? 'text' : 'number';
+      if (type === 'string') return 'text';
+      return 'tree';
+    };
+    // a tree as high as the rows it shows open: the root and its entries (at least `min`, at most 14)
+    const openRows = (value, expanded) => {
+      let n = 1;
+      const walk = (v, ptr) => {
+        if (!v || typeof v !== 'object' || (ptr !== '' && !expanded.has(ptr))) return;
+        const entries = v instanceof Map ? [...v] : v instanceof Set ? [...v].map((x, i) => [i, x]) : Object.entries(v);
+        for (const [k, x] of entries) {
+          n++;
+          if (n > 14) return;
+          walk(x, ptr + '/' + String(k).replace(/~/g, '~0').replace(/\//g, '~1'));
+        }
+      };
+      walk(value, '');
+      return n;
+    };
+    const rpcFit = (tree, value, min = 1) => {
+      const size = () => {
+        const expanded = new Set(tree.api?.getState().config.expanded ?? []);
+        const rows = openRows(df$.shadcn.propertyTree.value(tree) ?? value, expanded);
+        tree.style.blockSize = 'calc(' + Math.min(Math.max(rows, min), 14) + ' * 1.75rem + 2px)';
+      };
+      size();
+      // opening a row grows the tree (VERIFIED: a 4-row answer held 35 rows in 140px after three rows opened)
+      if (tree.store && !tree.dataset.adFit) {
+        tree.dataset.adFit = '';
+        tree.store.subscribe(size);
+      }
+    };
+    let call = null; // the member shown: { name, m, doc }
+    const rpcValues = new Map(); // "Namespace.member" -> the form's values, one per parameter
+    // the arguments the page supplies itself (the sample collection, its builders), by index - not form fields
+    const fixedOf = (c) => (RPC ? RPC.fixed(c.name, c.m) : {});
+    const rpcValuesOf = (c) => {
+      const key = c.name + '.' + c.m;
+      if (!rpcValues.has(key)) {
+        const args = RPC ? RPC.exampleArgs(c.name, c.m, c.doc) : [];
+        rpcValues.set(
+          key,
+          (c.doc.params ?? []).map((p, i) => {
+            const v = i < args.length ? args[i] : p.optional || !RPC ? undefined : RPC.exampleValue(p.schema, p.name);
+            return fieldKind(p.schema) === 'tree'
+              ? (v ?? RPC?.exampleValue(p.schema, p.name) ?? null)
+              : v === undefined
+                ? ''
+                : v instanceof Date
+                  ? v.toISOString()
+                  : String(v);
+          }),
+        );
+      }
+      return rpcValues.get(key);
+    };
+    // the arguments as the method takes them: the call and its sample
+    const rpcArgs = (c) => {
+      const params = c.doc.params ?? [];
+      const raw = rpcValuesOf(c);
+      const fixed = fixedOf(c);
+      const json = params.map((p, i) => {
+        if (i in fixed) return undefined;
+        const v = raw[i];
+        const kind = fieldKind(p.schema);
+        // an optional parameter left empty is left out, as a caller would omit it
+        if (kind === 'tree') return v === null && p.optional ? undefined : v;
+        if (v === '') return undefined;
+        if (kind === 'number') return Number(v);
+        if (kind === 'boolean') return v === 'true';
+        return v;
+      });
+      while (json.length && json[json.length - 1] === undefined && params[json.length - 1]?.optional) json.pop();
+      return { json, values: json.map((v, i) => revive(v, params[i].schema)) };
+    };
+    let rpcShownSamples = {};
+    const writeRpcSamples = () => {
+      if (!call) return;
+      const s = (rpcShownSamples = RPC ? RPC.samples(call.name, call.m, call.doc, rpcArgs(call).values) : { ts: '' });
+      df$('[data-ad-rsample]').each((_i, code) => {
+        write(code, s[code.dataset.adRsample]);
+      });
+      paint();
+    };
+    const resetAnswer = () => {
+      df$('[data-ad-rpc-status]').text('').attr('data-class', '');
+      df$('[data-ad-rpc-time]').text('');
+      df$('[data-ad-rpc-empty]').prop('hidden', false).text(words().answerEmpty);
+      df$('[data-ad-rpc-error]').prop('hidden', true).text('');
+      df$('[data-ad-rpc-frames]').prop('hidden', true).html('');
+      df$('[data-ad-rpc-result]').prop('hidden', true);
+    };
+    const rpcMethod = (entry, m) => {
+      const box = view('rpc-method');
+      const doc = entry.ns.methods[m];
+      const changed = !call || call.name !== entry.name || call.m !== m;
+      call = { name: entry.name, m, doc };
+      df$(box).find('[data-ad-rm-crumb]').attr('href', href.namespace(entry.name)).text(entry.name);
+      df$(box).find('[data-ad-rm-crumb-page]').text(m);
+      df$(box)
+        .find('[data-ad-rm-title]')
+        .text(memberTitle(entry.name, entry.ns, m));
+      const badges = df$(box).find('[data-ad-rm-badges]');
+      badges.html('');
+      const tag = tagOf(doc);
+      badges.append(method(tag));
+      badges.append(el('span', { class: 'badge', 'data-variant': 'secondary' }, words()['tag-' + tag]));
+      if (doc.deprecated)
+        badges.append(el('span', { class: 'badge', 'data-variant': 'destructive' }, words().deprecated));
+      write(df$(box).find('[data-ad-rm-signature]').get(0), doc.signature);
+      df$(box).find('[data-ad-rm-lead]').html(doc.descriptionHtml);
+      // the documentation: parameters, the value (and a stream's values), errors, examples
+      const docs = df$(box).find('[data-ad-rm-docs]');
+      docs.html('');
+      if (typeof doc.deprecated === 'string')
+        docs.append(el('p', { class: 'ad-rpc-error' }, words().deprecated + ': ' + doc.deprecated));
+      const params = doc.params ?? [];
+      if (doc.kind !== 'property') {
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, words().params));
+        if (!params.length) docs.append(el('p', { class: 'mb-4' }, words().noParams));
+        else {
+          const ul = el('ul', { class: 'ad-params' });
+          for (const p of params) {
+            const head = el('div', { class: 'ad-param-head' })
+              .append(el('code', {}, (p.rest ? '...' : '') + p.name))
+              .append(el('span', { class: 'ad-type' }, p.type ?? ''));
+            head.append(
+              el(
+                'span',
+                { class: p.optional ? 'ad-type' : 'ad-required' },
+                p.optional ? words().optional : words().required,
+              ),
+            );
+            ul.append(el('li', { 'data-param': p.name }).append(head));
+          }
+          docs.append(ul);
+        }
+      }
+      for (const [label, value] of [
+        [doc.generator ? words().yields : words().returns, doc.generator ? doc.yields : doc.returns],
+        ...(doc.generator ? [[words().returns, doc.returns]] : []),
+      ]) {
+        if (!value) continue;
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, label));
+        const ul = el('ul', { class: 'ad-params' });
+        ul.append(
+          el('li', { 'data-returns': label }).append(
+            el('div', { class: 'ad-param-head' }).append(el('span', { class: 'ad-type' }, value.type ?? '')),
+          ),
+        );
+        docs.append(ul);
+      }
+      if (doc.throws?.length) {
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, words().throws));
+        const ul = el('ul', { class: 'ad-params' });
+        for (const text of doc.throws) ul.append(el('li').append(el('p', {}, text)));
+        docs.append(ul);
+      }
+      if (doc.examples?.length) {
+        docs.append(el('h2', { class: 'text-lg font-semibold mb-3' }, words().examples));
+        for (const text of doc.examples)
+          docs.append(el('pre', { class: 'ad-signature', 'data-lang': 'ts', 'data-ad-rm-example': '' }, text));
+      }
+      // the form: one field per parameter, the values kept per member; what runs it says the status line, and a
+      // member the page cannot run says why instead
+      const fields = df$(box).find('[data-ad-rpc-fields]');
+      fields.html('');
+      const runs = RPC ? RPC.callable(entry.name, m) : words().noRuntime;
+      const callable = runs === true;
+      df$(box)
+        .find('[data-ad-rpc-conn]')
+        .text(callable ? RPC.target(entry.name, m) : runs);
+      df$(box).find('[data-ad-rpc-actions]').prop('hidden', !callable);
+      app.setAttribute('data-callable', String(callable));
+      const v = rpcValuesOf(call);
+      const fixed = fixedOf(call);
+      params.forEach((p, i) => {
+        if (!callable) return;
+        const id = 'ad-rpc-arg-' + p.name;
+        const kind = i in fixed ? 'fixed' : fieldKind(p.schema);
+        const field = el('div', {
+          class: 'ad-field' + (kind === 'tree' ? ' ad-rpc-wide' : ''),
+          'data-ad-rpc-arg': p.name,
+        });
+        field.append(el('label', { class: 'label', for: id }, p.name + (p.optional ? '' : ' *')));
+        if (kind === 'fixed') {
+          fields.append(
+            field.append(
+              el('input', { class: 'input', id, type: 'text', 'data-size': 'sm', disabled: '', value: fixed[i] }),
+            ),
+          );
+          return;
+        }
+        if (kind === 'tree') {
+          const tree = el('div', {
+            class: 'property-tree ad-rpc-tree',
+            id,
+            'data-ad-rpc-index': String(i),
+            'aria-label': p.name,
+          });
+          field.append(tree);
+          fields.append(field);
+          df$.shadcn.propertyTree.configure(tree.get(0), { value: structuredClone(v[i]) });
+          rpcFit(tree.get(0), v[i], 4);
+          return;
+        }
+        let input;
+        if (kind === 'enum' || kind === 'boolean') {
+          input = el('select', { class: 'select', id, 'data-ad-rpc-index': String(i), 'data-size': 'sm' });
+          if (p.optional) input.append(el('option', { value: '' }, '-'));
+          for (const value of kind === 'enum' ? p.schema.enum : [true, false])
+            input.append(el('option', { value: String(value) }, String(value)));
+        } else
+          input = el('input', {
+            class: 'input',
+            id,
+            'data-ad-rpc-index': String(i),
+            type: kind === 'number' ? 'number' : 'text',
+            autocomplete: 'off',
+            spellcheck: 'false',
+            'data-size': 'sm',
+            placeholder: p.type ?? '',
+          });
+        input.val(v[i]);
+        fields.append(field.append(input));
+      });
+      if (changed) resetAnswer();
+      writeRpcSamples();
+      return box;
+    };
+    const rpcForm = df$('[data-ad-rpc-try]');
+    const takeField = (event) => {
+      const i = event.target.dataset?.adRpcIndex;
+      if (!call || i === undefined || event.target.classList.contains('property-tree')) return;
+      rpcValuesOf(call)[Number(i)] = event.target.value;
+      writeRpcSamples();
+    };
+    rpcForm.on('input', takeField);
+    rpcForm.on('change', takeField);
+    rpcForm.on('property-tree-change', (event) => {
+      const tree = event.target.closest('.property-tree');
+      if (!call || !tree?.dataset.adRpcIndex) return;
+      rpcValuesOf(call)[Number(tree.dataset.adRpcIndex)] = df$.shadcn.propertyTree.value(tree);
+      rpcFit(tree, df$.shadcn.propertyTree.value(tree), 4);
+      writeRpcSamples();
+    });
+    rpcForm.on('reset', async (event) => {
+      event.preventDefault();
+      if (!call) return;
+      rpcValues.delete(call.name + '.' + call.m);
+      // the sample database starts over too
+      await RPC?.reset();
+      const { name, m } = call;
+      call = null;
+      rpcMethod(
+        RPC_NS.find((x) => x.name === name),
+        m,
+      );
+      icons();
+      app.dispatchEvent(new CustomEvent('ad-rpc-reset'));
+    });
+    rpcForm.on('submit', async (event) => {
+      event.preventDefault();
+      if (!call || RPC?.callable(call.name, call.m) !== true) return;
+      resetAnswer();
+      df$('[data-ad-rpc-empty]').prop('hidden', true);
+      const frames = df$('[data-ad-rpc-frames]');
+      const answer = await RPC.call(call.name, call.m, rpcArgs(call).values, (value) => {
+        frames.prop('hidden', false).append(el('li', {}, line(value)));
+      });
+      df$('[data-ad-rpc-status]')
+        .attr('data-class', answer.error ? '5' : '2')
+        .text(answer.error ? words().threw : words().returned);
+      df$('[data-ad-rpc-time]').text(fmt(words().ms, { t: answer.ms }) + ' · ' + words().inPage);
+      if (answer.error) df$('[data-ad-rpc-error]').prop('hidden', false).text(answer.error);
+      else if (!('value' in answer) && !answer.frames)
+        df$('[data-ad-rpc-empty]').prop('hidden', false).text(words().undefinedAnswer);
+      if ('value' in answer) {
+        const tree = df$('[data-ad-rpc-result]').prop('hidden', false).get(0);
+        df$.shadcn.propertyTree.configure(tree, { value: answer.value });
+        rpcFit(tree, answer.value);
+      }
+      app.dispatchEvent(
+        new CustomEvent('ad-rpc-answer', {
+          detail: { ok: !answer.error, error: answer.error ?? null, frames: answer.frames?.length ?? 0 },
+        }),
+      );
+    });
+    df$('[data-ad-rpc-copy]').on('click', () => {
+      copy(
+        rpcShownSamples.ts,
+        df$('[data-ad-rsample="ts"]').get(0),
+        df$('[data-ad-rpc-samples] .mk-code-block-status'),
+      );
+    });
+
+    // each page as Markdown and JSON: the route's file under api-docs/
+    const docPath = (route) =>
+      route === '#/' ? 'guides/introduction' : route === '#/ref' ? 'ref/index' : route.slice(2);
+    const docLinks = (box, route) => {
+      const links = df$(box).find('[data-ad-doc-links]');
+      links.html('');
+      const path = DOC_FILES + docPath(route);
+      links.append(el('span', {}, words().pageAs));
+      links.append(
+        el('a', { href: path + '.md', target: '_blank', rel: 'noopener', 'data-ad-doc-md': '' })
+          .append(el('i', { 'data-lucide': 'file-text' }))
+          .append(el('span', {}, words().asMarkdown)),
+      );
+      links.append(
+        el('a', { href: path + '.json', target: '_blank', rel: 'noopener', 'data-ad-doc-json': '' })
+          .append(el('i', { 'data-lucide': 'braces' }))
+          .append(el('span', {}, words().asJson)),
+      );
+    };
+
+    // -- copying: the sample shown (the Clipboard API; where a frame may not write to the clipboard, the text is
+    // selected)
+    const copy = (text, node, status) => {
+      const select = () => {
+        getSelection().selectAllChildren(node);
+        if (status) status.text(words().copyHint);
+      };
+      if (!navigator.clipboard) return select();
+      navigator.clipboard.writeText(text).then(() => {
+        if (status) status.text(words().copied);
+        df$.shadcn.toast.show({ title: words().copied, duration: 1800 });
+      }, select);
+    };
+
+    // -- dark mode: the Swap sets <html class="dark"> and follows it when something else sets it
+    const mode = df$('[data-ad-mode]');
+    const root = document.documentElement;
+    mode.prop('checked', root.classList.contains('dark'));
+    mode.on('change', () => {
+      root.classList.toggle('dark', mode.prop('checked'));
+      // the site's other pages read the same stored theme (docs/assets/site.js)
+      try {
+        localStorage.setItem('defuss-db-theme', mode.prop('checked') ? 'dark' : 'light');
+      } catch {}
+      document.dispatchEvent(new CustomEvent('defuss-theme-change'));
+    });
+    new MutationObserver(() => mode.prop('checked', root.classList.contains('dark'))).observe(root, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    // -- the menu: below 48rem the navigation is a drawer; a pick closes it
+    const menu = df$('[data-ad-menu]');
+    const openMenu = (open) => {
+      app.toggleAttribute('data-menu-open', open);
+      menu.attr('aria-expanded', String(open));
+    };
+    menu.on('click', () => openMenu(!app.hasAttribute('data-menu-open')));
+    nav.on('click', (event) => {
+      if (event.target.closest('a')) openMenu(false);
+    });
+
+    // -- the search: a BM25 index (English analyzer) over every guide, namespace, member and parameter
+    const documents = () =>
+      ORDER.map((o, i) => {
+        const t = o.item;
+        if (o.kind === 'guide') return { id: String(i), fields: { title: t.title, path: '', body: t.lead + ' ' + t.text } };
+        if (o.kind === 'rpc') return { id: String(i), fields: { title: t.title, path: '', body: t.lead } };
+        if (o.kind === 'namespace')
+          return {
+            id: String(i),
+            fields: {
+              title: t.title,
+              path: o.name,
+              body: (o.ns.description ?? '') + ' ' + Object.keys(o.ns.methods).join(' '),
+            },
+          };
+        return {
+          id: String(i),
+          fields: {
+            title: t.title + ' ' + o.m,
+            path: t.path,
+            body:
+              (o.doc.description ?? '') +
+              ' ' +
+              (o.doc.params ?? []).map((p) => p.name + ' ' + (p.type ?? '')).join(' ') +
+              ' ' +
+              (o.doc.returns?.type ?? ''),
+          },
+        };
+      });
+    let searches = null;
+    // search by meaning: the state the palette's status line names, on the app root for the tests too
+    const meaning = () => {
+      if (!searches) return 'off';
+      const states = Object.values(searches).map((x) => x.state);
+      return states.includes('failed') ? 'failed' : states.every((x) => x === 'semantic') ? 'semantic' : 'loading';
+    };
+    SEARCH.then(([lexical, en, strategies]) => {
+      searches = {};
+      const index = new lexical.LexicalSearch({
+        analyzer: en.default,
+        fields: { title: { weight: 3 }, path: { weight: 2 }, body: {} },
+      });
+      const docs = documents();
+      index.addAll(docs);
+      // the tiny strategy: ColBERT encodes the documents once and scans their tokens for each query
+      const texts = docs.map((d) => ({
+        id: d.id,
+        text: (d.fields.title + '. ' + d.fields.path + ' ' + d.fields.body).trim(),
+      }));
+      searches.en = progressiveSearch(strategies, index, {
+        lexical: { search: { prefix: true, fuzzy: true } },
+        semantic: async (built) =>
+          strategies.createLexicalSemanticTinySearch(built, {
+            documents: texts,
+            colbert: await loadColbert(),
+            lexical: { search: { prefix: true, fuzzy: true } },
+          }),
+      });
+      searches.en.subscribe(() => {
+        app.setAttribute('data-semantic', meaning());
+        if (df$('#ad-find').get(0).open) find();
+      });
+      app.setAttribute('data-search', 'ready');
+      // the model loads in the background once the page is idle - not under the data saver
+      if (navigator.connection?.saveData) app.setAttribute('data-semantic', 'saver');
+      else
+        (globalThis.requestIdleCallback ?? ((fn) => setTimeout(fn, 200)))(() => {
+          for (const x of Object.values(searches)) x.load().catch(() => {});
+        });
+      if (df$('#ad-find').get(0).open) find();
+    }).catch(() => app.setAttribute('data-search', 'plain'));
+
+    const query = df$('[data-ad-query]');
+    const hits = df$('[data-ad-hits]');
+    const status = df$('[data-ad-find-status]');
+    const hit = (o) => {
+      const item = el('a', { class: 'command-item', href: o.href, 'data-router-link': '' });
+      if (o.item.method) item.append(method(o.item.method));
+      else item.append(el('i', { 'data-lucide': o.kind === 'guide' || o.kind === 'rpc' ? 'book-open' : 'box' }));
+      item.append(el('span', {}, o.item.title));
+      if (o.item.path) item.append(el('span', { class: 'ad-hit-path' }, o.item.path));
+      return item;
+    };
+    const group = (heading, list) => {
+      if (!list.length) return;
+      const box = el('div', { class: 'command-group' });
+      if (heading) box.append(el('p', { class: 'command-group-heading' }, heading));
+      for (const o of list) box.append(hit(o));
+      hits.append(box);
+    };
+    let asked = 0;
+    const find = async () => {
+      const text = query.val().trim();
+      const ask = ++asked;
+      let list;
+      if (!text) {
+        // no query: the guides and the namespaces, to browse
+        list = ORDER.filter((o) => o.kind !== 'method');
+        const state = app.getAttribute('data-semantic');
+        status.text(!searches ? words().loading : (words()['meaning-' + state] ?? words()['meaning-loading']));
+      } else if (searches) {
+        const t0 = performance.now();
+        const found = await searches.en.searchWithStats({ text }, { limit: 12 });
+        if (ask !== asked) return;
+        list = found.hits.map((h) => ORDER[Number(h.id)]);
+        const line = found.source === 'semantic' ? words().resultsMeaning : words().results;
+        status.text(fmt(line, { n: list.length, t: (performance.now() - t0).toFixed(1) }));
+      } else {
+        const needle = text.toLowerCase();
+        list = ORDER.filter((o) => (o.item.title + ' ' + (o.item.path ?? '')).toLowerCase().includes(needle));
+        status.text(words().plain);
+      }
+      hits.html('');
+      if (text) group(null, list);
+      else {
+        group(
+          words().guidesGroup,
+          list.filter((o) => o.kind === 'guide'),
+        );
+        group(
+          words().rpcGroup,
+          list.filter((o) => o.kind !== 'guide'),
+        );
+      }
+      icons();
+    };
+    query.on('input', find);
+    df$('#ad-find').on('toggle', find);
+    df$('[data-command-trigger="ad-find"]').on('click', () => {
+      query.val('');
+      find();
+    });
+
+    // -- routing: a guide, the overview, a namespace or a member per address; anything unknown shows the introduction
+    const routes = [
+      { id: 'home', path: '/' },
+      { id: 'guide', path: '/guides/:guide' },
+      { id: 'rpc', path: '/ref' },
+      { id: 'namespace', path: '/ref/:ns' },
+      { id: 'method', path: '/ref/:ns/:method' },
+      { id: 'missing', path: '*' },
+    ];
+    let shownPath = null;
+    const show = (to) => {
+      shown = to;
+      const p = to.params ?? {};
+      const g = to.routeId === 'guide' ? DATA.guides.find((x) => x.id === p.guide) : null;
+      const rns = to.routeId === 'namespace' || to.routeId === 'method' ? RPC_NS.find((x) => x.name === p.ns) : null;
+      const rm = rns && to.routeId === 'method' && rns.ns.methods[p.method] ? p.method : null;
+      let box;
+      let target;
+      if (rm) {
+        box = rpcMethod(rns, rm);
+        target = href.method(rns.name, rm);
+      } else if (rns) {
+        box = rpcNamespace(rns);
+        target = href.namespace(rns.name);
+      } else if (to.routeId === 'rpc') {
+        box = rpcNamespace(null);
+        target = href.rpc();
+      } else {
+        const item = g ?? DATA.guides[0];
+        box = guide(item);
+        target = href.guide(item);
+      }
+      df$('[data-ad-view]').each((_i, section) => {
+        section.hidden = section !== box;
+      });
+      docLinks(box, target);
+      pager(
+        box,
+        ORDER.findIndex((o) => o.href === target),
+      );
+      markCurrent(target);
+      icons();
+      paint();
+      // a new page opens at its start - the first view stays where the reader is
+      if (shownPath !== null && shownPath !== to.path)
+        df$('[data-ad-main]').get(0).scrollTo({ top: 0, behavior: 'instant' });
+      shownPath = to.path;
+      app.setAttribute('data-route', target);
+    };
+    writeNav();
+    find();
+    const router = createRouter({
+      mode: 'hash',
+      routes,
+      scroll: 'manual',
+      prepare: ({ to }) => ({ commit: () => show(to) }),
+    });
+    router.attachLinks(app);
+    if ((await router.start()).status === 'rejected') {
+      // no address the router may own - a docs preview is an about:srcdoc frame: the same routes match its hash
+      const preview = createRouter({ mode: 'hash', routes, baseUrl: 'https://preview.invalid/' });
+      const follow = () => show(preview.resolve(location.hash.startsWith('#/') ? location.hash : '#/'));
+      addEventListener('hashchange', follow);
+      follow();
+    }
+  });
+</script>
+<script type="module" src="apps/api-docs/api-docs.min.js"></script>
+<script src="https://unpkg.com/lucide@1.8.0"></script>
+<script>globalThis.lucide && lucide.createIcons();</script>
+</body>
+</html>

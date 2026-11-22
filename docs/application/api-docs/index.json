@@ -1,0 +1,690 @@
+[
+  {
+    "path": "guides/introduction",
+    "route": "#/",
+    "title": "Introduction",
+    "kind": "guide",
+    "markdown": "guides/introduction.md",
+    "json": "guides/introduction.json"
+  },
+  {
+    "path": "guides/historical-collections",
+    "route": "#/guides/historical-collections",
+    "title": "Historical collections",
+    "kind": "guide",
+    "markdown": "guides/historical-collections.md",
+    "json": "guides/historical-collections.json"
+  },
+  {
+    "path": "guides/timestamps",
+    "route": "#/guides/timestamps",
+    "title": "Timestamps",
+    "kind": "guide",
+    "markdown": "guides/timestamps.md",
+    "json": "guides/timestamps.json"
+  },
+  {
+    "path": "guides/opening",
+    "route": "#/guides/opening",
+    "title": "Opening",
+    "kind": "guide",
+    "markdown": "guides/opening.md",
+    "json": "guides/opening.json"
+  },
+  {
+    "path": "guides/database",
+    "route": "#/guides/database",
+    "title": "Database",
+    "kind": "guide",
+    "markdown": "guides/database.md",
+    "json": "guides/database.json"
+  },
+  {
+    "path": "guides/collection-mutations",
+    "route": "#/guides/collection-mutations",
+    "title": "Collection mutations",
+    "kind": "guide",
+    "markdown": "guides/collection-mutations.md",
+    "json": "guides/collection-mutations.json"
+  },
+  {
+    "path": "guides/collection-reads",
+    "route": "#/guides/collection-reads",
+    "title": "Collection reads",
+    "kind": "guide",
+    "markdown": "guides/collection-reads.md",
+    "json": "guides/collection-reads.json"
+  },
+  {
+    "path": "guides/mongodb-syntax-and-schemas",
+    "route": "#/guides/mongodb-syntax-and-schemas",
+    "title": "MongoDB syntax and schemas",
+    "kind": "guide",
+    "markdown": "guides/mongodb-syntax-and-schemas.md",
+    "json": "guides/mongodb-syntax-and-schemas.json"
+  },
+  {
+    "path": "guides/errors",
+    "route": "#/guides/errors",
+    "title": "Errors",
+    "kind": "guide",
+    "markdown": "guides/errors.md",
+    "json": "guides/errors.json"
+  },
+  {
+    "path": "guides/archives-and-result-caching",
+    "route": "#/guides/archives-and-result-caching",
+    "title": "Archives and result caching",
+    "kind": "guide",
+    "markdown": "guides/archives-and-result-caching.md",
+    "json": "guides/archives-and-result-caching.json"
+  },
+  {
+    "path": "ref/index",
+    "route": "#/ref",
+    "title": "Reference",
+    "kind": "reference",
+    "markdown": "ref/index.md",
+    "json": "ref/index.json"
+  },
+  {
+    "path": "ref/Opening",
+    "route": "#/ref/Opening",
+    "title": "Opening",
+    "kind": "namespace",
+    "markdown": "ref/Opening.md",
+    "json": "ref/Opening.json"
+  },
+  {
+    "path": "ref/Opening/openMemory",
+    "route": "#/ref/Opening/openMemory",
+    "title": "openMemory",
+    "kind": "member",
+    "markdown": "ref/Opening/openMemory.md",
+    "json": "ref/Opening/openMemory.json"
+  },
+  {
+    "path": "ref/Opening/openDatabase",
+    "route": "#/ref/Opening/openDatabase",
+    "title": "openDatabase",
+    "kind": "member",
+    "markdown": "ref/Opening/openDatabase.md",
+    "json": "ref/Opening/openDatabase.json"
+  },
+  {
+    "path": "ref/Opening/openDirectory",
+    "route": "#/ref/Opening/openDirectory",
+    "title": "openDirectory",
+    "kind": "member",
+    "markdown": "ref/Opening/openDirectory.md",
+    "json": "ref/Opening/openDirectory.json"
+  },
+  {
+    "path": "ref/Opening/openOPFS",
+    "route": "#/ref/Opening/openOPFS",
+    "title": "openOPFS",
+    "kind": "member",
+    "markdown": "ref/Opening/openOPFS.md",
+    "json": "ref/Opening/openOPFS.json"
+  },
+  {
+    "path": "ref/Database",
+    "route": "#/ref/Database",
+    "title": "Database",
+    "kind": "namespace",
+    "markdown": "ref/Database.md",
+    "json": "ref/Database.json"
+  },
+  {
+    "path": "ref/Database/collection",
+    "route": "#/ref/Database/collection",
+    "title": "Database.collection",
+    "kind": "member",
+    "markdown": "ref/Database/collection.md",
+    "json": "ref/Database/collection.json"
+  },
+  {
+    "path": "ref/Database/ensureCollection",
+    "route": "#/ref/Database/ensureCollection",
+    "title": "Database.ensureCollection",
+    "kind": "member",
+    "markdown": "ref/Database/ensureCollection.md",
+    "json": "ref/Database/ensureCollection.json"
+  },
+  {
+    "path": "ref/Database/collections",
+    "route": "#/ref/Database/collections",
+    "title": "Database.collections",
+    "kind": "member",
+    "markdown": "ref/Database/collections.md",
+    "json": "ref/Database/collections.json"
+  },
+  {
+    "path": "ref/Database/transaction",
+    "route": "#/ref/Database/transaction",
+    "title": "Database.transaction",
+    "kind": "member",
+    "markdown": "ref/Database/transaction.md",
+    "json": "ref/Database/transaction.json"
+  },
+  {
+    "path": "ref/Database/snapshot",
+    "route": "#/ref/Database/snapshot",
+    "title": "Database.snapshot",
+    "kind": "member",
+    "markdown": "ref/Database/snapshot.md",
+    "json": "ref/Database/snapshot.json"
+  },
+  {
+    "path": "ref/Database/export",
+    "route": "#/ref/Database/export",
+    "title": "Database.export",
+    "kind": "member",
+    "markdown": "ref/Database/export.md",
+    "json": "ref/Database/export.json"
+  },
+  {
+    "path": "ref/Database/exportStream",
+    "route": "#/ref/Database/exportStream",
+    "title": "Database.exportStream",
+    "kind": "member",
+    "markdown": "ref/Database/exportStream.md",
+    "json": "ref/Database/exportStream.json"
+  },
+  {
+    "path": "ref/Database/import",
+    "route": "#/ref/Database/import",
+    "title": "Database.import",
+    "kind": "member",
+    "markdown": "ref/Database/import.md",
+    "json": "ref/Database/import.json"
+  },
+  {
+    "path": "ref/Database/queryCacheStats",
+    "route": "#/ref/Database/queryCacheStats",
+    "title": "Database.queryCacheStats",
+    "kind": "member",
+    "markdown": "ref/Database/queryCacheStats.md",
+    "json": "ref/Database/queryCacheStats.json"
+  },
+  {
+    "path": "ref/Database/clearQueryCache",
+    "route": "#/ref/Database/clearQueryCache",
+    "title": "Database.clearQueryCache",
+    "kind": "member",
+    "markdown": "ref/Database/clearQueryCache.md",
+    "json": "ref/Database/clearQueryCache.json"
+  },
+  {
+    "path": "ref/Database/stats",
+    "route": "#/ref/Database/stats",
+    "title": "Database.stats",
+    "kind": "member",
+    "markdown": "ref/Database/stats.md",
+    "json": "ref/Database/stats.json"
+  },
+  {
+    "path": "ref/Database/verify",
+    "route": "#/ref/Database/verify",
+    "title": "Database.verify",
+    "kind": "member",
+    "markdown": "ref/Database/verify.md",
+    "json": "ref/Database/verify.json"
+  },
+  {
+    "path": "ref/Database/compact",
+    "route": "#/ref/Database/compact",
+    "title": "Database.compact",
+    "kind": "member",
+    "markdown": "ref/Database/compact.md",
+    "json": "ref/Database/compact.json"
+  },
+  {
+    "path": "ref/Database/collect",
+    "route": "#/ref/Database/collect",
+    "title": "Database.collect",
+    "kind": "member",
+    "markdown": "ref/Database/collect.md",
+    "json": "ref/Database/collect.json"
+  },
+  {
+    "path": "ref/Database/close",
+    "route": "#/ref/Database/close",
+    "title": "Database.close",
+    "kind": "member",
+    "markdown": "ref/Database/close.md",
+    "json": "ref/Database/close.json"
+  },
+  {
+    "path": "ref/Collection",
+    "route": "#/ref/Collection",
+    "title": "Collection",
+    "kind": "namespace",
+    "markdown": "ref/Collection.md",
+    "json": "ref/Collection.json"
+  },
+  {
+    "path": "ref/Collection/insert",
+    "route": "#/ref/Collection/insert",
+    "title": "Collection.insert",
+    "kind": "member",
+    "markdown": "ref/Collection/insert.md",
+    "json": "ref/Collection/insert.json"
+  },
+  {
+    "path": "ref/Collection/insertMany",
+    "route": "#/ref/Collection/insertMany",
+    "title": "Collection.insertMany",
+    "kind": "member",
+    "markdown": "ref/Collection/insertMany.md",
+    "json": "ref/Collection/insertMany.json"
+  },
+  {
+    "path": "ref/Collection/insertBatches",
+    "route": "#/ref/Collection/insertBatches",
+    "title": "Collection.insertBatches",
+    "kind": "member",
+    "markdown": "ref/Collection/insertBatches.md",
+    "json": "ref/Collection/insertBatches.json"
+  },
+  {
+    "path": "ref/Collection/put",
+    "route": "#/ref/Collection/put",
+    "title": "Collection.put",
+    "kind": "member",
+    "markdown": "ref/Collection/put.md",
+    "json": "ref/Collection/put.json"
+  },
+  {
+    "path": "ref/Collection/update",
+    "route": "#/ref/Collection/update",
+    "title": "Collection.update",
+    "kind": "member",
+    "markdown": "ref/Collection/update.md",
+    "json": "ref/Collection/update.json"
+  },
+  {
+    "path": "ref/Collection/delete",
+    "route": "#/ref/Collection/delete",
+    "title": "Collection.delete",
+    "kind": "member",
+    "markdown": "ref/Collection/delete.md",
+    "json": "ref/Collection/delete.json"
+  },
+  {
+    "path": "ref/Collection/restore",
+    "route": "#/ref/Collection/restore",
+    "title": "Collection.restore",
+    "kind": "member",
+    "markdown": "ref/Collection/restore.md",
+    "json": "ref/Collection/restore.json"
+  },
+  {
+    "path": "ref/Collection/updateMany",
+    "route": "#/ref/Collection/updateMany",
+    "title": "Collection.updateMany",
+    "kind": "member",
+    "markdown": "ref/Collection/updateMany.md",
+    "json": "ref/Collection/updateMany.json"
+  },
+  {
+    "path": "ref/Collection/deleteMany",
+    "route": "#/ref/Collection/deleteMany",
+    "title": "Collection.deleteMany",
+    "kind": "member",
+    "markdown": "ref/Collection/deleteMany.md",
+    "json": "ref/Collection/deleteMany.json"
+  },
+  {
+    "path": "ref/Collection/createIndex",
+    "route": "#/ref/Collection/createIndex",
+    "title": "Collection.createIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/createIndex.md",
+    "json": "ref/Collection/createIndex.json"
+  },
+  {
+    "path": "ref/Collection/createSearchIndex",
+    "route": "#/ref/Collection/createSearchIndex",
+    "title": "Collection.createSearchIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/createSearchIndex.md",
+    "json": "ref/Collection/createSearchIndex.json"
+  },
+  {
+    "path": "ref/Collection/dropSearchIndex",
+    "route": "#/ref/Collection/dropSearchIndex",
+    "title": "Collection.dropSearchIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/dropSearchIndex.md",
+    "json": "ref/Collection/dropSearchIndex.json"
+  },
+  {
+    "path": "ref/Collection/dropIndex",
+    "route": "#/ref/Collection/dropIndex",
+    "title": "Collection.dropIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/dropIndex.md",
+    "json": "ref/Collection/dropIndex.json"
+  },
+  {
+    "path": "ref/Collection/get",
+    "route": "#/ref/Collection/get",
+    "title": "Collection.get",
+    "kind": "member",
+    "markdown": "ref/Collection/get.md",
+    "json": "ref/Collection/get.json"
+  },
+  {
+    "path": "ref/Collection/at",
+    "route": "#/ref/Collection/at",
+    "title": "Collection.at",
+    "kind": "member",
+    "markdown": "ref/Collection/at.md",
+    "json": "ref/Collection/at.json"
+  },
+  {
+    "path": "ref/Collection/history",
+    "route": "#/ref/Collection/history",
+    "title": "Collection.history",
+    "kind": "member",
+    "markdown": "ref/Collection/history.md",
+    "json": "ref/Collection/history.json"
+  },
+  {
+    "path": "ref/Collection/audit",
+    "route": "#/ref/Collection/audit",
+    "title": "Collection.audit",
+    "kind": "member",
+    "markdown": "ref/Collection/audit.md",
+    "json": "ref/Collection/audit.json"
+  },
+  {
+    "path": "ref/Collection/getMany",
+    "route": "#/ref/Collection/getMany",
+    "title": "Collection.getMany",
+    "kind": "member",
+    "markdown": "ref/Collection/getMany.md",
+    "json": "ref/Collection/getMany.json"
+  },
+  {
+    "path": "ref/Collection/searchIndexes",
+    "route": "#/ref/Collection/searchIndexes",
+    "title": "Collection.searchIndexes",
+    "kind": "member",
+    "markdown": "ref/Collection/searchIndexes.md",
+    "json": "ref/Collection/searchIndexes.json"
+  },
+  {
+    "path": "ref/Collection/search",
+    "route": "#/ref/Collection/search",
+    "title": "Collection.search",
+    "kind": "member",
+    "markdown": "ref/Collection/search.md",
+    "json": "ref/Collection/search.json"
+  },
+  {
+    "path": "ref/Collection/has",
+    "route": "#/ref/Collection/has",
+    "title": "Collection.has",
+    "kind": "member",
+    "markdown": "ref/Collection/has.md",
+    "json": "ref/Collection/has.json"
+  },
+  {
+    "path": "ref/Collection/find",
+    "route": "#/ref/Collection/find",
+    "title": "Collection.find",
+    "kind": "member",
+    "markdown": "ref/Collection/find.md",
+    "json": "ref/Collection/find.json"
+  },
+  {
+    "path": "ref/Collection/findOne",
+    "route": "#/ref/Collection/findOne",
+    "title": "Collection.findOne",
+    "kind": "member",
+    "markdown": "ref/Collection/findOne.md",
+    "json": "ref/Collection/findOne.json"
+  },
+  {
+    "path": "ref/Collection/query",
+    "route": "#/ref/Collection/query",
+    "title": "Collection.query",
+    "kind": "member",
+    "markdown": "ref/Collection/query.md",
+    "json": "ref/Collection/query.json"
+  },
+  {
+    "path": "ref/Collection/pageIdsByIndex",
+    "route": "#/ref/Collection/pageIdsByIndex",
+    "title": "Collection.pageIdsByIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/pageIdsByIndex.md",
+    "json": "ref/Collection/pageIdsByIndex.json"
+  },
+  {
+    "path": "ref/Collection/countByIndex",
+    "route": "#/ref/Collection/countByIndex",
+    "title": "Collection.countByIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/countByIndex.md",
+    "json": "ref/Collection/countByIndex.json"
+  },
+  {
+    "path": "ref/Collection/pageByIndex",
+    "route": "#/ref/Collection/pageByIndex",
+    "title": "Collection.pageByIndex",
+    "kind": "member",
+    "markdown": "ref/Collection/pageByIndex.md",
+    "json": "ref/Collection/pageByIndex.json"
+  },
+  {
+    "path": "ref/Collection/stream",
+    "route": "#/ref/Collection/stream",
+    "title": "Collection.stream",
+    "kind": "member",
+    "markdown": "ref/Collection/stream.md",
+    "json": "ref/Collection/stream.json"
+  },
+  {
+    "path": "ref/Collection/count",
+    "route": "#/ref/Collection/count",
+    "title": "Collection.count",
+    "kind": "member",
+    "markdown": "ref/Collection/count.md",
+    "json": "ref/Collection/count.json"
+  },
+  {
+    "path": "ref/Collection/select",
+    "route": "#/ref/Collection/select",
+    "title": "Collection.select",
+    "kind": "member",
+    "markdown": "ref/Collection/select.md",
+    "json": "ref/Collection/select.json"
+  },
+  {
+    "path": "ref/Collection/aggregate",
+    "route": "#/ref/Collection/aggregate",
+    "title": "Collection.aggregate",
+    "kind": "member",
+    "markdown": "ref/Collection/aggregate.md",
+    "json": "ref/Collection/aggregate.json"
+  },
+  {
+    "path": "ref/Collection/view",
+    "route": "#/ref/Collection/view",
+    "title": "Collection.view",
+    "kind": "member",
+    "markdown": "ref/Collection/view.md",
+    "json": "ref/Collection/view.json"
+  },
+  {
+    "path": "ref/Collection/prepareFind",
+    "route": "#/ref/Collection/prepareFind",
+    "title": "Collection.prepareFind",
+    "kind": "member",
+    "markdown": "ref/Collection/prepareFind.md",
+    "json": "ref/Collection/prepareFind.json"
+  },
+  {
+    "path": "ref/Collection/prepareSelect",
+    "route": "#/ref/Collection/prepareSelect",
+    "title": "Collection.prepareSelect",
+    "kind": "member",
+    "markdown": "ref/Collection/prepareSelect.md",
+    "json": "ref/Collection/prepareSelect.json"
+  },
+  {
+    "path": "ref/Collection/prepareAggregate",
+    "route": "#/ref/Collection/prepareAggregate",
+    "title": "Collection.prepareAggregate",
+    "kind": "member",
+    "markdown": "ref/Collection/prepareAggregate.md",
+    "json": "ref/Collection/prepareAggregate.json"
+  },
+  {
+    "path": "ref/Collection/prepareView",
+    "route": "#/ref/Collection/prepareView",
+    "title": "Collection.prepareView",
+    "kind": "member",
+    "markdown": "ref/Collection/prepareView.md",
+    "json": "ref/Collection/prepareView.json"
+  },
+  {
+    "path": "ref/Collection/explain",
+    "route": "#/ref/Collection/explain",
+    "title": "Collection.explain",
+    "kind": "member",
+    "markdown": "ref/Collection/explain.md",
+    "json": "ref/Collection/explain.json"
+  },
+  {
+    "path": "ref/Collection/source",
+    "route": "#/ref/Collection/source",
+    "title": "Collection.source",
+    "kind": "member",
+    "markdown": "ref/Collection/source.md",
+    "json": "ref/Collection/source.json"
+  },
+  {
+    "path": "ref/Collection/indexes",
+    "route": "#/ref/Collection/indexes",
+    "title": "Collection.indexes",
+    "kind": "member",
+    "markdown": "ref/Collection/indexes.md",
+    "json": "ref/Collection/indexes.json"
+  },
+  {
+    "path": "ref/Collection/q",
+    "route": "#/ref/Collection/q",
+    "title": "Collection.q",
+    "kind": "member",
+    "markdown": "ref/Collection/q.md",
+    "json": "ref/Collection/q.json"
+  },
+  {
+    "path": "ref/Mongo",
+    "route": "#/ref/Mongo",
+    "title": "Mongo",
+    "kind": "namespace",
+    "markdown": "ref/Mongo.md",
+    "json": "ref/Mongo.json"
+  },
+  {
+    "path": "ref/Mongo/findMongo",
+    "route": "#/ref/Mongo/findMongo",
+    "title": "findMongo",
+    "kind": "member",
+    "markdown": "ref/Mongo/findMongo.md",
+    "json": "ref/Mongo/findMongo.json"
+  },
+  {
+    "path": "ref/Mongo/aggregateMongo",
+    "route": "#/ref/Mongo/aggregateMongo",
+    "title": "aggregateMongo",
+    "kind": "member",
+    "markdown": "ref/Mongo/aggregateMongo.md",
+    "json": "ref/Mongo/aggregateMongo.json"
+  },
+  {
+    "path": "ref/Mongo/mongoRequest",
+    "route": "#/ref/Mongo/mongoRequest",
+    "title": "mongoRequest",
+    "kind": "member",
+    "markdown": "ref/Mongo/mongoRequest.md",
+    "json": "ref/Mongo/mongoRequest.json"
+  },
+  {
+    "path": "ref/Mongo/translatePipeline",
+    "route": "#/ref/Mongo/translatePipeline",
+    "title": "translatePipeline",
+    "kind": "member",
+    "markdown": "ref/Mongo/translatePipeline.md",
+    "json": "ref/Mongo/translatePipeline.json"
+  },
+  {
+    "path": "ref/Mongo/aggregateDescriptor",
+    "route": "#/ref/Mongo/aggregateDescriptor",
+    "title": "aggregateDescriptor",
+    "kind": "member",
+    "markdown": "ref/Mongo/aggregateDescriptor.md",
+    "json": "ref/Mongo/aggregateDescriptor.json"
+  },
+  {
+    "path": "ref/Mongo/parseDocument",
+    "route": "#/ref/Mongo/parseDocument",
+    "title": "parseDocument",
+    "kind": "member",
+    "markdown": "ref/Mongo/parseDocument.md",
+    "json": "ref/Mongo/parseDocument.json"
+  },
+  {
+    "path": "ref/Mongo/parsePipeline",
+    "route": "#/ref/Mongo/parsePipeline",
+    "title": "parsePipeline",
+    "kind": "member",
+    "markdown": "ref/Mongo/parsePipeline.md",
+    "json": "ref/Mongo/parsePipeline.json"
+  },
+  {
+    "path": "ref/Mongo/stringify",
+    "route": "#/ref/Mongo/stringify",
+    "title": "stringify",
+    "kind": "member",
+    "markdown": "ref/Mongo/stringify.md",
+    "json": "ref/Mongo/stringify.json"
+  },
+  {
+    "path": "ref/Mongo/revive",
+    "route": "#/ref/Mongo/revive",
+    "title": "revive",
+    "kind": "member",
+    "markdown": "ref/Mongo/revive.md",
+    "json": "ref/Mongo/revive.json"
+  },
+  {
+    "path": "ref/Mongo/translateFilter",
+    "route": "#/ref/Mongo/translateFilter",
+    "title": "translateFilter",
+    "kind": "member",
+    "markdown": "ref/Mongo/translateFilter.md",
+    "json": "ref/Mongo/translateFilter.json"
+  },
+  {
+    "path": "ref/Mongo/translateSort",
+    "route": "#/ref/Mongo/translateSort",
+    "title": "translateSort",
+    "kind": "member",
+    "markdown": "ref/Mongo/translateSort.md",
+    "json": "ref/Mongo/translateSort.json"
+  },
+  {
+    "path": "ref/Mongo/project",
+    "route": "#/ref/Mongo/project",
+    "title": "project",
+    "kind": "member",
+    "markdown": "ref/Mongo/project.md",
+    "json": "ref/Mongo/project.json"
+  }
+]

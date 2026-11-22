@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/guides/timestamps",
+  "title": "Timestamps",
+  "id": "timestamps",
+  "lead": "",
+  "markdown": "timestamps.md"
+}

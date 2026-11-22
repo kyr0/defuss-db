@@ -31,11 +31,11 @@ flowchart LR
 
 | Tab | Use case | defuss-db calls |
 | --- | --- | --- |
-| Orders (Grid) | 100,000 sales orders: sort, filter, page and edit | `query({ filters, sorters, offset, limit })`, `pageByIndex('byRegionDate', { prefix, after })`, `count()`, `explain()`, `db.transaction()` for a status edit and its audit line |
-| Reports (Compute) | Revenue, refunds and VAT over all orders | `prepareAggregate()`, `prepareSelect()`, `prepareView()` built with `orders.q`, then `evaluate()` |
-| Price history (History) | A price list with effective dates and a later correction | `ensureCollection('prices', { $trackHistory: true })`, `at(date, { $asOfRevision }).find()`, `history(id)`, `audit(id)`, `update(id, patch, { $historic, $until })` |
-| Accounts (Transactions) | Treasury transfers that must keep the total | `db.transaction()` over `accounts` and `transfers`, `aggregate()` with `sumBigInt`, `db.snapshot()`, `pageByIndex('byTime')` |
-| Search (Autocomplete) | Full-text search over 5,000 catalog items | `createSearchIndex({ kind: 'lexical' })`, `search()` with prefix, fuzzy and filters applied before ranking |
+| Orders | 100,000 sales orders: sort, filter, page and edit | `query({ filters, sorters, offset, limit })`, `pageByIndex('byRegionDate', { prefix, after })`, `count()`, `explain()`, `db.transaction()` for a status edit and its audit line |
+| Reports | Revenue, refunds and VAT over all orders | `prepareAggregate()`, `prepareSelect()`, `prepareView()` built with `orders.q`, then `evaluate()` |
+| Price history | A price list with effective dates and a later correction | `ensureCollection('prices', { $trackHistory: true })`, `at(date, { $asOfRevision }).find()`, `history(id)`, `audit(id)`, `update(id, patch, { $historic, $until })` |
+| Accounts | Treasury transfers that must keep the total | `db.transaction()` over `accounts` and `transfers`, `aggregate()` with `sumBigInt`, `db.snapshot()`, `pageByIndex('byTime')` |
+| Search | Full-text search over 5,000 catalog items | `createSearchIndex({ kind: 'lexical' })`, `search()` with prefix, fuzzy and filters applied before ranking |
 
 `shared/reports.ts` holds each report's plan and the code text the inspector shows, side by side, so a change to one is reviewed with the other.
 

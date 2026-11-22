@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/view",
+  "title": "Collection.view",
+  "namespace": "Collection",
+  "name": "view",
+  "signature": "view<const D extends ViewDescriptor>(descriptor: D, page?: Page, input?: QueryOptions<T>): Promise<ViewResult<RowsOutput<D>, TotalsOutput<D>>>",
+  "description": "Typed projected rows, totals and summary",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "descriptor",
+      "type": "D",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "page",
+      "type": "Page",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<ViewResult<RowsOutput<D>, TotalsOutput<D>>>"
+  },
+  "markdown": "view.md"
+}

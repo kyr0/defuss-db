@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/get",
+  "title": "Collection.get",
+  "namespace": "Collection",
+  "name": "get",
+  "signature": "get(id: PrimaryKey, options?: HistoryReadOptions): Promise<T | undefined>",
+  "description": "Document or undefined",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "HistoryReadOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<T | undefined>"
+  },
+  "markdown": "get.md"
+}

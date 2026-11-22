@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/explain",
+  "title": "Collection.explain",
+  "namespace": "Collection",
+  "name": "explain",
+  "signature": "explain(request?: FindRequest): Promise<{\n    revision: number;\n    access: AccessPlan;\n    query: defuss_dataview_compute.Explain;\n    history?: {\n        effective: Date;\n        recordedRevision: number;\n        secondaryIndexes: string;\n    } | undefined;\n}>",
+  "description": "{ revision, access, query }; access selection for the inspected snapshot",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<{\n        revision: number;\n        access: AccessPlan;\n        query: defuss_dataview_compute.Explain;\n        history?: {\n            effective: Date;\n            recordedRevision: number;\n            secondaryIndexes: string;\n        } | undefined;\n    }>"
+  },
+  "markdown": "explain.md"
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/prepareAggregate",
+  "title": "Collection.prepareAggregate",
+  "namespace": "Collection",
+  "name": "prepareAggregate",
+  "signature": "prepareAggregate<const D extends AggregateDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery<T, AggregateOutput<D>>",
+  "description": "Bound prepared plan: evaluate, stream, explain",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "descriptor",
+      "type": "D",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "cacheKey",
+      "type": "boolean",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "BoundQuery<T, AggregateOutput<D>>"
+  },
+  "markdown": "prepareAggregate.md"
+}

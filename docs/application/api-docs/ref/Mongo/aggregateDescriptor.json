@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Mongo/aggregateDescriptor",
+  "title": "aggregateDescriptor",
+  "namespace": "Mongo",
+  "name": "aggregateDescriptor",
+  "signature": "aggregateDescriptor(plan: PipelinePlan, q: unknown, options?: TranslateOptions): Doc",
+  "description": "The plan of a pipeline (match, keys, measures, sort, limit) / its aggregate descriptor.",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "plan",
+      "type": "PipelinePlan",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "q",
+      "type": "unknown",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "TranslateOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Doc"
+  },
+  "markdown": "aggregateDescriptor.md"
+}

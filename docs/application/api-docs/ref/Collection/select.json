@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/select",
+  "title": "Collection.select",
+  "namespace": "Collection",
+  "name": "select",
+  "signature": "select<const D extends RowsDescriptor>(descriptor: D, page?: Page, input?: QueryOptions<T>): Promise<ComputeResult<RowsOutput<D>>>",
+  "description": "Typed projected rows and summary",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "descriptor",
+      "type": "D",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "page",
+      "type": "Page",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<ComputeResult<RowsOutput<D>>>"
+  },
+  "markdown": "select.md"
+}

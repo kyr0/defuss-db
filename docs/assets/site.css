@@ -366,13 +366,12 @@
 .db-bench-query{margin-top:1.8rem;border-top:1px solid var(--border);padding-top:1.1rem}
 .db-bench-query h3{margin:0;font-size:1.4rem}.db-bench-query>p{max-width:75ch;margin:.65rem 0 1rem}
 .db-bench-query .db-chart{height:145px}
-.db-capabilities{margin-top:1.7rem;overflow:auto}
-.db-capabilities table,.db-details table{width:100%;border-collapse:collapse}
-.db-capabilities caption,.db-details caption{text-align:left;font-weight:650;padding-block:.75rem}
-.db-capabilities :is(td,th),.db-details :is(td,th){padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:top;text-align:left}
+.db-details table{width:100%;border-collapse:collapse}
+.db-details caption{text-align:left;font-weight:650;padding-block:.75rem}
+.db-details :is(td,th){padding:.6rem .75rem;border-bottom:1px solid var(--border);vertical-align:top;text-align:left}
 .db-details .table-container{overflow:auto}.db-details td:nth-child(n+3){text-align:right}
 @media(max-width:52rem){.db-latencies{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:36rem){.db-latency{padding:.8rem}.db-history-terms{grid-template-columns:1fr}.db-capabilities :is(td,th),.db-details :is(td,th){padding:.45rem}.db-bench-query{margin-top:1.2rem}}
+@media(max-width:36rem){.db-latency{padding:.8rem}.db-history-terms{grid-template-columns:1fr}.db-details :is(td,th){padding:.45rem}.db-bench-query{margin-top:1.2rem}}
 
 .db-feature-links{display:flex;flex-wrap:wrap;gap:.4rem 1rem}
 #why .db-feature a,.db-bench-guide a,.db-search-stats a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
@@ -389,7 +388,6 @@
 .db-choose h3{font-size:1rem;font-weight:700;margin:0 0 .5rem}
 .db-choose ul,.db-scale-facts{margin:0;padding-inline-start:1.2rem;line-height:1.6}
 .db-scale-facts{max-width:52rem;margin-top:1.25rem}.db-scale-facts li+li{margin-top:.5rem}
-.db-capabilities td:nth-child(n+2) code{font-size:.85em}
 
 .db-snippet .k{color:var(--db-teal)}.db-snippet .s{color:var(--db-amber)}.db-snippet .c{color:var(--muted-foreground)}
 .db-mongo-controls{margin-top:1rem}

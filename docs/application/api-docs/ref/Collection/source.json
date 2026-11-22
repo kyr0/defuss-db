@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/source",
+  "title": "Collection.source",
+  "namespace": "Collection",
+  "name": "source",
+  "signature": "source(options?: HistoryReadOptions): RecordSource<T>",
+  "description": "Document-level DataView RecordSource<T>",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "HistoryReadOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "RecordSource<T>"
+  },
+  "markdown": "source.md"
+}

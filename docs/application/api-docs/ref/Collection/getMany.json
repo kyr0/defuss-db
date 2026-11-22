@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/getMany",
+  "title": "Collection.getMany",
+  "namespace": "Collection",
+  "name": "getMany",
+  "signature": "getMany(ids: readonly PrimaryKey[], options?: {\n    signal?: AbortSignal;\n} & HistoryReadOptions): Promise<(T | undefined)[]>",
+  "description": "Ordered documents/undefined; duplicate IDs preserved; one snapshot; at most 100,000 IDs",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "ids",
+      "type": "readonly PrimaryKey[]",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "{\n        signal?: AbortSignal;\n    } & HistoryReadOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<(T | undefined)[]>"
+  },
+  "markdown": "getMany.md"
+}

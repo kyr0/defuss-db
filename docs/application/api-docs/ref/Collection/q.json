@@ -1,0 +1,16 @@
+{
+  "kind": "property",
+  "route": "#/ref/Collection/q",
+  "title": "Collection.q",
+  "namespace": "Collection",
+  "name": "q",
+  "signature": "q: defuss_dataview_compute.ComputeFor<T>",
+  "description": "DataView forRows<T>() builders and plan factories",
+  "async": false,
+  "generator": false,
+  "params": [],
+  "returns": {
+    "type": "defuss_dataview_compute.ComputeFor<T>"
+  },
+  "markdown": "q.md"
+}

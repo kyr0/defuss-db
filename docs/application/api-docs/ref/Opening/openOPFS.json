@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Opening/openOPFS",
+  "title": "openOPFS",
+  "namespace": "Opening",
+  "name": "openOPFS",
+  "signature": "openOPFS(options?: BrowserOptions): Promise<Database>",
+  "description": "From defuss-db/browser. Arguments: OpenOptions & { namespace?: string; storage?: OPFSStorageOptions without name }.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "BrowserOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<Database>"
+  },
+  "markdown": "openOPFS.md"
+}

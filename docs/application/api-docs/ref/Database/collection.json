@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/collection",
+  "title": "Database.collection",
+  "namespace": "Database",
+  "name": "collection",
+  "signature": "collection<T extends Document = Document>(collection: string): Collection<T>",
+  "description": "Typed live collection; no I/O merely to obtain it",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "collection",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Collection<T>"
+  },
+  "markdown": "collection.md"
+}

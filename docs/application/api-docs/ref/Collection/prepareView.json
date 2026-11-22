@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/prepareView",
+  "title": "Collection.prepareView",
+  "namespace": "Collection",
+  "name": "prepareView",
+  "signature": "prepareView<const D extends ViewDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery<T, RowsOutput<D>, TotalsOutput<D>>",
+  "description": "Bound prepared plan: evaluate, stream, explain",
+  "async": false,
+  "generator": false,
+  "params": [
+    {
+      "name": "descriptor",
+      "type": "D",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "cacheKey",
+      "type": "boolean",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "BoundQuery<T, RowsOutput<D>, TotalsOutput<D>>"
+  },
+  "markdown": "prepareView.md"
+}

@@ -133,7 +133,6 @@ const context = feedCaption(
 // commit (flushProbe), so both compare with MongoDB j: true.
 const mongoReports = await loadMongoReports('docs/benchmarks');
 const mongo = mongoReports.find((r) => r.runtime === 'Node');
-const txn = mongo.capabilities.mongodbMultiDocumentTransactions;
 // Reports measured on an earlier release name it (scripts/workload-report.mjs measuredEarlier).
 // VERIFIED: docs/index.html for 3.1.0 says the numbers were measured with defuss-db 3.0.0.
 const release = (r) =>
@@ -163,14 +162,6 @@ await writeFile(
     )
     .replace('@@MONGO_CONTEXT@@', mongoContext)
     .replace('@@BENCH_RELEASE@@', release(initial))
-    .replace(
-      '@@MONGO_TXN@@',
-      txn.supported
-        ? 'This MongoDB server accepted a multi-document transaction.'
-        : 'This standalone MongoDB server rejected a multi-document transaction: “' +
-            escape(txn.error) +
-            '”',
-    )
     .replaceAll('@@VERSION@@', version),
 );
 await rm('docs/guides', { recursive: true, force: true });
@@ -220,7 +211,7 @@ for (const [source, slug] of guides) {
     );
   const title = (md.match(/^#\s+(.+)$/m)?.[1] ?? slug).replaceAll('**', '');
   const nav =
-    '<nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav>';
+    '<nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="../application/app-api-docs.html">API reference</a><a href="../index.html#install">Install</a></nav>';
   await writeFile(
     'docs/guides/' + slug + '.html',
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(title)} · defuss-db</title><link rel="icon" href="../favicon.svg"><script src="../assets/theme.js"></script><link rel="stylesheet" href="../assets/vendor/fonts/index.css"><link rel="stylesheet" href="../assets/vendor/defuss-shadcn.css"><link rel="stylesheet" href="../assets/site.css"></head><body><main class="db-guide">${nav}<article>${content}</article>${nav}</main></body></html>\n`,
@@ -250,6 +241,7 @@ The ordered read API is available on collections, snapshots and transactions. pa
 ## Documentation
 
 ${links}
+- [API reference, every function and method with its signature, as Markdown](application/api-docs/llms.txt)
 
 ## Distribution and evidence
 

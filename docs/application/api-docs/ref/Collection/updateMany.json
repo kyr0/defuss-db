@@ -1,0 +1,35 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/updateMany",
+  "title": "Collection.updateMany",
+  "namespace": "Collection",
+  "name": "updateMany",
+  "signature": "updateMany(request: FindRequest, updater: Updater<T>, options?: WriteOptions & QueryOptions<T>): Promise<number>",
+  "description": "Atomic bounded set update; return affected document count",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "updater",
+      "type": "Updater<T>",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions & QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<number>"
+  },
+  "markdown": "updateMany.md"
+}

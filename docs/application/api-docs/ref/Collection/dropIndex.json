@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/dropIndex",
+  "title": "Collection.dropIndex",
+  "namespace": "Collection",
+  "name": "dropIndex",
+  "signature": "dropIndex(indexName: string, options?: WriteOptions): Promise<boolean>",
+  "description": "Atomic removal; return whether it existed",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "indexName",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<boolean>"
+  },
+  "markdown": "dropIndex.md"
+}

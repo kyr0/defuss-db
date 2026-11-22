@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Opening/openDirectory",
+  "title": "openDirectory",
+  "namespace": "Opening",
+  "name": "openDirectory",
+  "signature": "openDirectory(directory: string, options?: DirectoryOptions): Promise<Database>",
+  "description": "From defuss-db/server. Arguments: Root path, OpenOptions & { storage?: FileBackendOptions; parallel?: boolean | ParallelOptions }.",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "directory",
+      "type": "string",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "DirectoryOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<Database>"
+  },
+  "markdown": "openDirectory.md"
+}

@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/searchIndexes",
+  "title": "Collection.searchIndexes",
+  "namespace": "Collection",
+  "name": "searchIndexes",
+  "signature": "searchIndexes(options?: HistoryReadOptions): Promise<SearchIndexDefinition[]>",
+  "description": "Persisted search definitions",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "HistoryReadOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<SearchIndexDefinition[]>"
+  },
+  "markdown": "searchIndexes.md"
+}

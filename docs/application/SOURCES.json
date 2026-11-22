@@ -1,0 +1,67 @@
+{
+  "defuss-shadcn": {
+    "version": "0.9.17",
+    "commit": "71a305fac4a10df9a5b3fc3b5ebe1d9fdf394ac0",
+    "defussDb": "3.1.0",
+    "copied": "2026-11-22T15:31:04.747Z",
+    "note": "Built by defuss-shadcn, copied unchanged. The page is website/application/app-api-docs.html, adapted from dist/documentation/application/app-api-docs.html; scripts/api-docs.mjs writes it here with its runtime and Markdown pages. Source maps are not copied; only developer tools request them. The fonts come without licence files, as in defuss-shadcn.",
+    "files": {
+      "apps/api-docs/api-docs.min.css": {
+        "from": "dist/apps/api-docs/api-docs.min.css",
+        "sha256": "63f02bf2ba1101780133fdadfcea8118f0f30e24b4c0bd1384fe574d7a860014"
+      },
+      "apps/api-docs/api-docs.min.js": {
+        "from": "dist/apps/api-docs/api-docs.min.js",
+        "sha256": "aef0bafa6ec142abcbc03bd89d6c0df864b01e5152b7e8f854dd118ed99a47bf"
+      },
+      "css/docs-theme.css": {
+        "from": "dist/documentation/css/docs-theme.css",
+        "sha256": "6d6f53b23f9bdf4168345e1d53dfd1d7c67388d6867f02c0a14bd873f2a5ee31"
+      },
+      "fonts/geist-300.woff2": {
+        "from": "dist/documentation/fonts/geist-300.woff2",
+        "sha256": "0e2b8a081774f7a372eabcfe44111e98b81a00ec1e15ec0feba7484dec817b6d"
+      },
+      "fonts/geist-400.woff2": {
+        "from": "dist/documentation/fonts/geist-400.woff2",
+        "sha256": "e6ef6abb39c762ed2259cc814e6f16888c540cd84835962227b56ab2354f27f1"
+      },
+      "fonts/geist-500.woff2": {
+        "from": "dist/documentation/fonts/geist-500.woff2",
+        "sha256": "40073e90816315c92e4f4381bd50b6fdc950b22b0dd010a4179046cf588d4f12"
+      },
+      "fonts/geist-600.woff2": {
+        "from": "dist/documentation/fonts/geist-600.woff2",
+        "sha256": "9d99fbd791968493fa507ac846de561cee47b00f8100c23cad333b3cb78392d6"
+      },
+      "fonts/geist-mono-400.woff2": {
+        "from": "dist/documentation/fonts/geist-mono-400.woff2",
+        "sha256": "616e37ca59a2afebe306751773a538b93f5a2d9a90fd3fc97ce73321cb93af51"
+      },
+      "fonts/geist-mono-500.woff2": {
+        "from": "dist/documentation/fonts/geist-mono-500.woff2",
+        "sha256": "9a494764f87c2e11d24001b910600bd2192230554c090a0ddc66e8221b32f3ce"
+      },
+      "fonts/fraunces-300.woff2": {
+        "from": "dist/documentation/fonts/fraunces-300.woff2",
+        "sha256": "eb7978600911337e093a9b339e355a5493c4a2a6609af2839e8298c0b5444174"
+      },
+      "fonts/fraunces-400.woff2": {
+        "from": "dist/documentation/fonts/fraunces-400.woff2",
+        "sha256": "e558f39453a9c611908be04294b50dea5f21ae6c49b41c6e47f4115e91f90209"
+      },
+      "fonts/fraunces-500.woff2": {
+        "from": "dist/documentation/fonts/fraunces-500.woff2",
+        "sha256": "7975c1ef7caf89d0606dd985d35abe31a619c19262cf13f5a05938cc68fb27b2"
+      },
+      "fonts/fraunces-300i.woff2": {
+        "from": "dist/documentation/fonts/fraunces-300i.woff2",
+        "sha256": "74cb64bfa9b1ce23f22cc323a0ab39430389e23c2e07446d05377c7a33296ca5"
+      },
+      "fonts/fraunces-400i.woff2": {
+        "from": "dist/documentation/fonts/fraunces-400i.woff2",
+        "sha256": "475b154af19c6b4ef371db22078b5044a078ce2467e11ef22a7b87f77837caf3"
+      }
+    }
+  }
+}

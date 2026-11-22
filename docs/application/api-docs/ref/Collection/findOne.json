@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/findOne",
+  "title": "Collection.findOne",
+  "namespace": "Collection",
+  "name": "findOne",
+  "signature": "findOne(request?: FindRequest, input?: QueryOptions<T>): Promise<T | undefined>",
+  "description": "First matching document or undefined; effective limit is one",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "request",
+      "type": "FindRequest",
+      "optional": true,
+      "rest": false
+    },
+    {
+      "name": "input",
+      "type": "QueryOptions<T>",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<T | undefined>"
+  },
+  "markdown": "findOne.md"
+}

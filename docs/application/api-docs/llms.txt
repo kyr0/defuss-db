@@ -1,0 +1,95 @@
+# defuss-db API
+
+> The API reference of defuss-db 3.1.0, a document database for the browser, Node.js and Bun: guides, then every documented function and method with its signature. Each link is a Markdown page; the same path with .json is its data.
+
+## Guides
+
+- [Introduction](guides/introduction.md)
+- [Historical collections](guides/historical-collections.md)
+- [Timestamps](guides/timestamps.md)
+- [Opening](guides/opening.md)
+- [Database](guides/database.md)
+- [Collection mutations](guides/collection-mutations.md)
+- [Collection reads](guides/collection-reads.md)
+- [MongoDB syntax and schemas](guides/mongodb-syntax-and-schemas.md)
+- [Errors](guides/errors.md)
+- [Archives and result caching](guides/archives-and-result-caching.md)
+
+## Reference
+
+- [Reference](ref/index.md)
+- [Opening](ref/Opening.md)
+- [openMemory](ref/Opening/openMemory.md) - `openMemory(options?: OpenOptions): Promise<Database>`
+- [openDatabase](ref/Opening/openDatabase.md) - `openDatabase(backend: Backend, options?: OpenOptions): Promise<Database>`
+- [openDirectory](ref/Opening/openDirectory.md) - `openDirectory(directory: string, options?: DirectoryOptions): Promise<Database>`
+- [openOPFS](ref/Opening/openOPFS.md) - `openOPFS(options?: BrowserOptions): Promise<Database>`
+- [Database](ref/Database.md)
+- [Database.collection](ref/Database/collection.md) - `collection<T extends Document = Document>(collection: string): Collection<T>`
+- [Database.ensureCollection](ref/Database/ensureCollection.md) - `ensureCollection<T extends Document = Document>(collection: string, options?: CollectionOptions): Promise<Collection<T>>`
+- [Database.collections](ref/Database/collections.md) - `collections(): Promise<string[]>`
+- [Database.transaction](ref/Database/transaction.md) - `transaction<R>(callback: (tx: DatabaseTransaction) => R | Promise<R>, options?: WriteOptions): Promise<TransactionResult<R>>`
+- [Database.snapshot](ref/Database/snapshot.md) - `snapshot(): Promise<DatabaseSnapshot>`
+- [Database.export](ref/Database/export.md) - `export(options?: ExportOptions): Promise<Uint8Array>`
+- [Database.exportStream](ref/Database/exportStream.md) - `exportStream(options?: ExportOptions): AsyncGenerator<Uint8Array>`
+- [Database.import](ref/Database/import.md) - `import(input: ArchiveInput, options?: ImportOptions): Promise<ImportResult>`
+- [Database.queryCacheStats](ref/Database/queryCacheStats.md) - `queryCacheStats(): QueryCacheStats | undefined`
+- [Database.clearQueryCache](ref/Database/clearQueryCache.md) - `clearQueryCache(): void`
+- [Database.stats](ref/Database/stats.md) - `stats(): Promise<{`
+- [Database.verify](ref/Database/verify.md) - `verify(): Promise<{`
+- [Database.compact](ref/Database/compact.md) - `compact(options?: Parameters<Dbsonl<unknown>['compact']>[0]): ReturnType<Dbsonl<unknown>['compact']>`
+- [Database.collect](ref/Database/collect.md) - `collect(): ReturnType<Dbsonl<unknown>['collect']>`
+- [Database.close](ref/Database/close.md) - `close(): Promise<void>`
+- [Collection](ref/Collection.md)
+- [Collection.insert](ref/Collection/insert.md) - `insert(value: NewDocument<T>, options?: WriteOptions): Promise<PrimaryKey>`
+- [Collection.insertMany](ref/Collection/insertMany.md) - `insertMany(values: readonly NewDocument<T>[], options?: WriteOptions): Promise<PrimaryKey[]>`
+- [Collection.insertBatches](ref/Collection/insertBatches.md) - `insertBatches(batches: AsyncIterable<readonly NewDocument<T>[]> | Iterable<readonly NewDocument<T>[]>, options?: WriteOptions): AsyncGenerator<{`
+- [Collection.put](ref/Collection/put.md) - `put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey>`
+- [Collection.update](ref/Collection/update.md) - `update(id: PrimaryKey, updater: Updater<T>, options?: WriteOptions): Promise<boolean>`
+- [Collection.delete](ref/Collection/delete.md) - `delete(id: PrimaryKey, options?: WriteOptions): Promise<boolean>`
+- [Collection.restore](ref/Collection/restore.md) - `restore(id: PrimaryKey, options?: Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise<boolean>`
+- [Collection.updateMany](ref/Collection/updateMany.md) - `updateMany(request: FindRequest, updater: Updater<T>, options?: WriteOptions & QueryOptions<T>): Promise<number>`
+- [Collection.deleteMany](ref/Collection/deleteMany.md) - `deleteMany(request?: FindRequest, options?: WriteOptions & QueryOptions<T>): Promise<number>`
+- [Collection.createIndex](ref/Collection/createIndex.md) - `createIndex(index: IndexDefinition, options?: WriteOptions): Promise<void>`
+- [Collection.createSearchIndex](ref/Collection/createSearchIndex.md) - `createSearchIndex(index: SearchIndexDefinition, options?: WriteOptions): Promise<void>`
+- [Collection.dropSearchIndex](ref/Collection/dropSearchIndex.md) - `dropSearchIndex(indexName: string, options?: WriteOptions): Promise<boolean>`
+- [Collection.dropIndex](ref/Collection/dropIndex.md) - `dropIndex(indexName: string, options?: WriteOptions): Promise<boolean>`
+- [Collection.get](ref/Collection/get.md) - `get(id: PrimaryKey, options?: HistoryReadOptions): Promise<T | undefined>`
+- [Collection.at](ref/Collection/at.md) - `at(date: Date, options?: {`
+- [Collection.history](ref/Collection/history.md) - `history(id: PrimaryKey, options?: HistoryListOptions): Promise<HistorySegment<T>[]>`
+- [Collection.audit](ref/Collection/audit.md) - `audit(id: PrimaryKey, options?: HistoryListOptions): Promise<HistoryChange<T>[]>`
+- [Collection.getMany](ref/Collection/getMany.md) - `getMany(ids: readonly PrimaryKey[], options?: {`
+- [Collection.searchIndexes](ref/Collection/searchIndexes.md) - `searchIndexes(options?: HistoryReadOptions): Promise<SearchIndexDefinition[]>`
+- [Collection.search](ref/Collection/search.md) - `search(index: string, query: DocumentSearchQuery, options?: SearchRequest): Promise<DocumentSearchResult<T>>`
+- [Collection.has](ref/Collection/has.md) - `has(id: PrimaryKey, options?: HistoryReadOptions): Promise<boolean>`
+- [Collection.find](ref/Collection/find.md) - `find(request?: FindRequest, input?: QueryOptions<T>): Promise<T[]>`
+- [Collection.findOne](ref/Collection/findOne.md) - `findOne(request?: FindRequest, input?: QueryOptions<T>): Promise<T | undefined>`
+- [Collection.query](ref/Collection/query.md) - `query(request?: FindRequest, input?: QueryOptions<T>): Promise<ComputeResult<T>>`
+- [Collection.pageIdsByIndex](ref/Collection/pageIdsByIndex.md) - `pageIdsByIndex(index: string, options?: IndexPageOptions): Promise<IndexPage<T['id']>>`
+- [Collection.countByIndex](ref/Collection/countByIndex.md) - `countByIndex(index: string, options?: IndexCountOptions): Promise<number>`
+- [Collection.pageByIndex](ref/Collection/pageByIndex.md) - `pageByIndex(index: string, options?: IndexPageOptions): Promise<IndexPage<T>>`
+- [Collection.stream](ref/Collection/stream.md) - `stream(request?: FindRequest, input?: QueryOptions<T>): AsyncGenerator<ComputeEvent<T>>`
+- [Collection.count](ref/Collection/count.md) - `count(selection?: Selection, input?: QueryOptions<T>): Promise<number>`
+- [Collection.select](ref/Collection/select.md) - `select<const D extends RowsDescriptor>(descriptor: D, page?: Page, input?: QueryOptions<T>): Promise<ComputeResult<RowsOutput<D>>>`
+- [Collection.aggregate](ref/Collection/aggregate.md) - `aggregate<const D extends AggregateDescriptor>(descriptor: D, page?: Page, input?: QueryOptions<T>): Promise<ComputeResult<AggregateOutput<D>>>`
+- [Collection.view](ref/Collection/view.md) - `view<const D extends ViewDescriptor>(descriptor: D, page?: Page, input?: QueryOptions<T>): Promise<ViewResult<RowsOutput<D>, TotalsOutput<D>>>`
+- [Collection.prepareFind](ref/Collection/prepareFind.md) - `prepareFind(request?: FindRequest, cacheKey?: boolean): BoundQuery<T, T>`
+- [Collection.prepareSelect](ref/Collection/prepareSelect.md) - `prepareSelect<const D extends RowsDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery<T, RowsOutput<D>>`
+- [Collection.prepareAggregate](ref/Collection/prepareAggregate.md) - `prepareAggregate<const D extends AggregateDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery<T, AggregateOutput<D>>`
+- [Collection.prepareView](ref/Collection/prepareView.md) - `prepareView<const D extends ViewDescriptor>(descriptor: D, cacheKey?: boolean): BoundQuery<T, RowsOutput<D>, TotalsOutput<D>>`
+- [Collection.explain](ref/Collection/explain.md) - `explain(request?: FindRequest): Promise<{`
+- [Collection.source](ref/Collection/source.md) - `source(options?: HistoryReadOptions): RecordSource<T>`
+- [Collection.indexes](ref/Collection/indexes.md) - `indexes(options?: HistoryReadOptions): Promise<IndexDefinition[]>`
+- [Collection.q](ref/Collection/q.md) - `q: defuss_dataview_compute.ComputeFor<T>`
+- [Mongo](ref/Mongo.md)
+- [findMongo](ref/Mongo/findMongo.md) - `findMongo<T = Doc>(collection: MongoReadable, filter?: MongoDocument, options?: MongoFindOptions): Promise<T[]>`
+- [aggregateMongo](ref/Mongo/aggregateMongo.md) - `aggregateMongo<T = Doc>(collection: MongoAggregatable, pipeline: readonly Doc[] | string): Promise<T[]>`
+- [mongoRequest](ref/Mongo/mongoRequest.md) - `mongoRequest(q: unknown, filter?: MongoDocument, sort?: MongoDocument, options?: TranslateOptions): MongoRequest`
+- [translatePipeline](ref/Mongo/translatePipeline.md) - `translatePipeline(stages: readonly Doc[]): PipelinePlan`
+- [aggregateDescriptor](ref/Mongo/aggregateDescriptor.md) - `aggregateDescriptor(plan: PipelinePlan, q: unknown, options?: TranslateOptions): Doc`
+- [parseDocument](ref/Mongo/parseDocument.md) - `parseDocument(text: string, what?: string): Doc`
+- [parsePipeline](ref/Mongo/parsePipeline.md) - `parsePipeline(text: string): Doc[]`
+- [stringify](ref/Mongo/stringify.md) - `stringify(value: unknown, space?: number | string): string`
+- [revive](ref/Mongo/revive.md) - `revive(value: unknown): unknown`
+- [translateFilter](ref/Mongo/translateFilter.md) - `translateFilter(doc: Doc, q: Builders, options?: TranslateOptions): Translated`
+- [translateSort](ref/Mongo/translateSort.md) - `translateSort(doc: Doc): MongoSorter[]`
+- [project](ref/Mongo/project.md) - `project(doc: Doc, projection: Doc): Doc`

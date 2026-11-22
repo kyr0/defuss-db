@@ -1,0 +1,16 @@
+{
+  "kind": "method",
+  "route": "#/ref/Database/stats",
+  "title": "Database.stats",
+  "namespace": "Database",
+  "name": "stats",
+  "signature": "stats(): Promise<{\n    parallel?: ParallelStats | undefined;\n    storedEntries: number;\n    autoCompaction: AutoCompactStats;\n    generation: string;\n    committedBytes: number;\n    cacheBytes: number;\n    cachePages: number;\n    durability: Backend[\"durability\"];\n    revision: number;\n}>",
+  "description": "DBSONL metadata; storedEntries includes documents, schemas, indexes and marker; autoCompaction holds state, runs, conflicts, failures and reclaimedBytes; on directory stores, parallel holds state (idle, starting, ready, failed, closed), workers, minRows, queries, fallbacks, starts and, after a failed start, error",
+  "async": true,
+  "generator": false,
+  "params": [],
+  "returns": {
+    "type": "Promise<{\n        parallel?: ParallelStats | undefined;\n        storedEntries: number;\n        autoCompaction: AutoCompactStats;\n        generation: string;\n        committedBytes: number;\n        cacheBytes: number;\n        cachePages: number;\n        durability: Backend[\"durability\"];\n        revision: number;\n    }>"
+  },
+  "markdown": "stats.md"
+}
