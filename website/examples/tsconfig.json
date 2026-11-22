@@ -11,7 +11,8 @@
     "paths": {
       "defuss-db": ["../../src/index.ts"],
       "defuss-db/server": ["../../src/server.ts"],
-      "defuss-db/browser": ["../../src/browser.ts"]
+      "defuss-db/browser": ["../../src/browser.ts"],
+      "defuss-db/mongo": ["../../src/mongo.ts"]
     }
   },
   "include": ["*.ts"]

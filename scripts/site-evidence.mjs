@@ -1,12 +1,16 @@
 // Publishes measured evidence: copies output/ reports into docs/benchmarks and renders docs/PERFORMANCE.md
 // from them. `--check` renders from docs/benchmarks and fails when docs/PERFORMANCE.md differs, so the
-// published page can never drift from its raw samples. VERIFIED: rule docs.performance-evidence runs the check mode.
+// published page can never drift from its raw samples. `--keep-reports` updates the validation figures from output/
+// and renders from the reports already in docs/benchmarks, for a release that is not measured again.
+// VERIFIED: with --keep-reports, docs/benchmarks/{workloads,mongodb}-*.json stayed unchanged for 3.1.0.
+// VERIFIED: rule docs.performance-evidence runs the check mode.
 import assert from 'node:assert/strict';
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { formatMs, loadReports, lookup, operations, unreleased } from './workload-report.mjs';
 import { loadMongoReports, mongoRows } from './mongo-report.mjs';
 
-const check = process.argv.includes('--check');
+const check = process.argv.includes('--check'),
+  keep = process.argv.includes('--keep-reports');
 const json = async (path) => JSON.parse(await readFile(path, 'utf8'));
 const { version } = await json('package.json');
 let validation;
@@ -27,11 +31,13 @@ if (!check) {
     browserAssertions: e2e.browser.reduce((sum, r) => sum + r.assertions, 0),
     examples: e2e.examples.length,
   };
-  await loadReports('output');
-  await loadMongoReports('output');
-  for (const kind of ['workloads', 'mongodb'])
-    for (const runtime of ['node', 'bun'])
-      await copyFile(`output/${kind}-${runtime}.json`, `docs/benchmarks/${kind}-${runtime}.json`);
+  if (!keep) {
+    await loadReports('output');
+    await loadMongoReports('output');
+    for (const kind of ['workloads', 'mongodb'])
+      for (const runtime of ['node', 'bun'])
+        await copyFile(`output/${kind}-${runtime}.json`, `docs/benchmarks/${kind}-${runtime}.json`);
+  }
   await writeFile('docs/benchmarks/validation.json', JSON.stringify(validation, null, 2) + '\n');
 }
 const all = await loadReports('docs/benchmarks');
@@ -219,7 +225,7 @@ md.push(
   'Run `make bench-workloads` for the defuss-db workloads and `make bench-mongo` for the MongoDB comparison; the latter reads `MONGODB_URL`, creates a throwaway database and drops it afterwards. Values are medians of seven samples after two warmups. Each series starts once background compaction from earlier writes has finished; in the MongoDB comparison, the collection load includes it. Paired paths alternate order. Each runtime runs separately, one client at a time, except for the 32 concurrent writers. Timings are milliseconds per operation. For repeated point reads and single-document writes, each sample is elapsed time divided by its call count. A collection load is measured once. The JSON records every sample, iteration count and selected query plan.',
   '',
   ...all.map((r) => `- ${r.runtime} ${r.runtimeVersion} on ${r.platform} ${r.arch}, ${r.cpu}.`),
-  `- defuss-db ${all[0].version} with defuss-dataview ${all[0].dataviewVersion}.${(await unreleased()) ? ' Main has unreleased changes since; the next release measures again.' : ''}`,
+  `- defuss-db ${all[0].version} with defuss-dataview ${all[0].dataviewVersion}.${all[0].version !== version ? ` ${version} has not been measured again.` : (await unreleased()) ? ' Main has unreleased changes since; the next release measures again.' : ''}`,
   `- MongoDB ${mongoNode.server.version} (${mongoNode.server.storageEngine}, standalone: ${mongoNode.server.replicaSet ? 'no' : 'yes'}) on the same machine.`,
   `- One-minute host load average during the MongoDB comparison (Node.js): ${mongoNode.loadAverage[0].toFixed(1)} at the start and ${mongoNode.loadAverageEnd[0].toFixed(1)} at the end, on ${mongoNode.cpuCount} cores; other processes on the host share them.`,
   '',

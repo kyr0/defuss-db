@@ -1,4 +1,4 @@
-# defuss-db 3.0.0
+# defuss-db 3.1.0
 
 > Embedded TypeScript document database and single-machine alternative to MongoDB. One API for dedicated browser workers (OPFS), Node.js and Bun (directory) and memory. No server, replication, sharding or federation.
 

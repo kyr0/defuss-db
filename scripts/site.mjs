@@ -134,7 +134,13 @@ const context = feedCaption(
 const mongoReports = await loadMongoReports('docs/benchmarks');
 const mongo = mongoReports.find((r) => r.runtime === 'Node');
 const txn = mongo.capabilities.mongodbMultiDocumentTransactions;
-const mongoContext = `Measured on ${escape(mongo.cpu)} (${escape(mongo.platform)} ${escape(mongo.arch)}) against MongoDB ${escape(mongo.server.version)}, a standalone ${escape(mongo.server.storageEngine)} server on the same machine, through driver ${escape(mongo.mongodbDriver)}. Reads run on warm caches; median of seven samples after two warmups; the collection load is a single run.`;
+// Reports measured on an earlier release name it (scripts/workload-report.mjs measuredEarlier).
+// VERIFIED: docs/index.html for 3.1.0 says the numbers were measured with defuss-db 3.0.0.
+const release = (r) =>
+  r.version === version
+    ? ''
+    : `Measured with defuss-db ${escape(r.version)}${r.dataviewVersion ? ` and defuss-dataview ${escape(r.dataviewVersion)}` : ''}; ${escape(version)} has not been measured again. `;
+const mongoContext = `${release(mongo)}Measured on ${escape(mongo.cpu)} (${escape(mongo.platform)} ${escape(mongo.arch)}) against MongoDB ${escape(mongo.server.version)}, a standalone ${escape(mongo.server.storageEngine)} server on the same machine, through driver ${escape(mongo.mongodbDriver)}. Reads run on warm caches; median of seven samples after two warmups; the collection load is a single run.`;
 const template = await withExamples(await read('website/index.html'));
 await writeFile(
   'docs/index.html',
@@ -156,6 +162,7 @@ await writeFile(
       JSON.stringify(mongoChartData(mongoReports)).replaceAll('<', '\\u003c'),
     )
     .replace('@@MONGO_CONTEXT@@', mongoContext)
+    .replace('@@BENCH_RELEASE@@', release(initial))
     .replace(
       '@@MONGO_TXN@@',
       txn.supported

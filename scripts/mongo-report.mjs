@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { formatMs } from '../docs/assets/bench-format.js';
-import { assertPinnedRuntime } from './workload-report.mjs';
+import { assertPinnedRuntime, measuredEarlier } from './workload-report.mjs';
 import { pairedRatio, verdict } from './bench-stats.mjs';
 
 // [workload, label, defuss-db systems, MongoDB reference system for the ratio]
@@ -71,7 +71,7 @@ export async function loadMongoReports(directory) {
       );
       assert.equal(report.runtime, runtime);
       await assertPinnedRuntime(report);
-      assert.equal(report.version, pkg.version);
+      measuredEarlier(report.version, pkg.version);
       assert.equal(report.mongodbDriver, pkg.devDependencies.mongodb);
       assert.equal(report.repeats, 7);
       assert.equal(report.warmups, 2);

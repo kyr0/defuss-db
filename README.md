@@ -1,4 +1,4 @@
-# defuss-db 3.0.0
+# defuss-db 3.1.0
 
 An embedded document database for JavaScript. The same API stores collections in a dedicated browser worker (OPFS), in a Node.js 26+ or Bun 1.4.4+ directory, or in memory. It is an alternative to MongoDB for applications whose data lives on one machine: a transaction commits several collections together, a reader sees one snapshot, and a directory commit returns after it is flushed. defuss-db runs inside your process; it has no server and does not replicate, shard or federate. [Compared with MongoDB](docs/PERFORMANCE.md#compared-with-mongodb-on-one-machine)
 

@@ -74,6 +74,19 @@ export async function unreleased() {
     ((await readFile('CHANGELOG.md', 'utf8')).match(/^## .*$/m) ?? [''])[0],
   );
 }
+/**
+ * Reports may come from an earlier release than package.json; the site then names the measured release instead of
+ * measuring again under load (human decision 2026-11-22). Returns whether the report is older; a newer one fails.
+ * VERIFIED: make site renders 3.1.0 with the 3.0.0 reports and labels them (docs/index.html, docs/PERFORMANCE.md).
+ */
+export function measuredEarlier(reportVersion, current) {
+  const parse = (v) => String(v).split('.').map(Number);
+  const [a, b] = [parse(reportVersion), parse(current)];
+  assert.ok(a.length === 3 && a.every(Number.isInteger), `report version ${reportVersion}`);
+  const order = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  assert.ok(order <= 0, `report version ${reportVersion} is newer than package.json ${current}`);
+  return order < 0;
+}
 export async function loadReports(directory) {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
   const between = await unreleased();
@@ -84,8 +97,9 @@ export async function loadReports(directory) {
       );
       assert.equal(report.runtime, runtime);
       await assertPinnedRuntime(report);
-      assert.equal(report.version, pkg.version);
-      if (!between) assert.equal(report.dataviewVersion, pkg.dependencies['defuss-dataview']);
+      const earlier = measuredEarlier(report.version, pkg.version);
+      if (!between && !earlier)
+        assert.equal(report.dataviewVersion, pkg.dependencies['defuss-dataview']);
       assert.equal(report.warmups, 2);
       assert.equal(report.repeats, 7);
       assert.equal(report.historyFixture.documents, 256);

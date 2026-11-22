@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 3.1.0
 
-On main, planned as 3.1.0. The version moves when its benchmarks are measured.
+The benchmarks on the website and in docs/PERFORMANCE.md were measured on 3.0.0; this release was not measured again.
 
 - Calendar, text and distinct aggregates from defuss-dataview 0.8.0 and 0.9.0: `dateTrunc` and `datePart` in UTC or an IANA time zone, `epochMs` for durations between Dates, string functions, `cond` and rounding for group keys, `each` for one group per array element (as MongoDB's `$unwind`), and `countDistinct`, `distinct`, `percentile` and `median` measures. Query workers merge them, so a monthly aggregate with distinct buyers and a median runs in worker threads.
 - Opt-in timestamps: `ensureCollection(name, { $timestamps: true })` sets `_createdAt` and `_updatedAt` as Dates on every write, from one time per transaction (in tracked collections the history clock, so `_updatedAt` equals the version's `from`). Existing documents are stamped in resumable batches; `verify()` checks the stamps.

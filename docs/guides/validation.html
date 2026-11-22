@@ -9,7 +9,7 @@
 </thead>
 <tbody><tr>
 <td>Unit/integration requirements</td>
-<td>137 tests using real memory and native file storage</td>
+<td>183 tests using real memory and native file storage</td>
 </tr>
 <tr>
 <td>Temporal invariants</td>
@@ -109,7 +109,7 @@
 </tr>
 </tbody></table>
 <p>The browser test ran under a same-origin CSP on localhost with <code>script-src &#39;self&#39; &#39;wasm-unsafe-eval&#39;</code> for Brotli WASM, without JavaScript <code>unsafe-eval</code>. The execution environment required the serverless headless shell with single-process browser mode; it still uses real dedicated workers, OPFS and Web Locks. This validates competing workers, not separate browser processes. The release&#39;s e2e script also supports a normal Playwright browser. Browser launch arguments are recorded in <code>output/e2e-results.json</code>.</p>
-<p>Coverage is measured by the Node integration suite; it does not fabricate browser coverage. The final run measured 92.99% line coverage and 87.69% branch coverage. The exact values are in <code>output/coverage/coverage-summary.json</code>. TypeScript checks and oxlint run with warnings treated as failures.</p>
+<p>Coverage is measured by the Node integration suite; it does not fabricate browser coverage. The final run measured 93.84% line coverage and 88.35% branch coverage. The exact values are in <code>output/coverage/coverage-summary.json</code>. TypeScript checks and oxlint run with warnings treated as failures.</p>
 <p>Not established by these runs: physical power loss, disk-full fault injection, Windows native execution, Firefox/WebKit OPFS behavior, network filesystems, hostile writers, multi-origin browser storage, or distributed use. On macOS a 4 KiB write plus defuss-storage flush took about 4 ms under Node.js and under Bun (<a href="performance.html#compared-with-mongodb-on-one-machine">MongoDB comparison</a>): under both runtimes it asks the drive to empty its write cache (<code>F_FULLFSYNC</code>). Server and browser durability differ as reported by their backends. SIGKILL tests establish process-interruption behavior for exercised timings, not an exhaustive crash-point proof.</p>
 <p><code>make verify</code> runs the complete release gate. <code>make release</code> depends on that gate, then creates the archive with a fresh filename and per-file SHA-256 inventory. Release packaging compares query access paths within each backend, measures search and history, and compares DataView arrays only with in-memory collections, rebuilds the static site from the matching evidence and confirms the downloadable tarball matches the distributed package.</p>
 </article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="api.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

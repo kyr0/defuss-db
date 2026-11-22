@@ -7,17 +7,10 @@ Session start injects the 3 newest open entries: LESSON, FINDING learn=none, FAI
 Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC, then delete; OR delete BC evidence. -->
 
 2026-11-19T22:12:27Z s=19560c1d FINDING scripts/serve-site.mjs learn=none: observability fix (error handler exits 1 with an ISO-8601 ERROR line, SIGTERM closes cleanly), observed via make start/status/stop/log; no rule kind expresses i
-2026-11-20T00:12:34Z s=19560c1d FINDING scripts/site-evidence.mjs (warm cache sentence) learn=memory: wording only
-2026-11-20T19:40:17Z s=19560c1d FAIL tests.e2e.1,docs.performance-evidence
-2026-11-20T20:18:30Z s=19560c1d DONE fp=51f06e40c707 cov=92.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+91)
 2026-11-20T20:18:30Z s=19560c1d FINDING src/server.ts:DirectoryOptions.parallel, src/types.ts:ReadContext.parallel learn=none: the docs gate already enforces the prefix
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/assets/site.js:86 (displayMongo comment) learn=none: the docs gate already enforces the prefix
-2026-11-20T20:18:30Z s=19560c1d FINDING src/source.ts:createDocumentSource learn=test: tests/batches.test.ts checks every key once and in order across the bounded first scan and in dbsonl worker threads, and that aggregates and first pages equal o
-2026-11-20T20:18:30Z s=19560c1d FINDING src/query-pool.ts:stop learn=test: scripts/e2e.mjs packed ESM and CommonJS consumers close a database with running query workers at top level under Node and Bun; a hang fails them
 2026-11-20T20:18:30Z s=19560c1d FINDING src/query-pool.ts:createQueryPool (worker 'error' listener) learn=none: no cheap way to inject an uncaught exception into the packaged worker without a test-only hook; the main error path (a failing partial) is covered by the maxGro
 2026-11-20T20:18:30Z s=19560c1d FINDING src/query-pool.ts:start learn=none: cause not reproduced; the recorded error makes the next occurrence diagnosable
-2026-11-20T20:18:30Z s=19560c1d FINDING scripts/bench-mongo.mjs:flushProbe learn=memory: .vae/MEMORY.md flush line: probes must go through defuss-storage
-2026-11-20T20:18:30Z s=19560c1d FINDING website/index.html:127, scripts/check-site.mjs learn=verifier: scripts/check-site.mjs fails the site build when a claim of the comparison paragraph stops matching docs/benchmarks/mongodb-node.json
 2026-11-20T20:18:30Z s=19560c1d FINDING scripts/bench-mongo.mjs:121, scripts/bench-history.mjs:settled learn=memory: .vae/MEMORY.md bench fairness line covers waiting for background state before timing
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/OPERATIONS.md: Answer aggregates in worker threads, rule S (style) learn=none: one-off wording; vae.py prose passes
 2026-11-20T20:18:30Z s=19560c1d FINDING docs/assets/site.js:displayMongo (ratio chart) learn=none: label collisions inside a canvas are visual; scripts/e2e-site.mjs checks that every chart renders and the page has no horizontal overflow, not label geometry
@@ -106,3 +99,10 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-22T01:19:59Z s=19560c1d FINDING src/mongo-query.ts:rules comment, docs/API.md learn=memory: .vae/MEMORY.md planner line; test asserts equality access for an indexed equality
 2026-11-22T01:36:45Z s=19560c1d FAIL release.version-sync
 2026-11-22T01:41:52Z s=19560c1d DONE fp=3fbf50dcb581 cov=93.8% paths=CHANGELOG.md,README.md,bun.lock,docs/API.md(+17)
+2026-11-22T02:28:34Z s=19560c1d DONE fp=6d12a7fb85dc cov=93.8% paths=CHANGELOG.md,README.md,docs/PERFORMANCE.md,docs/VALIDATION.md(+13)
+2026-11-22T02:28:34Z s=19560c1d FINDING scripts/workload-report.mjs:loadReports, scripts/mongo-report.mjs:loadMongoReports learn=verifier: make site and the docs.performance-evidence rule run loadReports/loadMongoReports on every gate
+2026-11-22T02:28:34Z s=19560c1d FINDING scripts/site.mjs:release, scripts/site-evidence.mjs learn=verifier: node scripts/site-evidence.mjs --check passes on the rendered page
+2026-11-22T02:28:34Z s=19560c1d FINDING website/index.html:#mongodb comparison table learn=none: page text; tests/mongo.test.ts covers the refusals
+2026-11-22T02:28:34Z s=19560c1d FINDING website/index.html:#mongodb-queries Indexes term learn=memory: .vae/MEMORY.md planner line
+2026-11-22T02:28:34Z s=19560c1d FINDING website/examples/mongo.ts learn=verifier: make lint typechecks website/examples
+2026-11-22T02:28:34Z s=19560c1d FINDING website/index.html layout learn=none: scripts/e2e-site.mjs covers every page in the gate

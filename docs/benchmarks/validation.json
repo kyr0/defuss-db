@@ -1,8 +1,8 @@
 {
-  "version": "3.0.0",
-  "tests": 137,
-  "lines": 92.99,
-  "branches": 87.69,
+  "version": "3.1.0",
+  "tests": 183,
+  "lines": 93.84,
+  "branches": 88.35,
   "browser": "153.0.8010.12",
   "browserScenarios": 8,
   "browserAssertions": 62,
