@@ -332,6 +332,7 @@ make dev         # serve docs, API reference and the Ledger playground at http:/
 make site        # regenerate the static docs/ site and validate local links
 make bench-workloads # same-backend index, scan and insert measurements on Node and Bun
 make bench-mongo     # same-machine comparison with the MongoDB at MONGODB_URL
+make bench-runs      # both, in 8 runs (RUNS); keeps the least disturbed run per workload for the website
 make bench-search    # lexical, vector and hybrid queries
 make verify          # typecheck, lint, tests, coverage, packaged consumers, Chromium OPFS and every site page
 make release         # complete source ZIP and installable package

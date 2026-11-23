@@ -2,7 +2,7 @@
 
 ## 3.2.0
 
-The benchmarks on the website and in docs/PERFORMANCE.md were measured on 3.0.0; this release was not measured again.
+The benchmarks on the website and in docs/PERFORMANCE.md were measured on this release. Each workload is published from the least disturbed of eight runs (`make bench-runs`): on the shared benchmark host, the median of a series differed between single runs by a typical factor of 1.4 to 1.6. VERIFIED (probe, 2026-11-23): the published 3.1.0 package, measured between those runs, differed from this release by about 1% in the median over all series.
 
 - `analyzeSchema` and `inferSchema` suggest higher-order types for string fields whose sampled values hold no whitespace: `enum` with the distinct values, `format: 'path'` when a value holds `/`, `format: 'uri'` when every value is a URL with `://`. A value that ends in two or more digits or more than 1,000 distinct values rule an enum out, and a document's own `id` is never one. `{ higherOrder: false }` answers the schema of 3.1.0.
 - `collection.setSchema(schema)` sets a reviewed JSON Schema: later inserts, replacements and updates validate against it and reject with a `ValidationError` (`VALIDATION_FAILED`) that names each violated rule by JSON Pointer. Stored documents are not checked; `setSchema` answers a bounded check with a `warning`, and `validateDocument(id)` and `validateCollection({ limit })` repeat it. `schema()` reads the schema, `setSchema(null)` removes it.

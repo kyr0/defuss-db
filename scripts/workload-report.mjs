@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { assertMerged } from './bench-merge.mjs';
 export { formatMs } from '../docs/assets/bench-format.js';
 
 export const operations = [
@@ -92,10 +93,11 @@ export async function loadReports(directory) {
   const between = await unreleased();
   return Promise.all(
     ['Node', 'Bun'].map(async (runtime) => {
-      const report = JSON.parse(
-        await readFile(directory + '/workloads-' + runtime.toLowerCase() + '.json', 'utf8'),
-      );
+      const name = 'workloads-' + runtime.toLowerCase();
+      const report = JSON.parse(await readFile(directory + '/' + name + '.json', 'utf8'));
       assert.equal(report.runtime, runtime);
+      // Each workload comes from the least disturbed of the runs in `directory`/runs (scripts/bench-merge.mjs).
+      await assertMerged(directory, name, report);
       await assertPinnedRuntime(report);
       const earlier = measuredEarlier(report.version, pkg.version);
       if (!between && !earlier)

@@ -1,13 +1,14 @@
-// Publishes measured evidence: copies output/ reports into docs/benchmarks and renders docs/PERFORMANCE.md
-// from them. `--check` renders from docs/benchmarks and fails when docs/PERFORMANCE.md differs, so the
+// Publishes measured evidence: copies the reports of `make bench-runs` and their runs from output/ into
+// docs/benchmarks and renders docs/PERFORMANCE.md from them. `--check` renders from docs/benchmarks and fails when docs/PERFORMANCE.md differs, so the
 // published page can never drift from its raw samples. `--keep-reports` updates the validation figures from output/
 // and renders from the reports already in docs/benchmarks, for a release that is not measured again.
 // VERIFIED: with --keep-reports, docs/benchmarks/{workloads,mongodb}-*.json stayed unchanged for 3.1.0.
 // VERIFIED: rule docs.performance-evidence runs the check mode.
 import assert from 'node:assert/strict';
-import { readFile, writeFile, copyFile } from 'node:fs/promises';
+import { readFile, writeFile, copyFile, mkdir, rm } from 'node:fs/promises';
 import { formatMs, loadReports, lookup, operations, unreleased } from './workload-report.mjs';
 import { loadMongoReports, mongoRows } from './mongo-report.mjs';
+import { REPORTS, readRuns, runSpread } from './bench-merge.mjs';
 
 const check = process.argv.includes('--check'),
   keep = process.argv.includes('--keep-reports');
@@ -34,14 +35,32 @@ if (!check) {
   if (!keep) {
     await loadReports('output');
     await loadMongoReports('output');
-    for (const kind of ['workloads', 'mongodb'])
-      for (const runtime of ['node', 'bun'])
-        await copyFile(`output/${kind}-${runtime}.json`, `docs/benchmarks/${kind}-${runtime}.json`);
+    // The runs travel with the reports: every later check merges them again (scripts/bench-merge.mjs assertMerged).
+    await rm('docs/benchmarks/runs', { recursive: true, force: true });
+    for (const name of REPORTS) {
+      await copyFile(`output/${name}.json`, `docs/benchmarks/${name}.json`);
+      for (let run = 1; run <= (await json(`output/${name}.json`)).runs.count; run++) {
+        await mkdir(`docs/benchmarks/runs/${run}`, { recursive: true });
+        await copyFile(`output/runs/${run}/${name}.json`, `docs/benchmarks/runs/${run}/${name}.json`);
+      }
+    }
   }
   await writeFile('docs/benchmarks/validation.json', JSON.stringify(validation, null, 2) + '\n');
 }
 const all = await loadReports('docs/benchmarks');
 const mongo = await loadMongoReports('docs/benchmarks');
+const runCount = all[0].runs.count;
+for (const report of [...all, ...mongo])
+  assert.equal(report.runs.count, runCount, 'Every report comes from the same `make bench-runs`.');
+// How far the runs lie apart, per report: the reason a single run is not published as it is.
+const spread = Object.fromEntries(
+  await Promise.all(
+    REPORTS.map(async (name) => [
+      name,
+      runSpread(await readRuns('docs/benchmarks', name, runCount)).toFixed(1),
+    ]),
+  ),
+);
 const row = (cells) => '| ' + cells.join(' | ') + ' |';
 const md = [
   '# Query, search and storage benchmarks',
@@ -127,7 +146,7 @@ md.push(
           `at ${c.size.toLocaleString('en-US')} documents it finished ${(c.settleMs / 1000).toFixed(1)} s after the last commit, after ${c.runs} copies that reclaimed ${Math.round(c.reclaimedBytes / 2 ** 20)} MiB, and left ${Math.round(c.committedBytes / 2 ** 20)} MiB on disk`,
       )
       .join('; ') +
-    ' (Node.js).',
+    ' (first Node.js run).',
   '',
   (() => {
     const largest = Math.max(...node.sizes);
@@ -138,11 +157,11 @@ md.push(
       `At ${largest.toLocaleString('en-US')} documents defuss-db then held ${mib(w.defussCacheBytes)} MiB of decoded tree pages in ${w.defussCachePages.toLocaleString('en-US')} cache entries, including pages of generations that background compaction had replaced; it does not cache document values, which it reads from the file and decodes on every scan. ` +
       (w.mongodbCacheBytes === null
         ? 'MongoDB did not report its cache use.'
-        : `MongoDB's WiredTiger cache held ${mib(w.mongodbCacheBytes).toLocaleString('en-US')} MiB of its ${mib(node.server.cacheBytes).toLocaleString('en-US')} MiB limit (Node.js run).`)
+        : `MongoDB's WiredTiger cache held ${mib(w.mongodbCacheBytes).toLocaleString('en-US')} MiB of its ${mib(node.server.cacheBytes).toLocaleString('en-US')} MiB limit (first Node.js run).`)
     );
   })(),
   '',
-  `A 4 KiB write followed by a defuss-storage flush took ${formatMs(node.flushProbe.medianMs)} ms under Node.js and ${formatMs(bun.flushProbe.medianMs)} ms under Bun on the benchmark machine.` +
+  `A 4 KiB write followed by a defuss-storage flush took ${formatMs(node.flushProbe.medianMs)} ms under Node.js and ${formatMs(bun.flushProbe.medianMs)} ms under Bun on the benchmark machine, each in the run with the fastest flush.` +
     (node.platform === 'darwin'
       ? ' On macOS, defuss-storage asks the drive to empty its write cache (`F_FULLFSYNC`) under both runtimes, as MongoDB `j: true` waits for its journal flush.'
       : ''),
@@ -222,12 +241,13 @@ md.push(
   '',
   '## Reproduce the measurements',
   '',
-  'Run `make bench-workloads` for the defuss-db workloads and `make bench-mongo` for the MongoDB comparison; the latter reads `MONGODB_URL`, creates a throwaway database and drops it afterwards. Values are medians of seven samples after two warmups. Each series starts once background compaction from earlier writes has finished; in the MongoDB comparison, the collection load includes it. Paired paths alternate order. Each runtime runs separately, one client at a time, except for the 32 concurrent writers. Timings are milliseconds per operation. For repeated point reads and single-document writes, each sample is elapsed time divided by its call count. A collection load is measured once. The JSON records every sample, iteration count and selected query plan.',
+  `Run \`make bench-runs\`. It repeats the MongoDB comparison (\`make bench-mongo\`, which reads \`MONGODB_URL\`, creates a throwaway database and drops it afterwards) and the defuss-db workloads (\`make bench-workloads\`) in ${runCount} separate runs under each runtime. Each workload is published from the run that other processes on the host disturbed least: the run with the lowest geometric mean of that workload's medians. Every path and system of a workload comes from that one run, so their comparison stays paired. Values are medians of seven samples after two warmups in that run. Each series starts once background compaction from earlier writes has finished; in the MongoDB comparison, the collection load includes it. Paired paths alternate order. Each runtime runs separately, one client at a time, except for the 32 concurrent writers. Timings are milliseconds per operation. For repeated point reads and single-document writes, each sample is elapsed time divided by its call count. A collection load has no warmup: each of its ${mongoNode.fixture.loadRounds} rounds loads a fresh store once. The JSON records every sample, iteration count, selected query plan and the run each result comes from; the repository's \`docs/benchmarks/runs/\` holds every run.`,
   '',
   ...all.map((r) => `- ${r.runtime} ${r.runtimeVersion} on ${r.platform} ${r.arch}, ${r.cpu}.`),
   `- defuss-db ${all[0].version} with defuss-dataview ${all[0].dataviewVersion}.${all[0].version !== version ? ` ${version} has not been measured again.` : (await unreleased()) ? ' Main has unreleased changes since; the next release measures again.' : ''}`,
   `- MongoDB ${mongoNode.server.version} (${mongoNode.server.storageEngine}, standalone: ${mongoNode.server.replicaSet ? 'no' : 'yes'}) on the same machine.`,
-  `- One-minute host load average during the MongoDB comparison (Node.js): ${mongoNode.loadAverage[0].toFixed(1)} at the start and ${mongoNode.loadAverageEnd[0].toFixed(1)} at the end, on ${mongoNode.cpuCount} cores; other processes on the host share them.`,
+  `- Between the ${runCount} runs, the median of a series differed by a typical factor of ${spread['workloads-node']} (Node.js) and ${spread['workloads-bun']} (Bun) in the defuss-db workloads, and of ${spread['mongodb-node']} and ${spread['mongodb-bun']} in the MongoDB comparison. The published runs are the least disturbed of them, not undisturbed ones.`,
+  `- One-minute host load average at the start of the MongoDB comparison runs (Node.js): ${Math.min(...mongoNode.runs.measured.map((m) => m.loadStart)).toFixed(1)} to ${Math.max(...mongoNode.runs.measured.map((m) => m.loadStart)).toFixed(1)}, on ${mongoNode.cpuCount} cores; other processes on the host share them.`,
   '',
   '[Node samples](benchmarks/workloads-node.json) · [Bun samples](benchmarks/workloads-bun.json) · [MongoDB comparison, Node](benchmarks/mongodb-node.json) · [MongoDB comparison, Bun](benchmarks/mongodb-bun.json)',
   '',
@@ -237,7 +257,7 @@ if (check) {
   const published = await readFile('docs/PERFORMANCE.md', 'utf8');
   if (published !== page) {
     console.error(
-      'docs/PERFORMANCE.md differs from docs/benchmarks/*.json; run `node scripts/site-evidence.mjs` after `make verify bench-workloads bench-mongo`.',
+      'docs/PERFORMANCE.md differs from docs/benchmarks/*.json; run `node scripts/site-evidence.mjs` after `make verify bench-runs`.',
     );
     process.exit(1);
   }

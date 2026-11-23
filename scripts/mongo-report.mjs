@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { formatMs } from '../docs/assets/bench-format.js';
 import { assertPinnedRuntime, measuredEarlier } from './workload-report.mjs';
+import { assertMerged } from './bench-merge.mjs';
 import { pairedRatio, verdict } from './bench-stats.mjs';
 
 // [workload, label, defuss-db systems, MongoDB reference system for the ratio]
@@ -66,10 +67,10 @@ export async function loadMongoReports(directory) {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
   return Promise.all(
     ['Node', 'Bun'].map(async (runtime) => {
-      const report = JSON.parse(
-        await readFile(`${directory}/mongodb-${runtime.toLowerCase()}.json`, 'utf8'),
-      );
+      const name = 'mongodb-' + runtime.toLowerCase();
+      const report = JSON.parse(await readFile(`${directory}/${name}.json`, 'utf8'));
       assert.equal(report.runtime, runtime);
+      await assertMerged(directory, name, report);
       await assertPinnedRuntime(report);
       measuredEarlier(report.version, pkg.version);
       assert.equal(report.mongodbDriver, pkg.devDependencies.mongodb);

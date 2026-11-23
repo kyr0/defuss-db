@@ -154,7 +154,7 @@
 <p>The first index field locates the tenant. The second already orders its events by descending score. The reader examines 20 results and one lookahead. A collection scan visits all 4,096 events.</p>
 <div class="chart db-chart" id="bench-chart" role="img" aria-label="@@BENCH_CONTEXT@@"></div>
 <p class="db-compare-caption" id="bench-context" aria-live="polite">@@BENCH_CONTEXT@@</p>
-<p class="db-cap">Median of seven samples, two warmups, result cache off. Directory reads use a warm filesystem cache.</p>
+<p class="db-cap">Each workload from the least disturbed of @@BENCH_RUNS@@ runs: median of seven samples, two warmups, result cache off. Directory reads use a warm filesystem cache.</p>
 <p class="db-write-cost">Committing 64 new events took <strong id="insert-indexed">@@INDEXED_INSERT@@</strong> with the compound index and <strong id="insert-plain">@@PLAIN_INSERT@@</strong> with primary keys alone.</p>
 </div>
 <div class="db-bench-query"><h3>Search for five ranked documents</h3>

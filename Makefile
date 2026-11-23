@@ -20,7 +20,7 @@ LOG    = var/log/$(NAME)
 PID    = tmp/$(NAME).pid
 ALIVE  = [ -f $(PID) ] && kill -0 "$$(cat $(PID))" 2>/dev/null
 .PHONY: help setup build lint test coverage e2e e2e-package e2e-site verify start stop restart status log metrics \
-	bench bench-workloads bench-history bench-mongo bench-search site site-check dev release clean example
+	bench bench-workloads bench-history bench-mongo bench-runs bench-search site site-check dev release clean example
 
 help: ## list the verbs with their usage
 	@awk -F':.*## ' '/^[a-zA-Z0-9_ -]+:.*## /{printf "  %-16s %s\n", $$1, $$2}' $(firstword $(MAKEFILE_LIST))
@@ -74,6 +74,17 @@ bench-workloads bench-history: build ## measure the published workloads under No
 bench-mongo: build ## compare defuss-db with the MongoDB at MONGODB_URL under Node and Bun (output/mongodb-*.json)
 	$(NODE) scripts/bench-mongo.mjs
 	$(BUN) scripts/bench-mongo.mjs
+# Other processes on the host slow a whole run down; scripts/bench-merge.mjs keeps the least disturbed run per
+# workload. The run count goes to the merge, so runs of a longer earlier series in output/runs are not read.
+RUNS ?= 8
+bench-runs: build ## measure RUNS (default 8) runs of bench-mongo and bench-workloads, keep the least disturbed per workload
+	set -e; for run in $$(seq 1 $(RUNS)); do \
+	  $(NODE) scripts/bench-mongo.mjs; $(BUN) scripts/bench-mongo.mjs; \
+	  $(NODE) scripts/bench-history.mjs; $(BUN) scripts/bench-history.mjs; \
+	  mkdir -p output/runs/$$run; \
+	  cp output/mongodb-node.json output/mongodb-bun.json output/workloads-node.json output/workloads-bun.json output/runs/$$run/; \
+	done
+	$(NODE) scripts/bench-merge.mjs $(RUNS)
 bench-search: build
 	$(BUN) run bench:search
 
@@ -89,7 +100,7 @@ site-check:
 dev: site ## build the site, then serve it in the foreground
 	$(NODE) scripts/serve-site.mjs
 release: verify
-	$(BUN) run bench:history
+	$(MAKE) bench-runs
 	$(NODE) scripts/site-evidence.mjs
 	$(MAKE) site
 	$(NODE) scripts/release.mjs

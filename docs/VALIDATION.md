@@ -4,7 +4,7 @@ The release suite ran on Linux x64 on 2026-11-18 and on macOS arm64 (Apple M5 Ma
 
 | Check | Evidence |
 | --- | --- |
-| Unit/integration requirements | 215 tests using real memory and native file storage |
+| Unit/integration requirements | 221 tests using real memory and native file storage |
 | Temporal invariants | Native commit receipts after a disjoint commit, ordinal ordering, half-open intervals, historical predicate writes, tombstones, snapshot visibility, stable cursors and historical BM25/vector/hybrid scores against a rebuilt reference corpus. The deterministic cell oracle compares 1,152 recorded/effective observations. |
 | Temporal storage | Interruption and resumption across handles, baseline publication under tight transaction limits, failure rollback, archive lineage through two forks, zero-payload tombstones and one-seek point reads across a 256-version timeline. |
 | Packed history | Node and Bun directory reopen after compaction, real Chromium OPFS reopen, and full history archives crossing between server and OPFS with source-qualified receipts. |

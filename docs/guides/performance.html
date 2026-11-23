@@ -15,29 +15,29 @@
 <tbody><tr>
 <td>Node</td>
 <td>memory</td>
-<td align="right">0.340</td>
-<td align="right">3.78</td>
+<td align="right">0.264</td>
+<td align="right">3.62</td>
 <td align="right">21 / 4096</td>
 </tr>
 <tr>
 <td>Node</td>
 <td>directory</td>
-<td align="right">0.325</td>
-<td align="right">3.99</td>
+<td align="right">0.231</td>
+<td align="right">3.70</td>
 <td align="right">21 / 4096</td>
 </tr>
 <tr>
 <td>Bun</td>
 <td>memory</td>
-<td align="right">0.558</td>
-<td align="right">4.85</td>
+<td align="right">0.309</td>
+<td align="right">3.31</td>
 <td align="right">21 / 4096</td>
 </tr>
 <tr>
 <td>Bun</td>
 <td>directory</td>
-<td align="right">0.384</td>
-<td align="right">4.28</td>
+<td align="right">0.296</td>
+<td align="right">4.18</td>
 <td align="right">21 / 4096</td>
 </tr>
 </tbody></table>
@@ -55,26 +55,26 @@
 <tbody><tr>
 <td>Node</td>
 <td>memory</td>
-<td align="right">0.641</td>
-<td align="right">0.323</td>
+<td align="right">0.662</td>
+<td align="right">0.373</td>
 </tr>
 <tr>
 <td>Node</td>
 <td>directory</td>
-<td align="right">4.21</td>
-<td align="right">3.89</td>
+<td align="right">4.08</td>
+<td align="right">3.93</td>
 </tr>
 <tr>
 <td>Bun</td>
 <td>memory</td>
-<td align="right">0.668</td>
-<td align="right">0.323</td>
+<td align="right">0.520</td>
+<td align="right">0.301</td>
 </tr>
 <tr>
 <td>Bun</td>
 <td>directory</td>
-<td align="right">4.15</td>
-<td align="right">4.01</td>
+<td align="right">4.07</td>
+<td align="right">3.93</td>
 </tr>
 </tbody></table>
 <h2 id="compared-with-mongodb-on-one-machine">Compared with MongoDB on one machine</h2>
@@ -97,33 +97,33 @@
 <td>Read one document by ID</td>
 <td align="right">10,000</td>
 <td align="right">0.012</td>
-<td align="right">0.123</td>
+<td align="right">0.088</td>
 <td align="right">n/a</td>
-<td>10.8× faster (95% CI 8.8–13.4×)</td>
+<td>8.6× faster (95% CI 7.0–10.6×)</td>
 </tr>
 <tr>
 <td>One tenant&#39;s top 20 documents</td>
 <td align="right">10,000</td>
-<td align="right">0.323 / 0.227</td>
-<td align="right">0.227</td>
+<td align="right">0.349 / 0.191</td>
+<td align="right">0.218</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.71–1.16× the time)</td>
+<td>no clear difference (95% CI 0.74–1.40× the time)</td>
 </tr>
 <tr>
 <td>Count one tenant&#39;s upper score half</td>
 <td align="right">10,000</td>
-<td align="right">0.108</td>
-<td align="right">0.230</td>
+<td align="right">0.109</td>
+<td align="right">0.177</td>
 <td align="right">n/a</td>
-<td>2.3× faster (95% CI 1.85–2.8×)</td>
+<td>1.71× faster (95% CI 1.41–2.1×)</td>
 </tr>
 <tr>
 <td>Count and sum by region, full scan</td>
 <td align="right">10,000</td>
-<td align="right">11.31 / 3.46</td>
-<td align="right">3.63</td>
+<td align="right">11.49 / 3.35</td>
+<td align="right">2.48</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.75–1.83× the time)</td>
+<td>no clear difference (95% CI 0.70–1.84× the time)</td>
 </tr>
 <tr>
 <td>Count and sum by region, repeated</td>
@@ -136,71 +136,71 @@
 <tr>
 <td>Update one document</td>
 <td align="right">10,000</td>
-<td align="right">3.94</td>
-<td align="right">0.199</td>
-<td align="right">3.93</td>
-<td>no clear difference (95% CI 0.98–1.04× the time)</td>
+<td align="right">3.99</td>
+<td align="right">0.166</td>
+<td align="right">3.92</td>
+<td>no clear difference (95% CI 1.00–1.07× the time)</td>
 </tr>
 <tr>
 <td>Update one document, 32 concurrent writers</td>
 <td align="right">10,000</td>
-<td align="right">0.155</td>
-<td align="right">0.030</td>
-<td align="right">0.258</td>
-<td>1.64× faster (95% CI 1.54–1.75×)</td>
+<td align="right">0.156</td>
+<td align="right">0.027</td>
+<td align="right">0.234</td>
+<td>1.36× faster (95% CI 1.14–1.62×)</td>
 </tr>
 <tr>
 <td>Insert 64 documents in one commit</td>
 <td align="right">10,000</td>
-<td align="right">4.17</td>
-<td align="right">0.738</td>
-<td align="right">4.14</td>
-<td>no clear difference (95% CI 0.90–1.12× the time)</td>
+<td align="right">4.15</td>
+<td align="right">0.648</td>
+<td align="right">4.10</td>
+<td>no clear difference (95% CI 0.71–1.21× the time)</td>
 </tr>
 <tr>
 <td>Load the collection, 256 documents per commit</td>
 <td align="right">10,000</td>
-<td align="right">320.74</td>
+<td align="right">292.04</td>
 <td align="right">n/a</td>
-<td align="right">208.56</td>
-<td>1.49× slower (95% CI 1.31–1.69×)</td>
+<td align="right">202.45</td>
+<td>1.48× slower (95% CI 1.36–1.62×)</td>
 </tr>
 <tr>
 <td>Read one document by ID</td>
 <td align="right">100,000</td>
-<td align="right">0.018</td>
-<td align="right">0.163</td>
+<td align="right">0.010</td>
+<td align="right">0.089</td>
 <td align="right">n/a</td>
-<td>8.8× faster (95% CI 6.5–11.9×)</td>
+<td>8.0× faster (95% CI 6.4–10.0×)</td>
 </tr>
 <tr>
 <td>One tenant&#39;s top 20 documents</td>
 <td align="right">100,000</td>
-<td align="right">0.440 / 0.332</td>
-<td align="right">0.449</td>
+<td align="right">0.288 / 0.186</td>
+<td align="right">0.189</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.49–1.00× the time)</td>
+<td>no clear difference (95% CI 0.68–1.09× the time)</td>
 </tr>
 <tr>
 <td>Count one tenant&#39;s upper score half</td>
 <td align="right">100,000</td>
-<td align="right">0.514</td>
-<td align="right">0.420</td>
+<td align="right">0.343</td>
+<td align="right">0.286</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.85–1.43× the time)</td>
+<td>no clear difference (95% CI 0.87–1.37× the time)</td>
 </tr>
 <tr>
 <td>Count and sum by region, full scan</td>
 <td align="right">100,000</td>
-<td align="right">96.85 / 22.11</td>
-<td align="right">27.28</td>
+<td align="right">86.02 / 22.82</td>
+<td align="right">20.26</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.79–1.34× the time)</td>
+<td>no clear difference (95% CI 0.68–1.61× the time)</td>
 </tr>
 <tr>
 <td>Count and sum by region, repeated</td>
 <td align="right">100,000</td>
-<td align="right">0.029</td>
+<td align="right">0.018</td>
 <td align="right">n/a</td>
 <td align="right">n/a</td>
 <td>no MongoDB equivalent</td>
@@ -208,34 +208,34 @@
 <tr>
 <td>Update one document</td>
 <td align="right">100,000</td>
-<td align="right">4.00</td>
-<td align="right">0.249</td>
-<td align="right">3.99</td>
-<td>no clear difference (95% CI 0.94–1.10× the time)</td>
+<td align="right">3.94</td>
+<td align="right">0.180</td>
+<td align="right">3.90</td>
+<td>no clear difference (95% CI 0.92–1.08× the time)</td>
 </tr>
 <tr>
 <td>Update one document, 32 concurrent writers</td>
 <td align="right">100,000</td>
-<td align="right">0.186</td>
-<td align="right">0.043</td>
-<td align="right">0.280</td>
-<td>1.53× faster (95% CI 1.45–1.61×)</td>
+<td align="right">0.153</td>
+<td align="right">0.026</td>
+<td align="right">0.271</td>
+<td>1.77× faster (95% CI 1.67–1.87×)</td>
 </tr>
 <tr>
 <td>Insert 64 documents in one commit</td>
 <td align="right">100,000</td>
-<td align="right">4.80</td>
-<td align="right">0.586</td>
-<td align="right">4.34</td>
-<td>no clear difference (95% CI 0.96–1.30× the time)</td>
+<td align="right">4.61</td>
+<td align="right">0.508</td>
+<td align="right">3.91</td>
+<td>no clear difference (95% CI 0.95–1.22× the time)</td>
 </tr>
 <tr>
 <td>Load the collection, 256 documents per commit</td>
 <td align="right">100,000</td>
-<td align="right">2567.74</td>
+<td align="right">2506.45</td>
 <td align="right">n/a</td>
-<td align="right">2003.83</td>
-<td>1.28× slower (95% CI 1.24–1.32×)</td>
+<td align="right">2023.75</td>
+<td>1.24× slower (95% CI 1.20–1.28×)</td>
 </tr>
 </tbody></table>
 <h3 id="bun-144">Bun 1.4.4</h3>
@@ -254,38 +254,38 @@
 <td>Read one document by ID</td>
 <td align="right">10,000</td>
 <td align="right">0.021</td>
-<td align="right">0.107</td>
+<td align="right">0.093</td>
 <td align="right">n/a</td>
-<td>5.5× faster (95% CI 5.0–6.0×)</td>
+<td>4.2× faster (95% CI 2.9–6.0×)</td>
 </tr>
 <tr>
 <td>One tenant&#39;s top 20 documents</td>
 <td align="right">10,000</td>
-<td align="right">0.415 / 0.291</td>
-<td align="right">0.247</td>
+<td align="right">0.398 / 0.246</td>
+<td align="right">0.227</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 1.00–1.39× the time)</td>
+<td>no clear difference (95% CI 0.81–1.43× the time)</td>
 </tr>
 <tr>
 <td>Count one tenant&#39;s upper score half</td>
 <td align="right">10,000</td>
-<td align="right">0.168</td>
-<td align="right">0.224</td>
+<td align="right">0.133</td>
+<td align="right">0.193</td>
 <td align="right">n/a</td>
-<td>1.30× faster (95% CI 1.11–1.52×)</td>
+<td>1.53× faster (95% CI 1.15–2.0×)</td>
 </tr>
 <tr>
 <td>Count and sum by region, full scan</td>
 <td align="right">10,000</td>
-<td align="right">10.69 / 9.11</td>
-<td align="right">3.89</td>
+<td align="right">9.89 / 7.19</td>
+<td align="right">2.68</td>
 <td align="right">n/a</td>
-<td>1.80× slower (95% CI 1.01–3.2×)</td>
+<td>2.3× slower (95% CI 1.64–3.2×)</td>
 </tr>
 <tr>
 <td>Count and sum by region, repeated</td>
 <td align="right">10,000</td>
-<td align="right">0.036</td>
+<td align="right">0.034</td>
 <td align="right">n/a</td>
 <td align="right">n/a</td>
 <td>no MongoDB equivalent</td>
@@ -293,66 +293,66 @@
 <tr>
 <td>Update one document</td>
 <td align="right">10,000</td>
-<td align="right">3.93</td>
-<td align="right">0.208</td>
 <td align="right">3.99</td>
-<td>no clear difference (95% CI 0.93–1.04× the time)</td>
+<td align="right">0.174</td>
+<td align="right">4.00</td>
+<td>no clear difference (95% CI 0.97–1.03× the time)</td>
 </tr>
 <tr>
 <td>Update one document, 32 concurrent writers</td>
 <td align="right">10,000</td>
-<td align="right">0.171</td>
-<td align="right">0.030</td>
-<td align="right">0.243</td>
-<td>1.48× faster (95% CI 1.35–1.62×)</td>
+<td align="right">0.156</td>
+<td align="right">0.028</td>
+<td align="right">0.265</td>
+<td>1.66× faster (95% CI 1.57–1.76×)</td>
 </tr>
 <tr>
 <td>Insert 64 documents in one commit</td>
 <td align="right">10,000</td>
-<td align="right">4.20</td>
-<td align="right">0.699</td>
-<td align="right">3.92</td>
-<td>no clear difference (95% CI 0.74–1.54× the time)</td>
+<td align="right">3.87</td>
+<td align="right">0.490</td>
+<td align="right">3.79</td>
+<td>no clear difference (95% CI 0.89–1.18× the time)</td>
 </tr>
 <tr>
 <td>Load the collection, 256 documents per commit</td>
 <td align="right">10,000</td>
-<td align="right">303.04</td>
+<td align="right">280.28</td>
 <td align="right">n/a</td>
-<td align="right">211.41</td>
-<td>1.45× slower (95% CI 1.35–1.55×)</td>
+<td align="right">199.71</td>
+<td>1.37× slower (95% CI 1.12–1.67×)</td>
 </tr>
 <tr>
 <td>Read one document by ID</td>
 <td align="right">100,000</td>
-<td align="right">0.021</td>
-<td align="right">0.098</td>
+<td align="right">0.019</td>
+<td align="right">0.084</td>
 <td align="right">n/a</td>
-<td>4.5× faster (95% CI 3.4–5.9×)</td>
+<td>4.0× faster (95% CI 3.2–5.1×)</td>
 </tr>
 <tr>
 <td>One tenant&#39;s top 20 documents</td>
 <td align="right">100,000</td>
-<td align="right">0.323 / 0.214</td>
-<td align="right">0.218</td>
+<td align="right">0.315 / 0.206</td>
+<td align="right">0.243</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.75–1.62× the time)</td>
+<td>no clear difference (95% CI 0.69–1.17× the time)</td>
 </tr>
 <tr>
 <td>Count one tenant&#39;s upper score half</td>
 <td align="right">100,000</td>
-<td align="right">0.480</td>
-<td align="right">0.377</td>
+<td align="right">0.464</td>
+<td align="right">0.284</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.97–2.9× the time)</td>
+<td>1.56× slower (95% CI 1.22–2.00×)</td>
 </tr>
 <tr>
 <td>Count and sum by region, full scan</td>
 <td align="right">100,000</td>
-<td align="right">52.75 / 19.05</td>
-<td align="right">24.16</td>
+<td align="right">57.16 / 18.02</td>
+<td align="right">19.31</td>
 <td align="right">n/a</td>
-<td>no clear difference (95% CI 0.63–1.47× the time)</td>
+<td>no clear difference (95% CI 0.73–1.20× the time)</td>
 </tr>
 <tr>
 <td>Count and sum by region, repeated</td>
@@ -365,40 +365,40 @@
 <tr>
 <td>Update one document</td>
 <td align="right">100,000</td>
-<td align="right">4.00</td>
-<td align="right">0.218</td>
-<td align="right">4.13</td>
-<td>no clear difference (95% CI 0.92–1.04× the time)</td>
+<td align="right">3.48</td>
+<td align="right">0.168</td>
+<td align="right">3.75</td>
+<td>no clear difference (95% CI 0.89–1.03× the time)</td>
 </tr>
 <tr>
 <td>Update one document, 32 concurrent writers</td>
 <td align="right">100,000</td>
-<td align="right">0.179</td>
-<td align="right">0.036</td>
-<td align="right">0.283</td>
-<td>1.53× faster (95% CI 1.37–1.72×)</td>
+<td align="right">0.156</td>
+<td align="right">0.027</td>
+<td align="right">0.242</td>
+<td>1.55× faster (95% CI 1.43–1.67×)</td>
 </tr>
 <tr>
 <td>Insert 64 documents in one commit</td>
 <td align="right">100,000</td>
-<td align="right">4.29</td>
-<td align="right">0.731</td>
-<td align="right">4.41</td>
-<td>no clear difference (95% CI 0.88–1.06× the time)</td>
+<td align="right">3.84</td>
+<td align="right">0.511</td>
+<td align="right">3.77</td>
+<td>no clear difference (95% CI 0.91–1.37× the time)</td>
 </tr>
 <tr>
 <td>Load the collection, 256 documents per commit</td>
 <td align="right">100,000</td>
-<td align="right">2542.87</td>
+<td align="right">2470.94</td>
 <td align="right">n/a</td>
-<td align="right">1975.91</td>
-<td>1.28× slower (95% CI 1.25–1.32×)</td>
+<td align="right">1960.69</td>
+<td>1.26× slower (95% CI 1.22–1.29×)</td>
 </tr>
 </tbody></table>
 <p>The top-20 row lists two defuss-db read paths: the query API first, then <code>pageByIndex()</code>. The full-scan aggregate row lists one thread first, then 8 query worker threads (<code>openDirectory(path, { parallel: true })</code>, with exact sums so the partial results merge). Each comparison uses the faster path. The repeated aggregate reuses the defuss-db result cache, which a later commit to the collection invalidates; MongoDB has no result cache to compare with.</p>
-<p>The defuss-db load includes the background compaction that ran while it loaded. Reads start after the compaction that follows the first load round has finished: at 10,000 documents it finished 1.1 s after the last commit, after 2 copies that reclaimed 0 MiB, and left 3 MiB on disk; at 100,000 documents it finished 1.3 s after the last commit, after 2 copies that reclaimed 3 MiB, and left 28 MiB on disk (Node.js).</p>
-<p>Reads run on warm caches: before any read is timed, each system scans the whole collection and walks the whole compound index once. At 100,000 documents defuss-db then held 3 MiB of decoded tree pages in 6,828 cache entries, including pages of generations that background compaction had replaced; it does not cache document values, which it reads from the file and decodes on every scan. MongoDB&#39;s WiredTiger cache held 69 MiB of its 24,064 MiB limit (Node.js run).</p>
-<p>A 4 KiB write followed by a defuss-storage flush took 4.09 ms under Node.js and 4.12 ms under Bun on the benchmark machine. On macOS, defuss-storage asks the drive to empty its write cache (<code>F_FULLFSYNC</code>) under both runtimes, as MongoDB <code>j: true</code> waits for its journal flush.</p>
+<p>The defuss-db load includes the background compaction that ran while it loaded. Reads start after the compaction that follows the first load round has finished: at 10,000 documents it finished 1.0 s after the last commit, after 2 copies that reclaimed 0 MiB, and left 3 MiB on disk; at 100,000 documents it finished 1.2 s after the last commit, after 2 copies that reclaimed 3 MiB, and left 28 MiB on disk (first Node.js run).</p>
+<p>Reads run on warm caches: before any read is timed, each system scans the whole collection and walks the whole compound index once. At 100,000 documents defuss-db then held 3 MiB of decoded tree pages in 6,828 cache entries, including pages of generations that background compaction had replaced; it does not cache document values, which it reads from the file and decodes on every scan. MongoDB&#39;s WiredTiger cache held 69 MiB of its 24,064 MiB limit (first Node.js run).</p>
+<p>A 4 KiB write followed by a defuss-storage flush took 3.91 ms under Node.js and 3.86 ms under Bun on the benchmark machine, each in the run with the fastest flush. On macOS, defuss-storage asks the drive to empty its write cache (<code>F_FULLFSYNC</code>) under both runtimes, as MongoDB <code>j: true</code> waits for its journal flush.</p>
 <p>This standalone MongoDB server rejected a multi-document transaction with the error &quot;Transaction numbers are only allowed on a replica set member or mongos&quot; defuss-db committed two collections in one transaction on the same directory storage.</p>
 <h2 id="ranked-search">Ranked search</h2>
 <p>Search returns five ranked documents from 256 articles. Full-text search uses BM25. Vector search uses exact cosine similarity on supplied eight-dimensional embeddings. Hybrid search combines both signals. All three timings include document lookup with a warm search engine. The first search after reopening rebuilds its engine from stored inputs and has a separate cost. <a href="search.html">Search indexes</a></p>
@@ -416,26 +416,26 @@
 <tbody><tr>
 <td>Search for five documents</td>
 <td>Warm lexical engine</td>
-<td align="right">0.107</td>
-<td align="right">0.074</td>
-<td align="right">0.253</td>
-<td align="right">0.097</td>
+<td align="right">0.119</td>
+<td align="right">0.071</td>
+<td align="right">0.117</td>
+<td align="right">0.077</td>
 </tr>
 <tr>
 <td>Search for five documents</td>
 <td>Warm vector engine</td>
-<td align="right">0.081</td>
-<td align="right">0.106</td>
-<td align="right">0.254</td>
-<td align="right">0.107</td>
+<td align="right">0.085</td>
+<td align="right">0.101</td>
+<td align="right">0.112</td>
+<td align="right">0.098</td>
 </tr>
 <tr>
 <td>Search for five documents</td>
 <td>Warm hybrid engine</td>
-<td align="right">0.217</td>
-<td align="right">0.308</td>
-<td align="right">0.205</td>
-<td align="right">0.367</td>
+<td align="right">0.216</td>
+<td align="right">0.174</td>
+<td align="right">0.191</td>
+<td align="right">0.161</td>
 </tr>
 </tbody></table>
 <h2 id="reopen-a-file-backed-database">Reopen a file-backed database</h2>
@@ -449,11 +449,11 @@
 </thead>
 <tbody><tr>
 <td>Node</td>
-<td align="right">4.48</td>
+<td align="right">3.89</td>
 </tr>
 <tr>
 <td>Bun</td>
-<td align="right">5.55</td>
+<td align="right">4.14</td>
 </tr>
 </tbody></table>
 <h2 id="document-reads-history-and-writes">Document reads, history and writes</h2>
@@ -472,122 +472,122 @@
 <tbody><tr>
 <td>Current document</td>
 <td>Untracked collection</td>
-<td align="right">0.015</td>
-<td align="right">0.015</td>
-<td align="right">0.016</td>
-<td align="right">0.021</td>
+<td align="right">0.008</td>
+<td align="right">0.009</td>
+<td align="right">0.009</td>
+<td align="right">0.009</td>
 </tr>
 <tr>
 <td>Current document</td>
 <td>Tracked collection</td>
-<td align="right">0.012</td>
-<td align="right">0.014</td>
-<td align="right">0.017</td>
-<td align="right">0.018</td>
+<td align="right">0.008</td>
+<td align="right">0.010</td>
+<td align="right">0.010</td>
+<td align="right">0.009</td>
 </tr>
 <tr>
 <td>Historical document</td>
 <td>Effective date</td>
-<td align="right">0.038</td>
-<td align="right">0.066</td>
-<td align="right">0.034</td>
-<td align="right">0.053</td>
+<td align="right">0.023</td>
+<td align="right">0.036</td>
+<td align="right">0.029</td>
+<td align="right">0.040</td>
 </tr>
 <tr>
 <td>Historical document</td>
 <td>Effective date and recorded cutoff</td>
-<td align="right">0.056</td>
-<td align="right">0.055</td>
-<td align="right">0.051</td>
-<td align="right">0.082</td>
+<td align="right">0.036</td>
+<td align="right">0.058</td>
+<td align="right">0.039</td>
+<td align="right">0.064</td>
 </tr>
 <tr>
 <td>Commit one update</td>
 <td>Untracked collection</td>
-<td align="right">0.113</td>
-<td align="right">4.04</td>
-<td align="right">0.118</td>
-<td align="right">4.26</td>
+<td align="right">0.104</td>
+<td align="right">4.05</td>
+<td align="right">0.089</td>
+<td align="right">3.97</td>
 </tr>
 <tr>
 <td>Commit one update</td>
 <td>Tracked collection</td>
-<td align="right">0.195</td>
-<td align="right">4.04</td>
-<td align="right">0.155</td>
-<td align="right">4.01</td>
+<td align="right">0.157</td>
+<td align="right">3.95</td>
+<td align="right">0.138</td>
+<td align="right">3.99</td>
 </tr>
 <tr>
 <td>Correct a closed interval</td>
 <td>One document</td>
-<td align="right">0.166</td>
-<td align="right">4.02</td>
-<td align="right">0.365</td>
-<td align="right">4.02</td>
+<td align="right">0.165</td>
+<td align="right">4.00</td>
+<td align="right">0.180</td>
+<td align="right">3.97</td>
 </tr>
 <tr>
 <td>Delete a closed interval</td>
 <td>One document</td>
-<td align="right">0.125</td>
-<td align="right">4.04</td>
-<td align="right">0.291</td>
-<td align="right">4.04</td>
+<td align="right">0.124</td>
+<td align="right">4.00</td>
+<td align="right">0.127</td>
+<td align="right">3.98</td>
 </tr>
 <tr>
 <td>Count historical documents</td>
 <td>Full scan</td>
-<td align="right">2.22</td>
-<td align="right">12.25</td>
-<td align="right">3.57</td>
-<td align="right">10.36</td>
+<td align="right">1.98</td>
+<td align="right">9.30</td>
+<td align="right">2.50</td>
+<td align="right">9.05</td>
 </tr>
 <tr>
 <td>Count historical documents</td>
 <td>Warm result cache</td>
-<td align="right">0.064</td>
-<td align="right">0.132</td>
-<td align="right">0.171</td>
-<td align="right">0.145</td>
+<td align="right">0.056</td>
+<td align="right">0.096</td>
+<td align="right">0.065</td>
+<td align="right">0.088</td>
 </tr>
 <tr>
 <td>Historical page of 32 IDs</td>
 <td>Build postings and read page</td>
-<td align="right">2.11</td>
-<td align="right">8.81</td>
-<td align="right">2.62</td>
-<td align="right">9.67</td>
+<td align="right">1.78</td>
+<td align="right">8.28</td>
+<td align="right">1.68</td>
+<td align="right">7.98</td>
 </tr>
 <tr>
 <td>Historical page of 32 IDs</td>
 <td>Read retained postings</td>
-<td align="right">0.039</td>
-<td align="right">0.049</td>
-<td align="right">0.056</td>
-<td align="right">0.056</td>
+<td align="right">0.031</td>
+<td align="right">0.041</td>
+<td align="right">0.045</td>
+<td align="right">0.034</td>
 </tr>
 <tr>
 <td>Ordered page of 20 IDs</td>
 <td>Live index</td>
-<td align="right">0.036</td>
+<td align="right">0.034</td>
 <td align="right">0.047</td>
-<td align="right">0.063</td>
-<td align="right">0.079</td>
+<td align="right">0.043</td>
+<td align="right">0.065</td>
 </tr>
 <tr>
 <td>Ordered page of 20 documents</td>
 <td>Live index and document lookup</td>
-<td align="right">0.115</td>
-<td align="right">0.120</td>
-<td align="right">0.165</td>
-<td align="right">0.171</td>
+<td align="right">0.114</td>
+<td align="right">0.122</td>
+<td align="right">0.125</td>
+<td align="right">0.135</td>
 </tr>
 <tr>
 <td>Count 64 index entries</td>
 <td>Live index</td>
 <td align="right">0.045</td>
-<td align="right">0.076</td>
-<td align="right">0.187</td>
-<td align="right">0.109</td>
+<td align="right">0.064</td>
+<td align="right">0.055</td>
+<td align="right">0.079</td>
 </tr>
 </tbody></table>
 <h2 id="rows-already-in-memory">Rows already in memory</h2>
@@ -606,40 +606,41 @@
 <tbody><tr>
 <td>Node</td>
 <td>Top 20 projected scores</td>
-<td align="right">0.221</td>
-<td align="right">0.177</td>
+<td align="right">0.203</td>
+<td align="right">0.149</td>
 <td align="right">21 / 4096</td>
 </tr>
 <tr>
 <td>Node</td>
 <td>Count and sum by region</td>
-<td align="right">3.28</td>
-<td align="right">0.254</td>
+<td align="right">3.16</td>
+<td align="right">0.238</td>
 <td align="right">4096 / 4096</td>
 </tr>
 <tr>
 <td>Bun</td>
 <td>Top 20 projected scores</td>
-<td align="right">0.408</td>
-<td align="right">0.274</td>
+<td align="right">0.228</td>
+<td align="right">0.189</td>
 <td align="right">21 / 4096</td>
 </tr>
 <tr>
 <td>Bun</td>
 <td>Count and sum by region</td>
-<td align="right">4.41</td>
-<td align="right">0.360</td>
+<td align="right">3.52</td>
+<td align="right">0.290</td>
 <td align="right">4096 / 4096</td>
 </tr>
 </tbody></table>
 <h2 id="reproduce-the-measurements">Reproduce the measurements</h2>
-<p>Run <code>make bench-workloads</code> for the defuss-db workloads and <code>make bench-mongo</code> for the MongoDB comparison; the latter reads <code>MONGODB_URL</code>, creates a throwaway database and drops it afterwards. Values are medians of seven samples after two warmups. Each series starts once background compaction from earlier writes has finished; in the MongoDB comparison, the collection load includes it. Paired paths alternate order. Each runtime runs separately, one client at a time, except for the 32 concurrent writers. Timings are milliseconds per operation. For repeated point reads and single-document writes, each sample is elapsed time divided by its call count. A collection load is measured once. The JSON records every sample, iteration count and selected query plan.</p>
+<p>Run <code>make bench-runs</code>. It repeats the MongoDB comparison (<code>make bench-mongo</code>, which reads <code>MONGODB_URL</code>, creates a throwaway database and drops it afterwards) and the defuss-db workloads (<code>make bench-workloads</code>) in 8 separate runs under each runtime. Each workload is published from the run that other processes on the host disturbed least: the run with the lowest geometric mean of that workload&#39;s medians. Every path and system of a workload comes from that one run, so their comparison stays paired. Values are medians of seven samples after two warmups in that run. Each series starts once background compaction from earlier writes has finished; in the MongoDB comparison, the collection load includes it. Paired paths alternate order. Each runtime runs separately, one client at a time, except for the 32 concurrent writers. Timings are milliseconds per operation. For repeated point reads and single-document writes, each sample is elapsed time divided by its call count. A collection load has no warmup: each of its 5 rounds loads a fresh store once. The JSON records every sample, iteration count, selected query plan and the run each result comes from; the repository&#39;s <code>docs/benchmarks/runs/</code> holds every run.</p>
 <ul>
 <li>Node v26.13.1 on darwin arm64, Apple M5 Max.</li>
 <li>Bun 1.4.4 on darwin arm64, Apple M5 Max.</li>
-<li>defuss-db 3.0.0 with defuss-dataview 0.7.0. 3.2.0 has not been measured again.</li>
+<li>defuss-db 3.2.0 with defuss-dataview 0.10.0.</li>
 <li>MongoDB 9.0.8 (wiredTiger, standalone: yes) on the same machine.</li>
-<li>One-minute host load average during the MongoDB comparison (Node.js): 7.9 at the start and 9.1 at the end, on 18 cores; other processes on the host share them.</li>
+<li>Between the 8 runs, the median of a series differed by a typical factor of 1.4 (Node.js) and 1.6 (Bun) in the defuss-db workloads, and of 1.4 and 1.5 in the MongoDB comparison. The published runs are the least disturbed of them, not undisturbed ones.</li>
+<li>One-minute host load average at the start of the MongoDB comparison runs (Node.js): 2.7 to 10.6, on 18 cores; other processes on the host share them.</li>
 </ul>
 <p><a href="../benchmarks/workloads-node.json">Node samples</a> · <a href="../benchmarks/workloads-bun.json">Bun samples</a> · <a href="../benchmarks/mongodb-node.json">MongoDB comparison, Node</a> · <a href="../benchmarks/mongodb-bun.json">MongoDB comparison, Bun</a></p>
 </article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="../application/app-api-docs.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>
