@@ -4,7 +4,7 @@
   "title": "Collection.updateMany",
   "namespace": "Collection",
   "name": "updateMany",
-  "signature": "updateMany(request: FindRequest, updater: Updater<T>, options?: WriteOptions & QueryOptions<T>): Promise<number>",
+  "signature": "updateMany(request: FindRequest, updater: Updater<T>, options?: DocumentWriteOptions & QueryOptions<T>): Promise<number>",
   "description": "Atomic bounded set update; return affected document count",
   "async": true,
   "generator": false,
@@ -23,7 +23,7 @@
     },
     {
       "name": "options",
-      "type": "WriteOptions & QueryOptions<T>",
+      "type": "DocumentWriteOptions & QueryOptions<T>",
       "optional": true,
       "rest": false
     }

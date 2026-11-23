@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/validateDocument",
+  "title": "Collection.validateDocument",
+  "namespace": "Collection",
+  "name": "validateDocument",
+  "signature": "validateDocument(id: PrimaryKey): Promise<ValidationIssue[]>",
+  "description": "The rules one document violates, as { path, keyword, message }[]; empty when it conforms or no schema is set; NOT_FOUND for a missing id",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "id",
+      "type": "PrimaryKey",
+      "optional": false,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<ValidationIssue[]>"
+  },
+  "markdown": "validateDocument.md"
+}

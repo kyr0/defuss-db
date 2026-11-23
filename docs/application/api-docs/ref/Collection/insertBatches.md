@@ -1,7 +1,7 @@
 # Collection.insertBatches
 
 ```ts
-insertBatches(batches: AsyncIterable<readonly NewDocument<T>[]> | Iterable<readonly NewDocument<T>[]>, options?: WriteOptions): AsyncGenerator<{
+insertBatches(batches: AsyncIterable<readonly NewDocument<T>[]> | Iterable<readonly NewDocument<T>[]>, options?: DocumentWriteOptions): AsyncGenerator<{
     ids: PrimaryKey[];
     revision: number;
     storedEntries: number;
@@ -15,7 +15,7 @@ Async generator of { ids, revision, storedEntries }; one atomic commit per input
 | Name | Type | Required |
 | --- | --- | --- |
 | `batches` | `AsyncIterable<readonly NewDocument<T>[]> \| Iterable<readonly NewDocument<T>[]>` | yes |
-| `options` | `WriteOptions` | no |
+| `options` | `DocumentWriteOptions` | no |
 
 ## Returns
 

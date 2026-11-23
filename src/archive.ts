@@ -33,6 +33,7 @@ import { putDocument, createIndex } from './mutations.js';
 import { createSearchIndex } from './search-mutations.js';
 import { saveSchema } from './schema-cache.js';
 import { versionKey } from './collection-version.js';
+import { COLLECTIONS, entryKey, importEntry, readEntry } from './catalog.js';
 import type { Reader, SnapshotLease, Writer, Schema, Document } from './types.js';
 import type { ArchiveInput, ExportOptions, ImportOptions } from './archive-types.js';
 
@@ -49,7 +50,8 @@ type RecordValue =
       sources?: Origins;
       clock?: { ms: number; seq: number };
     }
-  | { type: 'schema'; collection: string; schema: Schema }
+  // `entry`: the collection's `_collections` document without its id; builds before 3.2 wrote none and skip it.
+  | { type: 'schema'; collection: string; schema: Schema; entry?: Record<string, unknown> }
   | { type: 'document'; collection: string; document: Document }
   | { type: 'history'; collection: string; key: string; value: Fact | SchemaEvent }
   | { type: 'end'; documents: number; collections: number; historyRecords?: number };
@@ -162,6 +164,12 @@ async function* logicalRecords(
     if (!full) return currentSchema(schema);
     return schema;
   }
+  const entryOf = async (collection: string) => {
+    const row = await reader.get(entryKey(collection));
+    if (!row.found) return {};
+    const { id: _id, ...entry } = readEntry(row.value);
+    return { entry };
+  };
   const collections: string[] = [];
   if (options.collections) {
     for (const collection of options.collections) {
@@ -171,7 +179,12 @@ async function* logicalRecords(
       collections.push(collection);
       if (collections.length > options.maxCollections)
         throw new RangeError('Export collection limit exceeded.');
-      yield { type: 'schema', collection, schema: exportSchema(row.value) };
+      yield {
+        type: 'schema',
+        collection,
+        schema: exportSchema(row.value),
+        ...(await entryOf(collection)),
+      };
     }
   } else {
     // A collection without DDL has only its r: marker; its schema is the implicit default.
@@ -180,6 +193,8 @@ async function* logicalRecords(
       names.add(row.key.slice(2));
     for await (const row of reader.scan({ ...range('s:'), signal: options.signal }))
       names.add(row.key.slice(2));
+    // The catalog travels as the `entry` of each collection's schema record.
+    names.delete(COLLECTIONS);
     for (const collection of [...names].sort()) {
       name(collection);
       collections.push(collection);
@@ -189,6 +204,7 @@ async function* logicalRecords(
         type: 'schema',
         collection,
         schema: exportSchema((await reader.get(schemaKey(collection))).value),
+        ...(await entryOf(collection)),
       };
     }
   }
@@ -593,6 +609,8 @@ export async function importRecords(tx: Writer, prepared: ReturnType<typeof capt
           ...(schema.timestamps ? { timestamps: true as const } : {}),
         });
       schemas.set(record.collection, { schema, fresh: !exists });
+      if (record.entry !== undefined)
+        await importEntry(tx, record.collection, record.entry, options.conflicts);
       lastCollection = record.collection;
     } else if (record.type === 'document') {
       if (historyRecords) corrupt('document after history records');
@@ -624,6 +642,9 @@ export async function importRecords(tx: Writer, prepared: ReturnType<typeof capt
         undefined,
         undefined,
         'keep',
+        // Documents the source held before its schema was set are restored as they are. VERIFIED:
+        // tests/schema-validation.test.ts imports an archive whose document violates the schema it carries.
+        false,
       );
       imported++;
     } else if (record.type === 'history') {

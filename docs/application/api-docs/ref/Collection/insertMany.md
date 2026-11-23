@@ -1,7 +1,7 @@
 # Collection.insertMany
 
 ```ts
-insertMany(values: readonly NewDocument<T>[], options?: WriteOptions): Promise<PrimaryKey[]>
+insertMany(values: readonly NewDocument<T>[], options?: DocumentWriteOptions): Promise<PrimaryKey[]>
 ```
 
 One atomic bounded batch; return IDs
@@ -11,7 +11,7 @@ One atomic bounded batch; return IDs
 | Name | Type | Required |
 | --- | --- | --- |
 | `values` | `readonly NewDocument<T>[]` | yes |
-| `options` | `WriteOptions` | no |
+| `options` | `DocumentWriteOptions` | no |
 
 ## Returns
 

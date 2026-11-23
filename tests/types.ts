@@ -1,4 +1,4 @@
-import type { Collection, Document, NewDocument } from '../src/index.js';
+import type { Collection, Database, Document, JsonSchema, NewDocument } from '../src/index.js';
 interface Row extends Document {
   label: string;
   amount: number;
@@ -25,3 +25,12 @@ export async function check(collection: Collection<Row>) {
 // @ts-expect-error numeric ID is required
 const numeric: NewDocument<{ id: number; x: number }> = { x: 1 };
 void numeric;
+
+// The catalog is typed as a read-only collection of entries.
+export async function catalog(db: Database) {
+  const entries = db.collection('_collections');
+  const schema: JsonSchema | undefined = (await entries.get('rows'))?.schema;
+  void schema;
+  // @ts-expect-error _collections has no write methods
+  void entries.insert;
+}

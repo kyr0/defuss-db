@@ -64,6 +64,14 @@
     "json": "guides/mongodb-syntax-and-schemas.json"
   },
   {
+    "path": "guides/schemas-and-validation",
+    "route": "#/guides/schemas-and-validation",
+    "title": "Schemas and validation",
+    "kind": "guide",
+    "markdown": "guides/schemas-and-validation.md",
+    "json": "guides/schemas-and-validation.json"
+  },
+  {
     "path": "guides/errors",
     "route": "#/guides/errors",
     "title": "Errors",
@@ -320,6 +328,22 @@
     "json": "ref/Collection/restore.json"
   },
   {
+    "path": "ref/Collection/pruneHistory",
+    "route": "#/ref/Collection/pruneHistory",
+    "title": "Collection.pruneHistory",
+    "kind": "member",
+    "markdown": "ref/Collection/pruneHistory.md",
+    "json": "ref/Collection/pruneHistory.json"
+  },
+  {
+    "path": "ref/Collection/pruneDeleted",
+    "route": "#/ref/Collection/pruneDeleted",
+    "title": "Collection.pruneDeleted",
+    "kind": "member",
+    "markdown": "ref/Collection/pruneDeleted.md",
+    "json": "ref/Collection/pruneDeleted.json"
+  },
+  {
     "path": "ref/Collection/updateMany",
     "route": "#/ref/Collection/updateMany",
     "title": "Collection.updateMany",
@@ -366,6 +390,14 @@
     "kind": "member",
     "markdown": "ref/Collection/dropIndex.md",
     "json": "ref/Collection/dropIndex.json"
+  },
+  {
+    "path": "ref/Collection/setSchema",
+    "route": "#/ref/Collection/setSchema",
+    "title": "Collection.setSchema",
+    "kind": "member",
+    "markdown": "ref/Collection/setSchema.md",
+    "json": "ref/Collection/setSchema.json"
   },
   {
     "path": "ref/Collection/get",
@@ -430,6 +462,30 @@
     "kind": "member",
     "markdown": "ref/Collection/has.md",
     "json": "ref/Collection/has.json"
+  },
+  {
+    "path": "ref/Collection/schema",
+    "route": "#/ref/Collection/schema",
+    "title": "Collection.schema",
+    "kind": "member",
+    "markdown": "ref/Collection/schema.md",
+    "json": "ref/Collection/schema.json"
+  },
+  {
+    "path": "ref/Collection/validateDocument",
+    "route": "#/ref/Collection/validateDocument",
+    "title": "Collection.validateDocument",
+    "kind": "member",
+    "markdown": "ref/Collection/validateDocument.md",
+    "json": "ref/Collection/validateDocument.json"
+  },
+  {
+    "path": "ref/Collection/validateCollection",
+    "route": "#/ref/Collection/validateCollection",
+    "title": "Collection.validateCollection",
+    "kind": "member",
+    "markdown": "ref/Collection/validateCollection.md",
+    "json": "ref/Collection/validateCollection.json"
   },
   {
     "path": "ref/Collection/find",

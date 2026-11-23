@@ -4,7 +4,9 @@ import { touchCollection } from './collection-version.js';
 import { projectSearch, type SearchInput } from './search-config.js';
 import { saveSchema, transactionSchema } from './schema-cache.js';
 import { maintainSearch } from './search-mutations.js';
-import { DatabaseError } from './errors.js';
+import { DatabaseError, ValidationError } from './errors.js';
+import { validationSchema } from './catalog.js';
+import { validateValue } from './validate.js';
 import {
   documentKey,
   documentPrefix,
@@ -116,6 +118,8 @@ export async function putDocument<T extends Document>(
   previous?: PreviousDocument,
   scope?: TimeScope,
   stamps: StampMode = 'write',
+  // false for stored documents written back as they are: an archive import, the stamping of existing documents
+  validate = true,
 ): Promise<void> {
   const token = primary(row.id),
     key = documentPrefix(collection) + token;
@@ -136,6 +140,13 @@ export async function putDocument<T extends Document>(
         ? stampsOf(current.value as Document)
         : undefined;
     await stamp(tx, !!schema.history, row, before, stamps);
+  }
+  // After stamping, so a schema may declare `_createdAt` and `_updatedAt`. VERIFIED: tests/schema-validation.test.ts
+  // sets an inferred schema with additionalProperties: false on a timestamped collection and inserts.
+  const rules = validate ? await validationSchema(tx, collection) : undefined;
+  if (rules) {
+    const issues = validateValue(rules, row);
+    if (issues.length) throw new ValidationError(collection, row.id, issues);
   }
   if (scope || schema.history) {
     checkCoverage(schema, scope?.time);
@@ -304,7 +315,16 @@ export async function enableTimestamps(
               const doc = row.value as Document;
               if (!ordered(stampsOf(doc))) {
                 const { [CREATED_AT]: _c, [UPDATED_AT]: _u, ...rest } = fields(doc);
-                await putDocument(tx, collection, rest as unknown as Document);
+                await putDocument(
+                  tx,
+                  collection,
+                  rest as unknown as Document,
+                  false,
+                  undefined,
+                  undefined,
+                  'write',
+                  false,
+                );
               }
             }
             if (scanned < batch) tx.delete(stampingKey(collection));

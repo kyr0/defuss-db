@@ -1,7 +1,7 @@
 # Collection.updateMany
 
 ```ts
-updateMany(request: FindRequest, updater: Updater<T>, options?: WriteOptions & QueryOptions<T>): Promise<number>
+updateMany(request: FindRequest, updater: Updater<T>, options?: DocumentWriteOptions & QueryOptions<T>): Promise<number>
 ```
 
 Atomic bounded set update; return affected document count
@@ -12,7 +12,7 @@ Atomic bounded set update; return affected document count
 | --- | --- | --- |
 | `request` | `FindRequest` | yes |
 | `updater` | `Updater<T>` | yes |
-| `options` | `WriteOptions & QueryOptions<T>` | no |
+| `options` | `DocumentWriteOptions & QueryOptions<T>` | no |
 
 ## Returns
 

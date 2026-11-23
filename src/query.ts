@@ -49,7 +49,18 @@ import type {
   Selection,
   IndexDefinition,
 } from './types.js';
-import { documentKey, primary, readSchema, schemaKey } from './keys.js';
+import { documentKey, documentPrefix, primary, range, readSchema, schemaKey } from './keys.js';
+import { DatabaseError } from './errors.js';
+import { entryKey, type CollectionEntry } from './catalog.js';
+import type { JsonSchema } from './json-schema.js';
+import {
+  checkedLimit,
+  collectionValidation,
+  validateValue,
+  type CollectionValidation,
+  type ValidateOptions,
+  type ValidationIssue,
+} from './validate.js';
 
 /** Prepared descriptors retain DataView's inferred aliases and nullable aggregate types. */
 export interface BoundQuery<T extends Document, R, X = never> {
@@ -307,6 +318,51 @@ export class ReadCollection<T extends Document = Document> {
   /** Direct DataView interoperability. Each open obtains a fresh snapshot, unless bound to an explicit snapshot/transaction. */
   source(options?: HistoryReadOptions): RecordSource<T> {
     return createDocumentSource<T>(readAt(this.context, this.name, options), this.name);
+  }
+  /**
+   * The JSON Schema set with setSchema(), which writes validate against; undefined when none is set. The schema is
+   * not versioned: a view of a past date answers the schema set now.
+   */
+  async schema(): Promise<JsonSchema | undefined> {
+    this.rawContext.check();
+    const row = await this.rawContext.get(entryKey(this.name));
+    return row.found ? (row.value as CollectionEntry).schema : undefined;
+  }
+  /** What one document violates in the collection's schema; empty when it conforms or no schema is set. */
+  async validateDocument(id: PrimaryKey): Promise<ValidationIssue[]> {
+    const document = await this.get(id);
+    if (!document)
+      throw new DatabaseError('NOT_FOUND', `No document ${String(id)} in ${this.name}.`);
+    const schema = await this.schema();
+    return schema ? validateValue(schema, document) : [];
+  }
+  /**
+   * Checks the collection's documents against its schema in key order and stops at `limit` violating documents
+   * (default 100), so the work on a collection that violates it everywhere stays bounded: `invalid === limit` means
+   * at least that many.
+   * VERIFIED: tests/schema-validation.test.ts checks a live collection and a pinned snapshot.
+   */
+  async validateCollection(options: ValidateOptions = {}): Promise<CollectionValidation> {
+    const limit = checkedLimit(options.limit);
+    const schema = await this.schema();
+    const documents: CollectionValidation['documents'] = [];
+    let checked = 0;
+    if (schema) {
+      const lease = await this.context.open();
+      try {
+        for await (const row of lease.reader.scan({
+          ...range(documentPrefix(this.name)),
+          signal: options.signal,
+        })) {
+          checked++;
+          const issues = validateValue(schema, row.value);
+          if (issues.length && documents.push({ id: (row.value as T).id, issues }) === limit) break;
+        }
+      } finally {
+        await lease.close();
+      }
+    }
+    return collectionValidation(this.name, checked, limit, documents);
   }
   async indexes(options?: HistoryReadOptions): Promise<IndexDefinition[]> {
     return readSchema(

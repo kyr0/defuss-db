@@ -458,7 +458,8 @@ it('falls back to a batched baseline under tight transaction limits; discarded d
   const c = db.collection<Price>('old');
   for (let i = 0; i < 13; i++) await c.put({ id: i, amount: i });
   await db.ensureCollection('old', { $trackHistory: true });
-  const publication = (await db.stats()).revision;
+  // the baseline's commit; the collection's first `_collections` entry is the commit after it
+  const publication = (await db.stats()).revision - 1;
   expect(await c.count()).toBe(13);
   for (const id of [0, 6, 12]) {
     const entry = (await c.audit(id))[0]!;

@@ -113,6 +113,16 @@ export interface Selection extends PlanOptions, HistoryReadOptions {
 }
 export type DatabaseBackend = Backend;
 export type WriteOptions = CommitOptions & HistoryWriteOptions;
+/**
+ * `validate: false` stores the documents of this call without checking them against the collection's JSON Schema
+ * (setSchema()), for a bulk import of data that predates the schema. validateCollection() finds them afterwards.
+ * VERIFIED: tests/schema-validation.test.ts writes violating documents through every write method with it.
+ */
+export interface ValidationOptions {
+  validate?: boolean;
+}
+/** The options of a write that stores documents. */
+export type DocumentWriteOptions = WriteOptions & ValidationOptions;
 export interface AccessPlan {
   kind: 'scan' | 'primary' | 'primary-in' | 'equality' | 'ordered' | 'range';
   equalityPrefix?: number;

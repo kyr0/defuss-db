@@ -4,20 +4,20 @@
   "title": "Database.collection",
   "namespace": "Database",
   "name": "collection",
-  "signature": "collection<T extends Document = Document>(collection: string): Collection<T>",
-  "description": "Typed live collection; no I/O merely to obtain it",
+  "signature": "collection<T extends CollectionEntry = CollectionEntry>(collection: typeof COLLECTIONS): ReadCollection<T>\ncollection<T extends Document = Document>(collection: string): Collection<T>",
+  "description": "Typed live collection; no I/O merely to obtain it. collection('_collections') is the read-only catalog, see Schemas and validation",
   "async": false,
   "generator": false,
   "params": [
     {
       "name": "collection",
-      "type": "string",
+      "type": "typeof COLLECTIONS",
       "optional": false,
       "rest": false
     }
   ],
   "returns": {
-    "type": "Collection<T>"
+    "type": "ReadCollection<T>"
   },
   "markdown": "collection.md"
 }

@@ -9,8 +9,12 @@ export {
 export { Collection, TransactionCollection } from './collection.js';
 export { ReadCollection } from './query.js';
 export type { BoundQuery } from './query.js';
-export { DatabaseError } from './errors.js';
+export { DatabaseError, ValidationError } from './errors.js';
 export { analyzeSchema, inferSchema, JSON_SCHEMA_DIALECT } from './json-schema.js';
+export { checkSchema, validateValue } from './validate.js';
+export type { CollectionValidation, ValidateOptions, ValidationIssue } from './validate.js';
+export { COLLECTIONS } from './catalog.js';
+export type { CollectionEntry } from './catalog.js';
 export type {
   AnalyzedSchema,
   AnalyzeSchemaOptions,
@@ -38,6 +42,8 @@ export type {
   Selection,
   DatabaseBackend,
   WriteOptions,
+  DocumentWriteOptions,
+  ValidationOptions,
   TransactionResult,
   AccessPlan,
   Timestamped,
@@ -66,6 +72,7 @@ export type { QueryCacheOptions, QueryCacheStats } from './query-cache.js';
 export type { AutoCompactOptions, AutoCompactStats } from './compaction.js';
 export type * from './archive-types.js';
 
+export type { PruneHistoryOptions, PruneOptions, PruneResult } from './history-prune.js';
 export type {
   RecordedRevision,
   CollectionOptions,

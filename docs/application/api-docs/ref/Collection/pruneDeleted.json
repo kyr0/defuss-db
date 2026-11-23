@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/pruneDeleted",
+  "title": "Collection.pruneDeleted",
+  "namespace": "Collection",
+  "name": "pruneDeleted",
+  "signature": "pruneDeleted(options?: PruneOptions): Promise<PruneResult>",
+  "description": "Tracked collections: remove the documents deleted before before with every version; return { documents, versions }",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "PruneOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<PruneResult>"
+  },
+  "markdown": "pruneDeleted.md"
+}

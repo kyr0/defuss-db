@@ -1,7 +1,7 @@
 # Collection.insert
 
 ```ts
-insert(value: NewDocument<T>, options?: WriteOptions): Promise<PrimaryKey>
+insert(value: NewDocument<T>, options?: DocumentWriteOptions): Promise<PrimaryKey>
 ```
 
 Reject existing ID; return ID; omitted ID generates UUID
@@ -11,7 +11,7 @@ Reject existing ID; return ID; omitted ID generates UUID
 | Name | Type | Required |
 | --- | --- | --- |
 | `value` | `NewDocument<T>` | yes |
-| `options` | `WriteOptions` | no |
+| `options` | `DocumentWriteOptions` | no |
 
 ## Returns
 

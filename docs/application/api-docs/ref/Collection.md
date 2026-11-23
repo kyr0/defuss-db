@@ -4,19 +4,22 @@ A collection of documents. db.collection(name) returns one without I/O; each wri
 
 | Member | Signature | Description |
 | --- | --- | --- |
-| [insert](Collection/insert.md) | `insert(value: NewDocument<T>, options?: WriteOptions): Promise<PrimaryKey>` | Reject existing ID; return ID; omitted ID generates UUID |
-| [insertMany](Collection/insertMany.md) | `insertMany(values: readonly NewDocument<T>[], options?: WriteOptions): Promise<PrimaryKey[]>` | One atomic bounded batch; return IDs |
-| [insertBatches](Collection/insertBatches.md) | `insertBatches(batches: AsyncIterable<readonly NewDocument<T>[]> \| Iterable<readonly NewDocument<T>[]>, options?: WriteOptions): AsyncGenerator<{` | Async generator of { ids, revision, storedEntries }; one atomic commit per input batch |
-| [put](Collection/put.md) | `put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey>` | Insert or replace whole document with required ID; return ID |
-| [update](Collection/update.md) | `update(id: PrimaryKey, updater: Updater<T>, options?: WriteOptions): Promise<boolean>` | Shallow own-property patch or complete replacement callback; return whether ID existed |
+| [insert](Collection/insert.md) | `insert(value: NewDocument<T>, options?: DocumentWriteOptions): Promise<PrimaryKey>` | Reject existing ID; return ID; omitted ID generates UUID |
+| [insertMany](Collection/insertMany.md) | `insertMany(values: readonly NewDocument<T>[], options?: DocumentWriteOptions): Promise<PrimaryKey[]>` | One atomic bounded batch; return IDs |
+| [insertBatches](Collection/insertBatches.md) | `insertBatches(batches: AsyncIterable<readonly NewDocument<T>[]> \| Iterable<readonly NewDocument<T>[]>, options?: DocumentWriteOptions): AsyncGenerator<{` | Async generator of { ids, revision, storedEntries }; one atomic commit per input batch |
+| [put](Collection/put.md) | `put(value: Replacement<T>, options?: DocumentWriteOptions): Promise<PrimaryKey>` | Insert or replace whole document with required ID; return ID |
+| [update](Collection/update.md) | `update(id: PrimaryKey, updater: Updater<T>, options?: DocumentWriteOptions): Promise<boolean>` | Shallow own-property patch or complete replacement callback; return whether ID existed |
 | [delete](Collection/delete.md) | `delete(id: PrimaryKey, options?: WriteOptions): Promise<boolean>` | Return whether ID existed |
-| [restore](Collection/restore.md) | `restore(id: PrimaryKey, options?: Omit<WriteOptions, '$historic' \| '$until' \| '$asOfRevision'>): Promise<boolean>` | Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted |
-| [updateMany](Collection/updateMany.md) | `updateMany(request: FindRequest, updater: Updater<T>, options?: WriteOptions & QueryOptions<T>): Promise<number>` | Atomic bounded set update; return affected document count |
+| [restore](Collection/restore.md) | `restore(id: PrimaryKey, options?: Omit<DocumentWriteOptions, '$historic' \| '$until' \| '$asOfRevision'>): Promise<boolean>` | Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted |
+| [pruneHistory](Collection/pruneHistory.md) | `pruneHistory(options?: PruneHistoryOptions): Promise<PruneResult>` | Tracked collections: remove the versions that ended at or before before, of the whole collection or of ids; return { documents, versions }. See Pruning |
+| [pruneDeleted](Collection/pruneDeleted.md) | `pruneDeleted(options?: PruneOptions): Promise<PruneResult>` | Tracked collections: remove the documents deleted before before with every version; return { documents, versions } |
+| [updateMany](Collection/updateMany.md) | `updateMany(request: FindRequest, updater: Updater<T>, options?: DocumentWriteOptions & QueryOptions<T>): Promise<number>` | Atomic bounded set update; return affected document count |
 | [deleteMany](Collection/deleteMany.md) | `deleteMany(request?: FindRequest, options?: WriteOptions & QueryOptions<T>): Promise<number>` | Atomic bounded set deletion; return affected document count |
 | [createIndex](Collection/createIndex.md) | `createIndex(index: IndexDefinition, options?: WriteOptions): Promise<void>` | Atomic equality or ordered build. Set order to one direction per field. An identical declaration is idempotent; mismatched existing name rejects |
 | [createSearchIndex](Collection/createSearchIndex.md) | `createSearchIndex(index: SearchIndexDefinition, options?: WriteOptions): Promise<void>` | Atomic lexical/vector/hybrid build; see Search |
 | [dropSearchIndex](Collection/dropSearchIndex.md) | `dropSearchIndex(indexName: string, options?: WriteOptions): Promise<boolean>` | Atomic removal of search inputs, state and definition |
 | [dropIndex](Collection/dropIndex.md) | `dropIndex(indexName: string, options?: WriteOptions): Promise<boolean>` | Atomic removal; return whether it existed |
+| [setSchema](Collection/setSchema.md) | `setSchema(schema: JsonSchema \| null, options?: WriteOptions & {` | Set the JSON Schema that later writes validate against, or remove it with null; return a bounded check of the stored documents. See Schemas and validation |
 | [get](Collection/get.md) | `get(id: PrimaryKey, options?: HistoryReadOptions): Promise<T \| undefined>` | Document or undefined |
 | [at](Collection/at.md) | `at(date: Date, options?: {` | The collection at an effective date: reads see the documents of that instant, and on a live collection that tracks history, writes take effect then. { $asOfRevision } reads only what that revision recorded. See Document history |
 | [history](Collection/history.md) | `history(id: PrimaryKey, options?: HistoryListOptions): Promise<HistorySegment<T>[]>` | Effective segments, newest start first: from, exclusive until (null while open), document (undefined for a delete), revision, ordinal |
@@ -25,6 +28,9 @@ A collection of documents. db.collection(name) returns one without I/O; each wri
 | [searchIndexes](Collection/searchIndexes.md) | `searchIndexes(options?: HistoryReadOptions): Promise<SearchIndexDefinition[]>` | Persisted search definitions |
 | [search](Collection/search.md) | `search(index: string, query: DocumentSearchQuery, options?: SearchRequest): Promise<DocumentSearchResult<T>>` | Revision-bound scored hits; see Search |
 | [has](Collection/has.md) | `has(id: PrimaryKey, options?: HistoryReadOptions): Promise<boolean>` | Boolean |
+| [schema](Collection/schema.md) | `schema(): Promise<JsonSchema \| undefined>` | The JSON Schema set with setSchema, or undefined |
+| [validateDocument](Collection/validateDocument.md) | `validateDocument(id: PrimaryKey): Promise<ValidationIssue[]>` | The rules one document violates, as { path, keyword, message }[]; empty when it conforms or no schema is set; NOT_FOUND for a missing id |
+| [validateCollection](Collection/validateCollection.md) | `validateCollection(options?: ValidateOptions): Promise<CollectionValidation>` | { checked, invalid, limit, documents, warning? } after reading documents in key order until limit (default 100, at most 100,000) violate the schema |
 | [find](Collection/find.md) | `find(request?: FindRequest, input?: QueryOptions<T>): Promise<T[]>` | Document array |
 | [findOne](Collection/findOne.md) | `findOne(request?: FindRequest, input?: QueryOptions<T>): Promise<T \| undefined>` | First matching document or undefined; effective limit is one |
 | [query](Collection/query.md) | `query(request?: FindRequest, input?: QueryOptions<T>): Promise<ComputeResult<T>>` | { rows, summary } |

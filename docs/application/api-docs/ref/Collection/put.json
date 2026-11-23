@@ -4,7 +4,7 @@
   "title": "Collection.put",
   "namespace": "Collection",
   "name": "put",
-  "signature": "put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey>",
+  "signature": "put(value: Replacement<T>, options?: DocumentWriteOptions): Promise<PrimaryKey>",
   "description": "Insert or replace whole document with required ID; return ID",
   "async": true,
   "generator": false,
@@ -17,7 +17,7 @@
     },
     {
       "name": "options",
-      "type": "WriteOptions",
+      "type": "DocumentWriteOptions",
       "optional": true,
       "rest": false
     }

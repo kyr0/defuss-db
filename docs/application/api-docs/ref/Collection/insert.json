@@ -4,7 +4,7 @@
   "title": "Collection.insert",
   "namespace": "Collection",
   "name": "insert",
-  "signature": "insert(value: NewDocument<T>, options?: WriteOptions): Promise<PrimaryKey>",
+  "signature": "insert(value: NewDocument<T>, options?: DocumentWriteOptions): Promise<PrimaryKey>",
   "description": "Reject existing ID; return ID; omitted ID generates UUID",
   "async": true,
   "generator": false,
@@ -17,7 +17,7 @@
     },
     {
       "name": "options",
-      "type": "WriteOptions",
+      "type": "DocumentWriteOptions",
       "optional": true,
       "rest": false
     }

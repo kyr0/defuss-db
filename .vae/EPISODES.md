@@ -25,19 +25,7 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-20T21:10:10Z s=19560c1d FINDING tests/browser-examples.ts (was website/demo-worker.ts) learn=none: make e2e asserts the 18 checks
 2026-11-20T21:10:10Z s=19560c1d FINDING package.json lint and format scripts learn=none: make lint runs both
 2026-11-20T23:14:53Z s=19560c1d FINDING website/index.html (whole file) learn=none: the author and content of the out-of-session edit are not known; the human was asked
-2026-11-21T00:31:58Z s=19560c1d DONE fp=299479a48bfb cov=92.9% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
-2026-11-21T00:31:58Z s=19560c1d FINDING package.json, bun.lock, README.md:5, docs/SOURCES.md:12, src/database.ts PAGE_CACHE comment, src/compaction.ts rationale, ARCH.md (format, cache, compaction, query workers), CHANGELOG.md, docs/API.md, docs/OPERATIONS.md, website/index.html comparison note, website/ARCH.md, docs/assets/site.js, scripts/check-site.mjs, docs/benchmarks/*.json learn=verifier: scripts/check-site.mjs now asserts every comparison claim against both runtime reports
-2026-11-21T00:45:37Z s=19560c1d DONE fp=f37be3bd505d cov=93.0% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
-2026-11-21T00:45:37Z s=19560c1d FINDING src/compaction.ts (packedAt, liveBytes, AutoCompactor.run/compacted), src/database.ts compact(), tests/compaction.test.ts, ARCH.md, docs/OPERATIONS.md, README.md:252, src/types.ts:75, CHANGELOG.md, website/index.html, scripts/check-site.mjs learn=test: tests/compaction.test.ts asserts an insert-only load below the bound copies once; MEMORY line records the post-copy count pitfall
-2026-11-21T00:52:25Z s=19560c1d DONE fp=320055aa6c38 cov=93.0% paths=AGENTS.md,ARCH.md,CHANGELOG.md,Makefile(+130)
 2026-11-21T00:52:25Z s=19560c1d FINDING whole repository (git index) learn=none: staging changes the fingerprint without changing content
-2026-11-21T01:13:58Z s=19560c1d FAIL tests.no-mocks
-2026-11-21T01:17:55Z s=19560c1d DONE fp=3f25d4220d89 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/demo/worker.js,docs/guides/architecture.html(+3)
-2026-11-21T01:17:55Z s=19560c1d FINDING src/keys.ts primary/primaryFromToken/escapeId/unescapeId/scalar, tests/index-only.test.ts, tests/history.test.ts, ARCH.md:39, CHANGELOG.md learn=test: tests/history.test.ts pins the separator-safe token and the clock clamp without mocks
-2026-11-21T02:55:13Z s=19560c1d DONE fp=fac8b8c5e769 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/demo/worker.js(+7)
-2026-11-21T02:55:13Z s=19560c1d FINDING src/compaction.ts IDLE_DOUBLING/layoutDue/AutoCompactor.run, tests/compaction.test.ts, ARCH.md, docs/OPERATIONS.md (+ generated docs/guides/operations.html), CHANGELOG.md, .vae/MEMORY.md learn=test: tests/compaction.test.ts pins the doubling trigger; .vae/MEMORY.md storage-space line updated
-2026-11-21T03:24:39Z s=19560c1d DONE fp=6e1ce0794ec2 cov=93.0% paths=bun.lock,docs/demo/app.js,package.json
-2026-11-21T03:24:39Z s=19560c1d FINDING package.json devDependencies.esbuild, bun.lock, docs/demo/app.js (rebuilt) learn=test: make verify e2e covers the rebuilt demo
 2026-11-21T03:32:46Z s=19560c1d FAIL lint
 2026-11-21T03:46:50Z s=19560c1d DONE fp=a816ab530c1e cov=93.0% paths=ARCH.md,CHANGELOG.md,README.md,bun.lock(+23)
 2026-11-21T03:46:50Z s=19560c1d FINDING package.json/bun.lock defuss-dbsonl 0.9.0 (+ esbuild 0.28.2), README.md, docs/SOURCES.md, docs/API.md, src/database.ts PAGE_CACHE comment, ARCH.md, CHANGELOG.md, website/index.html comparison paragraph, scripts/check-site.mjs claim guard, scripts/mongo-report.mjs warm-cache check, docs/benchmarks/*.json, docs/PERFORMANCE.md, docs/VALIDATION.md, rebuilt docs/guides/*.html, docs/index.html, docs/demo/*.js learn=test: scripts/check-site.mjs guards the copy; scripts/mongo-report.mjs encodes the format 5 warm-cache case; .vae/MEMORY.md background-bench line
@@ -106,3 +94,15 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-22T15:54:55Z s=19560c1d FINDING website/application/sample.mjs samples (Mongo) learn=none: sample text; the e2e checks the calls, not the wording
 2026-11-22T15:54:55Z s=19560c1d FINDING scripts/api-docs.mjs member tables learn=none: generated Markdown only; the app renders from the data block
 2026-11-22T15:54:55Z s=19560c1d FINDING scripts/shadcn-sync.mjs (was explorer-sync.mjs) learn=memory: .vae/MEMORY.md 'defuss-shadcn copies' line replaces the old wait-for-build advice
+2026-11-23T11:31:29Z s=131abc06 FAIL tests.e2e.1
+2026-11-23T11:44:25Z s=131abc06 DONE fp=56ab17526d1e cov=94.0% paths=ARCH.md,CHANGELOG.md,README.md,docs/API.md(+49)
+2026-11-23T11:44:25Z s=131abc06 FINDING src/json-schema.ts:inferSchema (add, primaryKey) learn=test: tests/json-schema.test.ts 'a document's own id is no enum' and the packed consumer in scripts/e2e.mjs
+2026-11-23T11:44:25Z s=131abc06 FINDING src/collection.ts:Collection.setSchema learn=test: tests/schema-validation.test.ts asserts schema() stays undefined after the RangeError
+2026-11-23T11:44:25Z s=131abc06 FINDING src/validate.ts:checkSchema (x-dson) learn=test: tests/schema-validation.test.ts 'refuses a keyword or format it would not enforce'
+2026-11-23T11:44:25Z s=131abc06 FINDING src/validate.ts:visit (format) learn=none: reachable only with a schema that skipped checkSchema, whose behavior no requirement states
+2026-11-23T11:44:25Z s=131abc06 FINDING tests/history.test.ts:457 learn=test: tests/history.test.ts derives the publication revision as revision - 1; tests/database.test.ts keeps concurrent ensureCollection and first writes conflict-free
+2026-11-23T15:08:19Z s=131abc06 DONE fp=53ca468291d8 cov=94.2% paths=ARCH.md,CHANGELOG.md,README.md,docs/API.md(+74)
+2026-11-23T15:08:19Z s=131abc06 FINDING src/history-prune.ts:applyPlans / src/collection.ts:Collection.prune learn=test: tests/history-prune.test.ts 'stays consistent while documents are written' fails with the scanning form
+2026-11-23T15:08:19Z s=131abc06 FINDING src/history-store.ts:assertChange (head row) learn=test: tests/history-prune.test.ts 'does not stage a plan that was read before a later correction'; both mutations (conditional head put, no staleness check) fail it
+2026-11-23T15:08:19Z s=131abc06 FINDING src/history-prune.ts:planId (pruneDeleted count) learn=test: tests/history-prune.test.ts 'removes a deleted document with more versions than one transaction holds'
+2026-11-23T16:19:42Z s=131abc06 DONE fp=9e6003fd7849 cov=94.2% paths=ARCH.md,CHANGELOG.md,README.md,docs/API.md(+82)

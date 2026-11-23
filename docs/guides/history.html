@@ -88,5 +88,44 @@ const restored = await fork.collection(&#39;prices&#39;).at(jan20, { $asOfRevisi
 </code></pre>
 <p>A full Brotli archive includes immutable assertions, schema history, tombstones and original receipts. Restore it into an empty database. The fork receives its own identity and local commit counter. Bare numbers address this local counter. A source-qualified receipt reproduces a source belief, including after another export and restore. Further local edits advance the fork independently. A full restore validates current documents against the reconstructed open segments and rebuilds secondary projections before publishing.</p>
 <p>Ordinary <code>export()</code> and <code>exportStream()</code> preserve latest data using the latest-only logical archive. Restoring a latest-only archive to an empty target creates ordinary collections. Use the full archive to carry history. <code>maxHistoryRecords</code> bounds full import/export independently of document and byte budgets. Import is a single atomic transaction and must fit the target&#39;s transaction limits.</p>
-<p>Logical deletion, <code>compact()</code> and <code>collect()</code> preserve committed history. There is no automatic expiry or public pruning operation. Size capacity for full DSON images and index keys per change. The tracked-writer clock is shared across tracked collections. Concurrent tracked transactions can conflict even when their documents differ. <a href="performance.html">Measured performance</a></p>
+<p>Logical deletion, <code>compact()</code> and <code>collect()</code> preserve committed history, and nothing expires on its own; <a href="#pruning">pruning</a> removes it on request. Size capacity for full DSON images and index keys per change. The tracked-writer clock is shared across tracked collections. Concurrent tracked transactions can conflict even when their documents differ. <a href="performance.html">Measured performance</a></p>
+<h2 id="pruning">Pruning</h2>
+<p>Every tracked write stores a full DSON image of the document as an immutable assertion, with three rows that order it. Two operations remove recorded history. Neither changes a live document, its indexes or its search data.</p>
+<pre><code class="language-ts">const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+await prices.pruneHistory({ before: cutoff });          // versions that ended before the cutoff
+await prices.pruneHistory({ ids: [&#39;plan&#39;] });            // every ended version of one document
+await prices.pruneHistory({ from: jan, before: feb });  // a slice in between
+await prices.pruneDeleted({ before: cutoff });          // documents deleted before the cutoff
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Removes</th>
+<th>Keeps</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pruneHistory({ before, from, ids })</code></td>
+<td>The versions that began at or after <code>from</code> and ended at or before <code>before</code>, with every assertion recorded for them. A version is one effective segment of an ID, a tombstone included.</td>
+<td>The current state, the version in effect at <code>before</code> and every later one, a version that a later bounded correction resumes, and the version <code>restore(id)</code> writes back for a deleted document.</td>
+</tr>
+<tr>
+<td><code>pruneDeleted({ before, ids })</code></td>
+<td>Each document whose current state is a tombstone with an effective time before <code>before</code>: every version, the tombstone and its <code>audit</code> record.</td>
+<td>Live documents and documents deleted at or after <code>before</code>.</td>
+</tr>
+</tbody></table>
+<p>Every option is optional. Without <code>before</code>, <code>pruneHistory</code> removes every version that ended and <code>pruneDeleted</code> every deleted document. Without <code>ids</code> the whole collection is pruned. Both return <code>{ documents, versions }</code>: the documents that lost a version and the versions removed. Both raise <code>HISTORY_NOT_ENABLED</code> on an untracked collection and <code>HISTORY_READ_ONLY</code> on a collection bound with <code>at(date)</code>.</p>
+<p>A removed range reads as absent. <code>get</code> at an instant in it answers undefined, and a scan at that instant leaves the document out. <code>history(id)</code> lists a removed slice that follows a kept version as a segment without a document. The version before the slice still ends where it ended: extending it over the slice would assert a document that did not apply then, and under a <code>temporalUnique</code> index it could overlap another owner. Raising <code>HISTORY_UNAVAILABLE</code> instead would fail every collection scan at an instant where one ID was pruned. Reads at or after <code>before</code> answer as before the prune. <code>audit(id)</code> and reads with <code>$asOfRevision</code> answer from the assertions that remain, so what the database knew about a removed version at an earlier revision cannot be reproduced.</p>
+<p><code>pruneHistory</code> keeps a deleted document restorable; <code>pruneDeleted</code> is the operation that removes it. <code>restore(id)</code> returns false afterwards. To erase a live document in one commit, delete it and prune it in one transaction:</p>
+<pre><code class="language-ts">await db.transaction(async (tx) =&gt; {
+  const prices = tx.collection(&#39;prices&#39;);
+  await prices.delete(&#39;plan&#39;);
+  await prices.pruneDeleted({ ids: [&#39;plan&#39;] });
+});
+</code></pre>
+<p>On a collection, a prune commits in batches of at most three quarters of <code>maxTransactionOperations</code>, so its size is not bound by one transaction; a version takes about four operations. Each commit leaves a store that <code>verify()</code> accepts. A call that stops midway, by <code>signal</code> or an error, has removed what its commits removed; repeat it for the rest.</p>
+<p>A prune runs beside writers. It never makes a current write fail, and it conflicts only with a write to a document it is pruning, which it then reads again. Twelve batches in a row without a removal end the call with <code>CONFLICT</code>. Stop writers of builds up to 3.1.0 before you prune: this detection relies on a row that those builds leave untouched on a backdated write. VERIFIED: tests/history-prune.test.ts prunes 120 documents while each is updated. In a transaction a prune is atomic and raises <code>LIMIT_EXCEEDED</code> when it exceeds the transaction. A full-history archive of a pruned store holds the assertions that remain.</p>
+<p>DBSONL commits never reuse file space, so the file shrinks with the next compaction, automatic or <code>compact()</code>. VERIFIED: (probe, 2026-11-23, memory store) 1,000 documents of about 1 KiB with 11 versions each held 46,009 stored entries in 30.0 MiB after compaction; after <code>pruneHistory()</code> and compaction they held 6,009 entries in 4.6 MiB, the entries of the 1,000 inserts. VERIFIED: tests/history-prune.test.ts.</p>
 </article><nav aria-label="Documentation" class="db-guide-nav"><a href="../index.html">← defuss-db</a><a href="../application/app-api-docs.html">API reference</a><a href="../index.html#install">Install</a></nav></main></body></html>

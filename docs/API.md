@@ -46,9 +46,9 @@ Server `storage.io` accepts the Storage adapter's optional synchronous read mode
 
 | Method | Result / behavior |
 | --- | --- |
-| `collection<T>(name)` | Typed live collection; no I/O merely to obtain it |
-| `ensureCollection<T>(name, options?)` | Persist `$trackHistory` and `$timestamps`, then return the collection; idempotent, and both settings are permanent |
-| `collections()` | Persisted collection names, including now-empty collections |
+| `collection<T>(name)` | Typed live collection; no I/O merely to obtain it. `collection('_collections')` is the read-only catalog, see [Schemas and validation](#schemas-and-validation) |
+| `ensureCollection<T>(name, options?)` | Persist `$trackHistory` and `$timestamps`, create the collection's `_collections` entry, then return the collection; idempotent, and both settings are permanent |
+| `collections()` | Persisted collection names, including now-empty collections, without `_collections` |
 | `transaction(callback, options?)` | `{ result, revision, storedEntries }`; callback runs once |
 | `snapshot()` | Read-only `DatabaseSnapshot`, with `revision`, `collection<T>`, `close` |
 | `export(options?)` | `Uint8Array` Brotli archive; buffered, default 64 MiB compressed cap |
@@ -75,12 +75,15 @@ Write options accept `ifRevision` for whole-store compare-and-swap and `signal`.
 | `update(id, patchOrCallback, options?)` | Shallow own-property patch or complete replacement callback; return whether ID existed |
 | `delete(id, options?)` | Return whether ID existed |
 | `restore(id, options?)` | Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted |
+| `pruneHistory({ before, from, ids, signal }?)` | Tracked collections: remove the versions that ended at or before `before`, of the whole collection or of `ids`; return `{ documents, versions }`. See [Pruning](HISTORY.md#pruning) |
+| `pruneDeleted({ before, ids, signal }?)` | Tracked collections: remove the documents deleted before `before` with every version; return `{ documents, versions }` |
 | `updateMany(request, patchOrCallback, options?)` | Atomic bounded set update; return affected document count |
 | `deleteMany(request?, options?)` | Atomic bounded set deletion; return affected document count |
 | `createIndex(definition, options?)` | Atomic equality or ordered build. Set `order` to one direction per field. An identical declaration is idempotent; mismatched existing name rejects |
 | `createSearchIndex(definition, options?)` | Atomic lexical/vector/hybrid build; see [Search](SEARCH.md) |
 | `dropSearchIndex(name, options?)` | Atomic removal of search inputs, state and definition |
 | `dropIndex(name, options?)` | Atomic removal; return whether it existed |
+| `setSchema(schema \| null, { limit }?)` | Set the JSON Schema that later writes validate against, or remove it with `null`; return a bounded check of the stored documents. See [Schemas and validation](#schemas-and-validation) |
 
 `updateMany`/`deleteMany` accept DataView query resource options alongside write options. Their collected output caps cannot exceed the transaction limits. A callback update can be asynchronous; it executes once, receives the current decoded document, and must preserve its typed ID. Patches cannot contain `id`. Upsert-by-ID is `put`; there is no ambiguous selector-based upsert.
 
@@ -98,6 +101,9 @@ Write options accept `ifRevision` for whole-store compare-and-swap and `signal`.
 | `searchIndexes()` | Persisted search definitions |
 | `search(index, query, options?)` | Revision-bound scored hits; see [Search](SEARCH.md) |
 | `has(id)` | Boolean |
+| `schema()` | The JSON Schema set with `setSchema`, or `undefined` |
+| `validateDocument(id)` | The rules one document violates, as `{ path, keyword, message }[]`; empty when it conforms or no schema is set; `NOT_FOUND` for a missing id |
+| `validateCollection({ limit, signal }?)` | `{ checked, invalid, limit, documents, warning? }` after reading documents in key order until `limit` (default 100, at most 100,000) violate the schema |
 | `find(request?, options?)` | Document array |
 | `findOne(request?, options?)` | First matching document or `undefined`; effective limit is one |
 | `query(request?, options?)` | `{ rows, summary }` |
@@ -184,9 +190,44 @@ Pipelines: `$match` (several are ANDed), `$unwind` (only as a group key: one gro
 
 `analyzeSchema(collection, { sample, at, $asOfRevision, maxDepth, examples, title }?)` (main entry) answers `{ schema, sampled, total, at }`. It reads at most `sample` documents (default 1,000): all of a smaller collection, else eight windows at even offsets, since default order follows storage keys and ids often follow insertion time. With `at` it reads the collection as it was then; a collection without history throws `HISTORY_NOT_ENABLED`. `inferSchema(docs, options?)` is the same inference over documents you hold. The schema is JSON Schema draft 2020-12: `type`, `properties`, `required` (properties every sampled object holds), `items`, `anyOf` where one place holds an object or array beside other types, and `examples` (up to three distinct scalars). A property some objects lack carries `x-presence`, the share that hold it. DSON values keep a JSON type and name their own in `x-dson`: a Date is `{ type: 'string', format: 'date-time', 'x-dson': 'date' }`, a BigInt an integer, binary a base64 string, a Map an object of `additionalProperties`, a Set an array of `uniqueItems`. A value that contains itself is a `$comment`, not an endless schema.
 
+Where no sampled string of a field holds whitespace, the schema suggests a higher-order type:
+
+| Sampled strings | Schema |
+| --- | --- |
+| every value is a URL with `://` | `{ type: 'string', format: 'uri' }` |
+| a value holds `/`, and none is empty or holds a control character | `{ type: 'string', format: 'path' }` |
+| no value holds `/` or ends in two or more digits, and at most 1,000 values are distinct | `{ type: 'string', enum: [...] }`, values in the order first seen |
+| anything else | `{ type: 'string' }` |
+
+`step-9` still counts for an enum; `step-10`, `ev-000001` and `s-3558` rule it out, because the rule reads a value that ends in a number of two or more digits as an identifier. A document's own `id` is never an enum: every new document has a new one. The suggestions describe the sample, not the field: a status with one value not yet used, or a session id drawn from few sessions, gets a wrong enum. `analyzeSchema` therefore writes nothing; `{ higherOrder: false }` keeps `type: 'string'` for every string. VERIFIED: tests/json-schema.test.ts infers the three types and both exclusions.
+
+## Schemas and validation
+
+`collection.setSchema(schema)` sets the JSON Schema of a collection, typically an `analyzeSchema` result after review. From that commit on, `insert`, `insertMany`, `insertBatches`, `put`, `update`, `updateMany` and `restore` validate the whole document they store, in a timestamped collection after `_createdAt` and `_updatedAt` are set. A violating write rejects with a `ValidationError` (code `VALIDATION_FAILED`) that carries `collection`, `id` and `issues: { path, keyword, message }[]`, where `path` is a JSON Pointer into the document; a batch or transaction stores none of its documents. `setSchema(null)` removes the schema.
+
+Documents the collection already holds are not checked when a schema is set, so a schema never blocks on old data. `setSchema` answers `{ checked, invalid, limit, documents, warning? }`: it reads the collection in key order and stops at `limit` violating documents (default 100). When `invalid` equals `limit` the count is a lower bound, and `warning` says so: `WARNING >= 100 documents of events violate its schema; first: ev-000007 /type "x" is not one of "search", "click"`. `validateCollection({ limit })` repeats the check and `validateDocument(id)` checks one document. A violating document stays readable and deletable; an update has to leave it conforming. In a transaction, `setSchema` returns nothing and governs the writes that follow in it.
+
+`{ validate: false }` on `insert`, `insertMany`, `insertBatches`, `put`, `update`, `updateMany` or `restore` stores the documents of that call without checking them, for a bulk import of data that predates the schema. The option belongs to its call: the next write of such a document is checked, and `validateCollection()` lists the documents that violate the schema. `restore(id)` validates the version it writes back, so `restore(id, { validate: false })` is the way to restore a version that predates the schema. VERIFIED: tests/schema-validation.test.ts.
+
+A write that began before a schema was set cannot commit after it: each write transaction reads whether its collection has a schema, and that read is part of its conflict set, so the late commit fails with `CONFLICT`. VERIFIED: tests/schema-validation.test.ts.
+
+Enforced keywords: `type` (one or a list), `enum` (strings, numbers, booleans, null), `format`, `properties`, `required`, `additionalProperties` (a schema or a boolean), `items`, `anyOf` and `x-dson`. `title`, `description`, `examples`, `default`, `$comment`, `$schema`, `$id`, `contentEncoding` and every `x-` keyword are annotations. `setSchema` and `checkSchema(schema)` refuse any other keyword and any other format with a `TypeError` that names it and its place, for example `Schema /properties/a: "pattern" is not enforced by defuss-db`. JSON Schema would let a validator ignore them; a stored schema would then state a rule that no write checks.
+
+| `format` | A string conforms when |
+| --- | --- |
+| `uri` | it holds no whitespace and `URL.canParse` accepts it |
+| `path` | it is not empty and holds no whitespace or control character. `path` is no JSON Schema format; other validators ignore it |
+| `date-time` | it is an RFC 3339 date-time |
+
+With `x-dson` a value must have that DSON type: `{ type: 'string', format: 'date-time', 'x-dson': 'date' }` accepts a Date and no string, `'x-dson': 'bigint'` a BigInt, `binary` a typed array or ArrayBuffer, `map` a Map whose values match `additionalProperties`, `set` a Set whose items match `items`. Without it, `integer` is a JavaScript integer number and `number` any number.
+
+`validateValue(schema, value)` (main entry) is the check `setSchema` installs, as a pure function: it answers the issues of any value against any schema or sub-schema, at most 100. A form can validate one field with `validateValue(schema.properties.country, input)` and offer `schema.properties.country.enum` as choices before it writes.
+
+`_collections` is the catalog of a database: one document `{ id: <collection>, schema? }` per collection that `ensureCollection()` or `setSchema()` named. A collection that only document writes created has no entry, because creating one on the first write would make concurrent first writers conflict. `db.collection('_collections')`, also on a transaction and a snapshot, is a `ReadCollection`: `find`, `get`, `count` and the other reads work, and it has no write methods. Its name is no valid collection name, `collections()` leaves it out, and `verify()` checks that every entry names a collection and parses. The schema is not versioned: `at(date)` reads documents of the past and `schema()` answers the schema set today. Archives carry the entries, see [Archive API](ARCHIVE.md).
+
 ## Errors
 
-`DatabaseError` codes: `DUPLICATE_KEY`, `SCHEMA_MISMATCH`, `INVALID_DOCUMENT`, `INVALID_INDEX_VALUE`, `CORRUPT`, `INVALID_CURSOR`, `STALE_CURSOR`, `CLOSED`, `BUSY`, `UNFINISHED_TRANSACTION`, and for history `HISTORY_ACTIVATING`, `HISTORY_NOT_ENABLED`, `HISTORY_UNAVAILABLE`, `HISTORY_READ_ONLY`, `HISTORY_FUTURE_WRITE`, `HISTORY_RANGE`. Input validation can also throw `TypeError`/`RangeError`; strict DSON errors remain intact.
+`DatabaseError` codes: `DUPLICATE_KEY`, `SCHEMA_MISMATCH`, `INVALID_DOCUMENT`, `VALIDATION_FAILED` (a `ValidationError` with `issues`), `NOT_FOUND` (`validateDocument` of a missing id), `INVALID_INDEX_VALUE`, `CORRUPT`, `INVALID_CURSOR`, `STALE_CURSOR`, `CLOSED`, `BUSY`, `UNFINISHED_TRANSACTION`, and for history `HISTORY_ACTIVATING`, `HISTORY_NOT_ENABLED`, `HISTORY_UNAVAILABLE`, `HISTORY_READ_ONLY`, `HISTORY_FUTURE_WRITE`, `HISTORY_RANGE`. Input validation can also throw `TypeError`/`RangeError`; strict DSON errors remain intact.
 
 DBSONL errors (`CONFLICT`, `COMMIT_UNCERTAIN`, `LIMIT_EXCEEDED`, `QUEUE_FULL`, `ABORTED`, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. `COMMIT_UNCERTAIN` means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption.
 

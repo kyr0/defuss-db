@@ -5,7 +5,7 @@
   "namespace": "Database",
   "name": "ensureCollection",
   "signature": "ensureCollection<T extends Document = Document>(collection: string, options?: CollectionOptions): Promise<Collection<T>>",
-  "description": "Persist $trackHistory and $timestamps, then return the collection; idempotent, and both settings are permanent",
+  "description": "Persist $trackHistory and $timestamps, create the collection's _collections entry, then return the collection; idempotent, and both settings are permanent",
   "async": true,
   "generator": false,
   "params": [

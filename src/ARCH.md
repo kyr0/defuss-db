@@ -6,6 +6,8 @@
 
 `index.ts` is platform-independent. `server.ts` uses the DBSONL native backend; `browser.ts` combines Storage OPFS with DBSONL Web Locks. No module performs database I/O merely on import. See the root architecture for consistency, memory limits and security boundaries.
 
+`catalog.ts` owns `_collections`: the entries, the `m:` schema marker, the per-transaction schema read of the write path and the entry of an archive. `validate.ts` is the pure validator: `checkSchema` refuses a schema it would not enforce in full and `validateValue` lists what a value violates. `json-schema.ts` infers schemas and owns the `format` predicates that validation enforces.
+
 `schema-cache.ts` caches schema reads within a transaction and refreshes on DDL. `reads.ts` drains bounded parallel lookups before errors release snapshots. `paths.ts` performs own-property field access shared by equality/search projection.
 
 `search-types.ts` declares the serializable search contract. `search-config.ts` validates configuration, language analyzers, text projection and vector normalization. `search-mutations.ts` maintains projected inputs and generation state atomically. `search.ts` runs upstream engines with a bounded immutable-generation cache, pre-top-k DataView filtering and same-snapshot hit hydration.
@@ -22,4 +24,4 @@
 
 ## History
 
-`history-types.ts` captures date options and defines public receipts. `history-store.ts` owns immutable facts, interval lookup, recorded and effective listings, constraint checks and verification. `history-view.ts` adapts one temporal slice to the ordinary query and search readers. `history-index-cache.ts` retains bounded secondary postings per database. `history-activation.ts` publishes or resumes a batched baseline. Archive framing, storage, DSON and query evaluation continue to use their existing packages.
+`history-types.ts` captures date options and defines public receipts. `history-store.ts` owns immutable facts, interval lookup, recorded and effective listings, constraint checks and verification. `history-view.ts` adapts one temporal slice to the ordinary query and search readers. `history-index-cache.ts` retains bounded secondary postings per database. `history-activation.ts` publishes or resumes a batched baseline. `history-prune.ts` removes ended versions and deleted documents. Archive framing, storage, DSON and query evaluation continue to use their existing packages.

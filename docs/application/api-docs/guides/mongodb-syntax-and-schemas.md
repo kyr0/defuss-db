@@ -25,4 +25,15 @@ Pipelines: `$match` (several are ANDed), `$unwind` (only as a group key: one gro
 
 `analyzeSchema(collection, { sample, at, $asOfRevision, maxDepth, examples, title }?)` (main entry) answers `{ schema, sampled, total, at }`. It reads at most `sample` documents (default 1,000): all of a smaller collection, else eight windows at even offsets, since default order follows storage keys and ids often follow insertion time. With `at` it reads the collection as it was then; a collection without history throws `HISTORY_NOT_ENABLED`. `inferSchema(docs, options?)` is the same inference over documents you hold. The schema is JSON Schema draft 2020-12: `type`, `properties`, `required` (properties every sampled object holds), `items`, `anyOf` where one place holds an object or array beside other types, and `examples` (up to three distinct scalars). A property some objects lack carries `x-presence`, the share that hold it. DSON values keep a JSON type and name their own in `x-dson`: a Date is `{ type: 'string', format: 'date-time', 'x-dson': 'date' }`, a BigInt an integer, binary a base64 string, a Map an object of `additionalProperties`, a Set an array of `uniqueItems`. A value that contains itself is a `$comment`, not an endless schema.
 
+Where no sampled string of a field holds whitespace, the schema suggests a higher-order type:
+
+| Sampled strings | Schema |
+| --- | --- |
+| every value is a URL with `://` | `{ type: 'string', format: 'uri' }` |
+| a value holds `/`, and none is empty or holds a control character | `{ type: 'string', format: 'path' }` |
+| no value holds `/` or ends in two or more digits, and at most 1,000 values are distinct | `{ type: 'string', enum: [...] }`, values in the order first seen |
+| anything else | `{ type: 'string' }` |
+
+`step-9` still counts for an enum; `step-10`, `ev-000001` and `s-3558` rule it out, because the rule reads a value that ends in a number of two or more digits as an identifier. A document's own `id` is never an enum: every new document has a new one. The suggestions describe the sample, not the field: a status with one value not yet used, or a session id drawn from few sessions, gets a wrong enum. `analyzeSchema` therefore writes nothing; `{ higherOrder: false }` keeps `type: 'string'` for every string. VERIFIED: tests/json-schema.test.ts infers the three types and both exclusions.
+
 Interactive: [MongoDB syntax and schemas in the app](../../app-api-docs.html#/guides/mongodb-syntax-and-schemas).

@@ -4,9 +4,9 @@ What opening returns: typed collections, transactions across collections, snapsh
 
 | Member | Signature | Description |
 | --- | --- | --- |
-| [collection](Database/collection.md) | `collection<T extends Document = Document>(collection: string): Collection<T>` | Typed live collection; no I/O merely to obtain it |
-| [ensureCollection](Database/ensureCollection.md) | `ensureCollection<T extends Document = Document>(collection: string, options?: CollectionOptions): Promise<Collection<T>>` | Persist $trackHistory and $timestamps, then return the collection; idempotent, and both settings are permanent |
-| [collections](Database/collections.md) | `collections(): Promise<string[]>` | Persisted collection names, including now-empty collections |
+| [collection](Database/collection.md) | `collection<T extends CollectionEntry = CollectionEntry>(collection: typeof COLLECTIONS): ReadCollection<T>` | Typed live collection; no I/O merely to obtain it. collection('_collections') is the read-only catalog, see Schemas and validation |
+| [ensureCollection](Database/ensureCollection.md) | `ensureCollection<T extends Document = Document>(collection: string, options?: CollectionOptions): Promise<Collection<T>>` | Persist $trackHistory and $timestamps, create the collection's _collections entry, then return the collection; idempotent, and both settings are permanent |
+| [collections](Database/collections.md) | `collections(): Promise<string[]>` | Persisted collection names, including now-empty collections, without _collections |
 | [transaction](Database/transaction.md) | `transaction<R>(callback: (tx: DatabaseTransaction) => R \| Promise<R>, options?: WriteOptions): Promise<TransactionResult<R>>` | { result, revision, storedEntries }; callback runs once |
 | [snapshot](Database/snapshot.md) | `snapshot(): Promise<DatabaseSnapshot>` | Read-only DatabaseSnapshot, with revision, collection<T>, close |
 | [export](Database/export.md) | `export(options?: ExportOptions): Promise<Uint8Array>` | Uint8Array Brotli archive; buffered, default 64 MiB compressed cap |

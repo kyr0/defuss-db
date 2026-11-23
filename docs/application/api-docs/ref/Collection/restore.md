@@ -1,7 +1,7 @@
 # Collection.restore
 
 ```ts
-restore(id: PrimaryKey, options?: Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise<boolean>
+restore(id: PrimaryKey, options?: Omit<DocumentWriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise<boolean>
 ```
 
 Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted
@@ -11,7 +11,7 @@ Tracked collections: write back the version a delete removed as a new version; r
 | Name | Type | Required |
 | --- | --- | --- |
 | `id` | `PrimaryKey` | yes |
-| `options` | `Omit<WriteOptions, '$historic' \| '$until' \| '$asOfRevision'>` | no |
+| `options` | `Omit<DocumentWriteOptions, '$historic' \| '$until' \| '$asOfRevision'>` | no |
 
 ## Returns
 

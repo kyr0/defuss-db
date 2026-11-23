@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/pruneHistory",
+  "title": "Collection.pruneHistory",
+  "namespace": "Collection",
+  "name": "pruneHistory",
+  "signature": "pruneHistory(options?: PruneHistoryOptions): Promise<PruneResult>",
+  "description": "Tracked collections: remove the versions that ended at or before before, of the whole collection or of ids; return { documents, versions }. See Pruning",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "PruneHistoryOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<PruneResult>"
+  },
+  "markdown": "pruneHistory.md"
+}

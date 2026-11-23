@@ -4,7 +4,7 @@
 ensureCollection<T extends Document = Document>(collection: string, options?: CollectionOptions): Promise<Collection<T>>
 ```
 
-Persist $trackHistory and $timestamps, then return the collection; idempotent, and both settings are permanent
+Persist $trackHistory and $timestamps, create the collection's _collections entry, then return the collection; idempotent, and both settings are permanent
 
 ## Parameters
 

@@ -148,7 +148,7 @@ Run `make bench-workloads` for the defuss-db workloads and `make bench-mongo` fo
 
 - Node v26.13.1 on darwin arm64, Apple M5 Max.
 - Bun 1.4.4 on darwin arm64, Apple M5 Max.
-- defuss-db 3.0.0 with defuss-dataview 0.7.0. 3.1.0 has not been measured again.
+- defuss-db 3.0.0 with defuss-dataview 0.7.0. 3.2.0 has not been measured again.
 - MongoDB 9.0.8 (wiredTiger, standalone: yes) on the same machine.
 - One-minute host load average during the MongoDB comparison (Node.js): 7.9 at the start and 9.1 at the end, on 18 cores; other processes on the host share them.
 

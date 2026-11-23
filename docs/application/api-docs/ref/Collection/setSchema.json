@@ -1,0 +1,29 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/setSchema",
+  "title": "Collection.setSchema",
+  "namespace": "Collection",
+  "name": "setSchema",
+  "signature": "setSchema(schema: JsonSchema | null, options?: WriteOptions & {\n    limit?: number;\n}): Promise<CollectionValidation>",
+  "description": "Set the JSON Schema that later writes validate against, or remove it with null; return a bounded check of the stored documents. See Schemas and validation",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "schema",
+      "type": "JsonSchema | null",
+      "optional": false,
+      "rest": false
+    },
+    {
+      "name": "options",
+      "type": "WriteOptions & {\n        limit?: number;\n    }",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<CollectionValidation>"
+  },
+  "markdown": "setSchema.md"
+}

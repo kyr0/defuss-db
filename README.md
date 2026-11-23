@@ -1,4 +1,4 @@
-# defuss-db 3.1.0
+# defuss-db 3.2.0
 
 An embedded document database for JavaScript. The same API stores collections in a dedicated browser worker (OPFS), in a Node.js 26+ or Bun 1.4.4+ directory, or in memory. It is an alternative to MongoDB for applications whose data lives on one machine: a transaction commits several collections together, a reader sees one snapshot, and a directory commit returns after it is flushed. defuss-db runs inside your process; it has no server and does not replicate, shard or federate. [Compared with MongoDB](docs/PERFORMANCE.md#compared-with-mongodb-on-one-machine)
 
@@ -211,7 +211,7 @@ const [tombstone] = await notes.history('n1');           // { from: Date, until:
 await notes.restore('n1');                               // the deleted version, as a new version
 ```
 
-`$timestamps` maintains both fields as Dates, which index, filter, sort and group by calendar like any other Date. In a tracked collection `_updatedAt` equals the `from` of the version each write records. A delete in a tracked collection leaves a tombstone with its effective time, and `restore(id)` brings the deleted version back without hiding deleted documents in every query, as a soft-delete field would. [Timestamps](docs/API.md#timestamps), [Deletion and restore](docs/HISTORY.md#deletion-and-restore)
+`$timestamps` maintains both fields as Dates, which index, filter, sort and group by calendar like any other Date. In a tracked collection `_updatedAt` equals the `from` of the version each write records. A delete in a tracked collection leaves a tombstone with its effective time, and `restore(id)` brings the deleted version back without hiding deleted documents in every query, as a soft-delete field would. History is kept until you remove it: `pruneHistory({ before })` removes the versions that ended before a date, and `pruneDeleted({ before })` removes deleted documents with every version. [Timestamps](docs/API.md#timestamps), [Deletion and restore](docs/HISTORY.md#deletion-and-restore), [Pruning](docs/HISTORY.md#pruning)
 
 ## Full-text, vector and hybrid search
 
@@ -276,6 +276,25 @@ const before = await analyzeSchema(prices, { at: new Date('2026-01-01') }); // a
 
 `defuss-db/mongo` reads MongoDB's filter, sort and projection documents - as objects, or as text in the shell's syntax (unquoted keys, single quotes, `ISODate()`, `NumberLong()`) or Extended JSON - and translates them into the collection's own request, with MongoDB's rules for null, missing fields, types and arrays (a condition matches an array when one element does; null values sort last): conditions on a top-level field that an index covers become `filters`, which the index answers, the rest one `where` expression. `aggregateMongo` turns a pipeline into one aggregate and answers in MongoDB's shape; a stage that has no place in it (`$lookup`, a `$match` after the `$group`) is refused by name. `analyzeSchema` infers a JSON Schema (draft 2020-12) from a sample spread over the whole collection, or over the collection as it was at a date. See [MongoDB syntax and schemas](docs/API.md#mongodb-syntax-and-schemas).
 
+## Schemas that validate writes
+
+```ts
+import { analyzeSchema, validateValue } from 'defuss-db';
+
+const { schema } = await analyzeSchema(events); // a suggestion: type, enum, path and uri
+// ... review and correct it, then:
+const check = await events.setSchema(schema);
+if (check.warning) console.warn(check.warning); // WARNING >= 100 documents of events violate its schema; first: ...
+await events.insert({ id: 'ev-1', type: 'scroll' }); // rejects with VALIDATION_FAILED: /type "scroll" is not one of ...
+validateValue(schema.properties!.path!, 'a b'); // [{ path: '', keyword: 'format', message: '"a b" is not a valid path' }]
+await events.validateCollection({ limit: 100 }); // { checked, invalid, limit, documents, warning? }
+await db.collection('_collections').find(); // [{ id: 'events', schema }, ...]
+```
+
+A collection validates its writes against a JSON Schema once `setSchema(schema)` sets one: every later insert, replacement and update is checked, and a violating write rejects with a `ValidationError` that names each violated rule by JSON Pointer. Documents the collection already holds stay as they are. `setSchema` answers a bounded check of them with a `warning`, and `validateDocument(id)` and `validateCollection({ limit })` repeat it. `{ validate: false }` on a write stores its documents unchecked, for a bulk import of older data. `validateValue(schema, value)` is the same check without a database, for a form field before it saves. The read-only collection `_collections` holds one entry per collection that `ensureCollection()` or `setSchema()` named.
+
+`analyzeSchema` drafts the schema. For a string field whose sampled values hold no whitespace it suggests a higher-order type: `enum` with the distinct values, `format: 'path'` when a value holds `/`, or `format: 'uri'` when every value is a URL with `://`. A value that ends in two or more digits (`ev-000001`, `s-3558`) or more than 1,000 distinct values rule an enum out, and a document's own `id` is never one. A sample cannot tell a closed set from the values seen so far, so `analyzeSchema` stores and enforces nothing; review its result before you set it. See [Schemas and validation](docs/API.md#schemas-and-validation).
+
 ## Node, Bun, browser and memory
 
 | Environment | Factory | Persistence and coordination |
@@ -302,7 +321,7 @@ DSON preserves supported native values, undefined, NaN/infinities, cycles and sh
 ## Operations and verification
 
 - `db.stats()` reports revision, storage-entry count, committed bytes, cache use and durability. `storedEntries` includes metadata and indexes; it is not a document count.
-- `db.verify()` audits physical records and both directions of declared indexes.
+- `db.verify()` audits physical records, both directions of declared indexes and the `_collections` entries.
 - Directory stores answer full-scan aggregates and counts in worker threads, each over one key range of the same snapshot; `parallel: false` turns them off. [Answer aggregates in worker threads](docs/OPERATIONS.md#answer-aggregates-in-worker-threads)
 - Every commit appends copy-on-write pages. The database compacts in the background: without blocking writers after a second without commits, or by queuing writers once the file reaches four times its live size, estimated from its packed size and the stored entries. `autoCompact: false` disables it; `db.compact()` and `db.collect()` remain for manual control. Close long-lived snapshots when finished, because a pinned generation stays on disk. [Reclaim space](docs/OPERATIONS.md#reclaim-space)
 - `close()` is idempotent; database and snapshot also implement async disposal. Close active iterators and explicit snapshots when finished. An index-page continuation can resume after reopening the same store if its collection version still matches.

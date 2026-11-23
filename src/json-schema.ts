@@ -11,7 +11,15 @@
  * knows DSON gets the exact type and every other reader a correct JSON one.
  * Annotations: `x-presence` - the share of the enclosing objects that hold a property, where it is below 1 (a
  * property every sampled object holds is `required`); `examples` - up to three distinct scalar values.
- * VERIFIED: tests/json-schema.test.ts infers schemas of real memory collections, also at an earlier date.
+ * Higher-order string types: where no sampled string holds whitespace, the schema suggests `enum` (the distinct
+ * values), `format: 'path'` (a value holds `/`) or `format: 'uri'` (every value is a URL with `://`). A value that
+ * ends in two or more digits (ev-000001, s-3558) or more than 1,000 distinct values rule an enum out, and a
+ * document's own `id` is never one. Why suggestions
+ * and not facts: the sample cannot tell a closed set from the values seen so far, so nothing here is stored or
+ * enforced; a reviewed schema is set with `collection.setSchema()` (catalog.ts) and checked by validate.ts.
+ * `higherOrder: false` keeps the plain types, which hold for every sampled document by construction.
+ * VERIFIED: tests/json-schema.test.ts infers schemas of real memory collections, also at an earlier date;
+ * tests/schema-validation.test.ts validates every sampled document against its inferred schema.
  */
 
 /** A JSON Schema object (the keywords used here, plus any other). */
@@ -20,10 +28,13 @@ export interface JsonSchema {
   title?: string;
   description?: string;
   type?: string | string[];
+  /** The values a field may hold. */
+  enum?: unknown[];
+  /** `date-time`, `uri` or `path` (no whitespace or control characters; not a JSON Schema format). */
   format?: string;
   properties?: Record<string, JsonSchema>;
   required?: string[];
-  additionalProperties?: JsonSchema;
+  additionalProperties?: JsonSchema | boolean;
   items?: JsonSchema;
   uniqueItems?: boolean;
   anyOf?: JsonSchema[];
@@ -42,6 +53,8 @@ export interface InferOptions {
   maxDepth?: number;
   /** Distinct example values kept per scalar type. Default 3; 0 keeps none. */
   examples?: number;
+  /** false keeps `type: 'string'` for every string: no `enum`, `path` or `uri` suggestion. Default true. */
+  higherOrder?: boolean;
 }
 /** How analyzeSchema samples a collection. */
 export interface AnalyzeSchemaOptions extends InferOptions {
@@ -71,8 +84,21 @@ export interface SchemaReadable {
 
 export const JSON_SCHEMA_DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 const WINDOWS = 8;
+/** More distinct values than this are no enum. */
+const ENUM_LIMIT = 1000;
+/**
+ * What a `format` requires of a string: inference suggests a format only where every sampled value passes, and
+ * validate.ts enforces the same functions. `path` is this library's: no whitespace or control characters, not empty.
+ */
+export const FORMATS: Record<string, (value: string) => boolean> = {
+  'date-time': (v) =>
+    /^\d{4}-\d\d-\d\d[Tt]\d\d:\d\d:\d\d(\.\d+)?([Zz]|[+-]\d\d:\d\d)$/.test(v) &&
+    !Number.isNaN(Date.parse(v)),
+  uri: (v) => !/\s/.test(v) && URL.canParse(v),
+  path: (v) => v !== '' && !/[\s\p{Cc}]/u.test(v),
+};
 
-type Kind =
+export type Kind =
   | 'null'
   | 'boolean'
   | 'integer'
@@ -96,14 +122,50 @@ interface Node {
 interface Acc {
   count: number;
   examples: unknown[];
+  /** string: what the values have in common, while none held whitespace */
+  text?: Text;
   /** object: the properties, each with how many objects held it */
   props?: Map<string, Node>;
   /** array / set items, map values */
   items?: Node;
 }
 
+interface Text {
+  /** no value held whitespace */
+  compact: boolean;
+  /** every value is a URL with `://` */
+  uri: boolean;
+  /** every value passes FORMATS.path */
+  path: boolean;
+  /** a value held `/` */
+  slash: boolean;
+  /** the distinct values, while they can still be an enum */
+  values?: Set<string>;
+}
+function addText(acc: Acc, v: string, enumerable: boolean): void {
+  const t = (acc.text ??= {
+    compact: true,
+    uri: true,
+    path: true,
+    slash: false,
+    values: enumerable ? new Set() : undefined,
+  });
+  if (!t.compact) return;
+  if (/\s/.test(v)) {
+    t.compact = false;
+    t.values = undefined;
+    return;
+  }
+  t.uri &&= v.includes('://') && FORMATS.uri!(v);
+  t.path &&= FORMATS.path!(v);
+  t.slash ||= v.includes('/');
+  if (!t.values) return;
+  if (t.slash || /\d\d$/.test(v)) t.values = undefined;
+  else if (t.values.add(v).size > ENUM_LIMIT) t.values = undefined;
+}
+
 const node = (): Node => ({ seen: 0, kinds: new Map() });
-function kindOf(v: unknown): Kind {
+export function kindOf(v: unknown): Kind {
   if (v === null) return 'null';
   if (typeof v === 'boolean') return 'boolean';
   if (typeof v === 'number') return Number.isInteger(v) ? 'integer' : 'number';
@@ -122,10 +184,12 @@ function kindOf(v: unknown): Kind {
 export function inferSchema(docs: readonly unknown[], options: InferOptions = {}): JsonSchema {
   const maxDepth = options.maxDepth ?? 12;
   const keep = options.examples ?? 3;
+  const higherOrder = options.higherOrder ?? true;
   const root = node();
   // the objects on the way down: a value that contains itself is a cycle, not an infinite schema
   const path = new Set<object>();
-  const add = (n: Node, v: unknown, depth: number) => {
+  // primaryKey: a document's own `id`. Every new document has a new one, so its values are never an enum.
+  const add = (n: Node, v: unknown, depth: number, primaryKey = false) => {
     if (v === undefined) return;
     n.seen++;
     let kind = kindOf(v);
@@ -138,6 +202,7 @@ export function inferSchema(docs: readonly unknown[], options: InferOptions = {}
       const shown = v instanceof Date ? v.toISOString() : typeof v === 'bigint' ? String(v) : v;
       if (!acc.examples.includes(shown)) acc.examples.push(shown);
     }
+    if (higherOrder && kind === 'string') addText(acc, v as string, !primaryKey);
     if (kind === 'cycle' || depth >= maxDepth) return;
     const inner = (fn: () => void) => {
       path.add(v as object);
@@ -151,7 +216,7 @@ export function inferSchema(docs: readonly unknown[], options: InferOptions = {}
           if (x === undefined) continue;
           let p = acc.props.get(k);
           if (!p) acc.props.set(k, (p = node()));
-          add(p, x, depth + 1);
+          add(p, x, depth + 1, depth === 0 && k === 'id');
         }
       });
     else if (kind === 'array' || kind === 'set' || kind === 'map')
@@ -211,8 +276,16 @@ function emitKind(kind: Kind, acc: Acc): JsonSchema {
     case 'boolean':
     case 'integer':
     case 'number':
-    case 'string':
       return { type: kind, ...examples };
+    case 'string': {
+      const t = acc.text;
+      if (t?.compact) {
+        if (t.uri) return { type: kind, format: 'uri', ...examples };
+        if (t.slash && t.path) return { type: kind, format: 'path', ...examples };
+        if (t.values) return { type: kind, enum: [...t.values] };
+      }
+      return { type: kind, ...examples };
+    }
     case 'date':
       return { type: 'string', format: 'date-time', 'x-dson': 'date', ...examples };
     case 'bigint':

@@ -4,7 +4,7 @@
 collections(): Promise<string[]>
 ```
 
-Persisted collection names, including now-empty collections
+Persisted collection names, including now-empty collections, without _collections
 
 ## Returns
 

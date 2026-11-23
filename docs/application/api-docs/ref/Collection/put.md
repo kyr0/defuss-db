@@ -1,7 +1,7 @@
 # Collection.put
 
 ```ts
-put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey>
+put(value: Replacement<T>, options?: DocumentWriteOptions): Promise<PrimaryKey>
 ```
 
 Insert or replace whole document with required ID; return ID
@@ -11,7 +11,7 @@ Insert or replace whole document with required ID; return ID
 | Name | Type | Required |
 | --- | --- | --- |
 | `value` | `Replacement<T>` | yes |
-| `options` | `WriteOptions` | no |
+| `options` | `DocumentWriteOptions` | no |
 
 ## Returns
 

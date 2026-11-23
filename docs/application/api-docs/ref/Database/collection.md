@@ -1,20 +1,21 @@
 # Database.collection
 
 ```ts
+collection<T extends CollectionEntry = CollectionEntry>(collection: typeof COLLECTIONS): ReadCollection<T>
 collection<T extends Document = Document>(collection: string): Collection<T>
 ```
 
-Typed live collection; no I/O merely to obtain it
+Typed live collection; no I/O merely to obtain it. collection('_collections') is the read-only catalog, see Schemas and validation
 
 ## Parameters
 
 | Name | Type | Required |
 | --- | --- | --- |
-| `collection` | `string` | yes |
+| `collection` | `typeof COLLECTIONS` | yes |
 
 ## Returns
 
-`Collection<T>`
+`ReadCollection<T>`
 
 ## Call it
 

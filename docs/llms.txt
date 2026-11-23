@@ -1,10 +1,10 @@
-# defuss-db 3.1.0
+# defuss-db 3.2.0
 
 > Embedded TypeScript document database and single-machine alternative to MongoDB. One API for dedicated browser workers (OPFS), Node.js and Bun (directory) and memory. No server, replication, sharding or federation.
 
 Use openMemory() from defuss-db, openDirectory(path) from defuss-db/server, or openOPFS(options) from defuss-db/browser in a dedicated worker. A collection supports typed documents, DataView filters, sorts, projections, grouped aggregates, primary and compound indexes. Search engines accept lexical, vector and hybrid queries. Archives use defuss-brotli and preserve DSON values and indexes. Result caching is automatic for qualifying queries.
 
-Enable persistent document history with db.ensureCollection(name, {$trackHistory:true}). Use collection.at(date) or {$historic:date} for effective-time reads and edits. Add {$asOfRevision:revision} for read-only recorded time. history(id) lists effective segments and audit(id) lists recorded operations. export({history:'full'}) preserves historical facts and source receipts. Read the history guide for activation, corrections, temporal uniqueness, search and restoration.
+Enable persistent document history with db.ensureCollection(name, {$trackHistory:true}). Use collection.at(date) or {$historic:date} for effective-time reads and edits. Add {$asOfRevision:revision} for read-only recorded time. history(id) lists effective segments and audit(id) lists recorded operations. export({history:'full'}) preserves historical facts and source receipts. pruneHistory({before,from,ids}) removes versions that ended and pruneDeleted({before,ids}) removes deleted documents with every version. Read the history guide for activation, corrections, temporal uniqueness, search, restoration and pruning.
 
 DataView supplies filtering, sorting, projection, grouping and aggregation. defuss-db adds typed persistent records, atomic transactions, snapshot isolation, B+tree access paths, time slices, ranked search and Brotli backups. The tenant feed benchmark contrasts a compound index with a collection scan on the same backend, returning identical documents. File storage is benchmarked against file storage. The separate resident-array experiment compares raw DataView exclusively with an in-memory database. See the performance guide for write costs, search latency and reopening a directory.
 

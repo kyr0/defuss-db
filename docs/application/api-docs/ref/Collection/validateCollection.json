@@ -1,0 +1,23 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/validateCollection",
+  "title": "Collection.validateCollection",
+  "namespace": "Collection",
+  "name": "validateCollection",
+  "signature": "validateCollection(options?: ValidateOptions): Promise<CollectionValidation>",
+  "description": "{ checked, invalid, limit, documents, warning? } after reading documents in key order until limit (default 100, at most 100,000) violate the schema",
+  "async": true,
+  "generator": false,
+  "params": [
+    {
+      "name": "options",
+      "type": "ValidateOptions",
+      "optional": true,
+      "rest": false
+    }
+  ],
+  "returns": {
+    "type": "Promise<CollectionValidation>"
+  },
+  "markdown": "validateCollection.md"
+}

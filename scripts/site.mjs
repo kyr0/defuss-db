@@ -60,7 +60,9 @@ async function variantLines(names) {
       texts.every((lines) => lines.length === texts[0].length),
       `${base} variants must align line by line`,
     );
-    const at = new Set(texts[0].flatMap((line, i) => (texts.some((t) => t[i] !== line) ? [i] : [])));
+    const at = new Set(
+      texts[0].flatMap((line, i) => (texts.some((t) => t[i] !== line) ? [i] : [])),
+    );
     assert(at.size <= 2, `${base} variants may differ only in the import and the open line`);
     for (const name of members) differing.set(name, at);
   }
@@ -69,7 +71,9 @@ async function variantLines(names) {
 /** @@CODE:file@@ becomes the per-line markup of a mockup-code window; @@SNIPPET:file@@ a highlighted block. */
 async function withExamples(html) {
   const tokens = [...html.matchAll(/@@(CODE|SNIPPET):([\w.-]+)@@/g)];
-  const differing = await variantLines(tokens.filter(([, kind]) => kind === 'CODE').map(([, , name]) => name));
+  const differing = await variantLines(
+    tokens.filter(([, kind]) => kind === 'CODE').map(([, , name]) => name),
+  );
   for (const [token, kind, name] of tokens) {
     const { lines } = await example(name);
     const marked = differing.get(name) ?? new Set();
@@ -77,7 +81,10 @@ async function withExamples(html) {
       token,
       kind === 'CODE'
         ? lines
-            .map((line, i) => `<pre${marked.has(i) ? ' class="db-diff"' : ''}><code>${line}</code></pre>`)
+            .map(
+              (line, i) =>
+                `<pre${marked.has(i) ? ' class="db-diff"' : ''}><code>${line}</code></pre>`,
+            )
             .join('\n')
         : '<pre class="db-snippet"><code>' + lines.join('\n') + '</code></pre>',
     );
@@ -232,7 +239,7 @@ await writeFile(
 
 Use openMemory() from defuss-db, openDirectory(path) from defuss-db/server, or openOPFS(options) from defuss-db/browser in a dedicated worker. A collection supports typed documents, DataView filters, sorts, projections, grouped aggregates, primary and compound indexes. Search engines accept lexical, vector and hybrid queries. Archives use defuss-brotli and preserve DSON values and indexes. Result caching is automatic for qualifying queries.
 
-Enable persistent document history with db.ensureCollection(name, {$trackHistory:true}). Use collection.at(date) or {$historic:date} for effective-time reads and edits. Add {$asOfRevision:revision} for read-only recorded time. history(id) lists effective segments and audit(id) lists recorded operations. export({history:'full'}) preserves historical facts and source receipts. Read the history guide for activation, corrections, temporal uniqueness, search and restoration.
+Enable persistent document history with db.ensureCollection(name, {$trackHistory:true}). Use collection.at(date) or {$historic:date} for effective-time reads and edits. Add {$asOfRevision:revision} for read-only recorded time. history(id) lists effective segments and audit(id) lists recorded operations. export({history:'full'}) preserves historical facts and source receipts. pruneHistory({before,from,ids}) removes versions that ended and pruneDeleted({before,ids}) removes deleted documents with every version. Read the history guide for activation, corrections, temporal uniqueness, search, restoration and pruning.
 
 DataView supplies filtering, sorting, projection, grouping and aggregation. defuss-db adds typed persistent records, atomic transactions, snapshot isolation, B+tree access paths, time slices, ranked search and Brotli backups. The tenant feed benchmark contrasts a compound index with a collection scan on the same backend, returning identical documents. File storage is benchmarked against file storage. The separate resident-array experiment compares raw DataView exclusively with an in-memory database. See the performance guide for write costs, search latency and reopening a directory.
 

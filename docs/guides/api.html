@@ -86,15 +86,15 @@
 </thead>
 <tbody><tr>
 <td><code>collection&lt;T&gt;(name)</code></td>
-<td>Typed live collection; no I/O merely to obtain it</td>
+<td>Typed live collection; no I/O merely to obtain it. <code>collection(&#39;_collections&#39;)</code> is the read-only catalog, see <a href="#schemas-and-validation">Schemas and validation</a></td>
 </tr>
 <tr>
 <td><code>ensureCollection&lt;T&gt;(name, options?)</code></td>
-<td>Persist <code>$trackHistory</code> and <code>$timestamps</code>, then return the collection; idempotent, and both settings are permanent</td>
+<td>Persist <code>$trackHistory</code> and <code>$timestamps</code>, create the collection&#39;s <code>_collections</code> entry, then return the collection; idempotent, and both settings are permanent</td>
 </tr>
 <tr>
 <td><code>collections()</code></td>
-<td>Persisted collection names, including now-empty collections</td>
+<td>Persisted collection names, including now-empty collections, without <code>_collections</code></td>
 </tr>
 <tr>
 <td><code>transaction(callback, options?)</code></td>
@@ -183,6 +183,14 @@
 <td>Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted</td>
 </tr>
 <tr>
+<td><code>pruneHistory({ before, from, ids, signal }?)</code></td>
+<td>Tracked collections: remove the versions that ended at or before <code>before</code>, of the whole collection or of <code>ids</code>; return <code>{ documents, versions }</code>. See <a href="history.html#pruning">Pruning</a></td>
+</tr>
+<tr>
+<td><code>pruneDeleted({ before, ids, signal }?)</code></td>
+<td>Tracked collections: remove the documents deleted before <code>before</code> with every version; return <code>{ documents, versions }</code></td>
+</tr>
+<tr>
 <td><code>updateMany(request, patchOrCallback, options?)</code></td>
 <td>Atomic bounded set update; return affected document count</td>
 </tr>
@@ -205,6 +213,10 @@
 <tr>
 <td><code>dropIndex(name, options?)</code></td>
 <td>Atomic removal; return whether it existed</td>
+</tr>
+<tr>
+<td><code>setSchema(schema | null, { limit }?)</code></td>
+<td>Set the JSON Schema that later writes validate against, or remove it with <code>null</code>; return a bounded check of the stored documents. See <a href="#schemas-and-validation">Schemas and validation</a></td>
 </tr>
 </tbody></table>
 <p><code>updateMany</code>/<code>deleteMany</code> accept DataView query resource options alongside write options. Their collected output caps cannot exceed the transaction limits. A callback update can be asynchronous; it executes once, receives the current decoded document, and must preserve its typed ID. Patches cannot contain <code>id</code>. Upsert-by-ID is <code>put</code>; there is no ambiguous selector-based upsert.</p>
@@ -248,6 +260,18 @@
 <tr>
 <td><code>has(id)</code></td>
 <td>Boolean</td>
+</tr>
+<tr>
+<td><code>schema()</code></td>
+<td>The JSON Schema set with <code>setSchema</code>, or <code>undefined</code></td>
+</tr>
+<tr>
+<td><code>validateDocument(id)</code></td>
+<td>The rules one document violates, as <code>{ path, keyword, message }[]</code>; empty when it conforms or no schema is set; <code>NOT_FOUND</code> for a missing id</td>
+</tr>
+<tr>
+<td><code>validateCollection({ limit, signal }?)</code></td>
+<td><code>{ checked, invalid, limit, documents, warning? }</code> after reading documents in key order until <code>limit</code> (default 100, at most 100,000) violate the schema</td>
 </tr>
 <tr>
 <td><code>find(request?, options?)</code></td>
@@ -394,8 +418,63 @@ try {
 <p>A sort differs from MongoDB. It puts null and missing values last in ascending order, where MongoDB puts them first, and an array sorts after every scalar, in element order. MongoDB sorts an array by its smallest element ascending and its largest descending. VERIFIED: MongoDB 9.0.8 sorted <code>[1, 9]</code> before <code>3</code> ascending and before <code>5</code> descending, 2026-11-22.</p>
 <p>Pipelines: <code>$match</code> (several are ANDed), <code>$unwind</code> (only as a group key: one group per element), <code>$group</code> (<code>_id</code>: a field, a document of fields, <code>$toLower</code>, <code>$toUpper</code>, <code>$year</code>, <code>$dateTrunc</code> with <code>binSize</code> and <code>startOfWeek</code> (Sunday by default, as in MongoDB), <code>$dateToString</code> with <code>%Y</code>, <code>%Y-%m</code>, <code>%Y-%m-%d</code> or <code>%Y-%m-%dT%H</code>, both with an optional IANA <code>timezone</code>; <code>$sum</code>, <code>$count</code>, <code>$avg</code>, <code>$min</code>, <code>$max</code>, <code>$addToSet</code>, <code>$stdDevPop</code>, <code>$stdDevSamp</code>), <code>$size</code> of an <code>$addToSet</code> in <code>$set</code> / <code>$addFields</code> / <code>$project</code>, <code>$sort</code> by one key or accumulator, <code>$limit</code> and the <code>$count</code> stage. Any other stage or operator throws a <code>QueryError</code> naming the stage.</p>
 <p><code>analyzeSchema(collection, { sample, at, $asOfRevision, maxDepth, examples, title }?)</code> (main entry) answers <code>{ schema, sampled, total, at }</code>. It reads at most <code>sample</code> documents (default 1,000): all of a smaller collection, else eight windows at even offsets, since default order follows storage keys and ids often follow insertion time. With <code>at</code> it reads the collection as it was then; a collection without history throws <code>HISTORY_NOT_ENABLED</code>. <code>inferSchema(docs, options?)</code> is the same inference over documents you hold. The schema is JSON Schema draft 2020-12: <code>type</code>, <code>properties</code>, <code>required</code> (properties every sampled object holds), <code>items</code>, <code>anyOf</code> where one place holds an object or array beside other types, and <code>examples</code> (up to three distinct scalars). A property some objects lack carries <code>x-presence</code>, the share that hold it. DSON values keep a JSON type and name their own in <code>x-dson</code>: a Date is <code>{ type: &#39;string&#39;, format: &#39;date-time&#39;, &#39;x-dson&#39;: &#39;date&#39; }</code>, a BigInt an integer, binary a base64 string, a Map an object of <code>additionalProperties</code>, a Set an array of <code>uniqueItems</code>. A value that contains itself is a <code>$comment</code>, not an endless schema.</p>
+<p>Where no sampled string of a field holds whitespace, the schema suggests a higher-order type:</p>
+<table>
+<thead>
+<tr>
+<th>Sampled strings</th>
+<th>Schema</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>every value is a URL with <code>://</code></td>
+<td><code>{ type: &#39;string&#39;, format: &#39;uri&#39; }</code></td>
+</tr>
+<tr>
+<td>a value holds <code>/</code>, and none is empty or holds a control character</td>
+<td><code>{ type: &#39;string&#39;, format: &#39;path&#39; }</code></td>
+</tr>
+<tr>
+<td>no value holds <code>/</code> or ends in two or more digits, and at most 1,000 values are distinct</td>
+<td><code>{ type: &#39;string&#39;, enum: [...] }</code>, values in the order first seen</td>
+</tr>
+<tr>
+<td>anything else</td>
+<td><code>{ type: &#39;string&#39; }</code></td>
+</tr>
+</tbody></table>
+<p><code>step-9</code> still counts for an enum; <code>step-10</code>, <code>ev-000001</code> and <code>s-3558</code> rule it out, because the rule reads a value that ends in a number of two or more digits as an identifier. A document&#39;s own <code>id</code> is never an enum: every new document has a new one. The suggestions describe the sample, not the field: a status with one value not yet used, or a session id drawn from few sessions, gets a wrong enum. <code>analyzeSchema</code> therefore writes nothing; <code>{ higherOrder: false }</code> keeps <code>type: &#39;string&#39;</code> for every string. VERIFIED: tests/json-schema.test.ts infers the three types and both exclusions.</p>
+<h2 id="schemas-and-validation">Schemas and validation</h2>
+<p><code>collection.setSchema(schema)</code> sets the JSON Schema of a collection, typically an <code>analyzeSchema</code> result after review. From that commit on, <code>insert</code>, <code>insertMany</code>, <code>insertBatches</code>, <code>put</code>, <code>update</code>, <code>updateMany</code> and <code>restore</code> validate the whole document they store, in a timestamped collection after <code>_createdAt</code> and <code>_updatedAt</code> are set. A violating write rejects with a <code>ValidationError</code> (code <code>VALIDATION_FAILED</code>) that carries <code>collection</code>, <code>id</code> and <code>issues: { path, keyword, message }[]</code>, where <code>path</code> is a JSON Pointer into the document; a batch or transaction stores none of its documents. <code>setSchema(null)</code> removes the schema.</p>
+<p>Documents the collection already holds are not checked when a schema is set, so a schema never blocks on old data. <code>setSchema</code> answers <code>{ checked, invalid, limit, documents, warning? }</code>: it reads the collection in key order and stops at <code>limit</code> violating documents (default 100). When <code>invalid</code> equals <code>limit</code> the count is a lower bound, and <code>warning</code> says so: <code>WARNING &gt;= 100 documents of events violate its schema; first: ev-000007 /type &quot;x&quot; is not one of &quot;search&quot;, &quot;click&quot;</code>. <code>validateCollection({ limit })</code> repeats the check and <code>validateDocument(id)</code> checks one document. A violating document stays readable and deletable; an update has to leave it conforming. In a transaction, <code>setSchema</code> returns nothing and governs the writes that follow in it.</p>
+<p><code>{ validate: false }</code> on <code>insert</code>, <code>insertMany</code>, <code>insertBatches</code>, <code>put</code>, <code>update</code>, <code>updateMany</code> or <code>restore</code> stores the documents of that call without checking them, for a bulk import of data that predates the schema. The option belongs to its call: the next write of such a document is checked, and <code>validateCollection()</code> lists the documents that violate the schema. <code>restore(id)</code> validates the version it writes back, so <code>restore(id, { validate: false })</code> is the way to restore a version that predates the schema. VERIFIED: tests/schema-validation.test.ts.</p>
+<p>A write that began before a schema was set cannot commit after it: each write transaction reads whether its collection has a schema, and that read is part of its conflict set, so the late commit fails with <code>CONFLICT</code>. VERIFIED: tests/schema-validation.test.ts.</p>
+<p>Enforced keywords: <code>type</code> (one or a list), <code>enum</code> (strings, numbers, booleans, null), <code>format</code>, <code>properties</code>, <code>required</code>, <code>additionalProperties</code> (a schema or a boolean), <code>items</code>, <code>anyOf</code> and <code>x-dson</code>. <code>title</code>, <code>description</code>, <code>examples</code>, <code>default</code>, <code>$comment</code>, <code>$schema</code>, <code>$id</code>, <code>contentEncoding</code> and every <code>x-</code> keyword are annotations. <code>setSchema</code> and <code>checkSchema(schema)</code> refuse any other keyword and any other format with a <code>TypeError</code> that names it and its place, for example <code>Schema /properties/a: &quot;pattern&quot; is not enforced by defuss-db</code>. JSON Schema would let a validator ignore them; a stored schema would then state a rule that no write checks.</p>
+<table>
+<thead>
+<tr>
+<th><code>format</code></th>
+<th>A string conforms when</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>uri</code></td>
+<td>it holds no whitespace and <code>URL.canParse</code> accepts it</td>
+</tr>
+<tr>
+<td><code>path</code></td>
+<td>it is not empty and holds no whitespace or control character. <code>path</code> is no JSON Schema format; other validators ignore it</td>
+</tr>
+<tr>
+<td><code>date-time</code></td>
+<td>it is an RFC 3339 date-time</td>
+</tr>
+</tbody></table>
+<p>With <code>x-dson</code> a value must have that DSON type: <code>{ type: &#39;string&#39;, format: &#39;date-time&#39;, &#39;x-dson&#39;: &#39;date&#39; }</code> accepts a Date and no string, <code>&#39;x-dson&#39;: &#39;bigint&#39;</code> a BigInt, <code>binary</code> a typed array or ArrayBuffer, <code>map</code> a Map whose values match <code>additionalProperties</code>, <code>set</code> a Set whose items match <code>items</code>. Without it, <code>integer</code> is a JavaScript integer number and <code>number</code> any number.</p>
+<p><code>validateValue(schema, value)</code> (main entry) is the check <code>setSchema</code> installs, as a pure function: it answers the issues of any value against any schema or sub-schema, at most 100. A form can validate one field with <code>validateValue(schema.properties.country, input)</code> and offer <code>schema.properties.country.enum</code> as choices before it writes.</p>
+<p><code>_collections</code> is the catalog of a database: one document <code>{ id: &lt;collection&gt;, schema? }</code> per collection that <code>ensureCollection()</code> or <code>setSchema()</code> named. A collection that only document writes created has no entry, because creating one on the first write would make concurrent first writers conflict. <code>db.collection(&#39;_collections&#39;)</code>, also on a transaction and a snapshot, is a <code>ReadCollection</code>: <code>find</code>, <code>get</code>, <code>count</code> and the other reads work, and it has no write methods. Its name is no valid collection name, <code>collections()</code> leaves it out, and <code>verify()</code> checks that every entry names a collection and parses. The schema is not versioned: <code>at(date)</code> reads documents of the past and <code>schema()</code> answers the schema set today. Archives carry the entries, see <a href="archive.html">Archive API</a>.</p>
 <h2 id="errors">Errors</h2>
-<p><code>DatabaseError</code> codes: <code>DUPLICATE_KEY</code>, <code>SCHEMA_MISMATCH</code>, <code>INVALID_DOCUMENT</code>, <code>INVALID_INDEX_VALUE</code>, <code>CORRUPT</code>, <code>INVALID_CURSOR</code>, <code>STALE_CURSOR</code>, <code>CLOSED</code>, <code>BUSY</code>, <code>UNFINISHED_TRANSACTION</code>, and for history <code>HISTORY_ACTIVATING</code>, <code>HISTORY_NOT_ENABLED</code>, <code>HISTORY_UNAVAILABLE</code>, <code>HISTORY_READ_ONLY</code>, <code>HISTORY_FUTURE_WRITE</code>, <code>HISTORY_RANGE</code>. Input validation can also throw <code>TypeError</code>/<code>RangeError</code>; strict DSON errors remain intact.</p>
+<p><code>DatabaseError</code> codes: <code>DUPLICATE_KEY</code>, <code>SCHEMA_MISMATCH</code>, <code>INVALID_DOCUMENT</code>, <code>VALIDATION_FAILED</code> (a <code>ValidationError</code> with <code>issues</code>), <code>NOT_FOUND</code> (<code>validateDocument</code> of a missing id), <code>INVALID_INDEX_VALUE</code>, <code>CORRUPT</code>, <code>INVALID_CURSOR</code>, <code>STALE_CURSOR</code>, <code>CLOSED</code>, <code>BUSY</code>, <code>UNFINISHED_TRANSACTION</code>, and for history <code>HISTORY_ACTIVATING</code>, <code>HISTORY_NOT_ENABLED</code>, <code>HISTORY_UNAVAILABLE</code>, <code>HISTORY_READ_ONLY</code>, <code>HISTORY_FUTURE_WRITE</code>, <code>HISTORY_RANGE</code>. Input validation can also throw <code>TypeError</code>/<code>RangeError</code>; strict DSON errors remain intact.</p>
 <p>DBSONL errors (<code>CONFLICT</code>, <code>COMMIT_UNCERTAIN</code>, <code>LIMIT_EXCEEDED</code>, <code>QUEUE_FULL</code>, <code>ABORTED</code>, corruption etc.), DataView errors, and Storage errors retain their original codes/causes. <code>COMMIT_UNCERTAIN</code> means publication status must be inspected before retrying; never blindly retry non-idempotent writes. Capacity limits, unsupported platforms and browser quota errors fail explicitly. Nothing silently downgrades durability or repairs corruption.</p>
 <h2 id="archives-and-result-caching">Archives and result caching</h2>
 <p>See <a href="archive.html">Archive API</a> for options, framing, budgets and merge behavior. Explicit snapshots support both export methods, but no import. See <a href="cache.html">Query cache</a> for default automatic qualification, <code>{ cache: false | true | &#39;auto&#39; | &#39;refresh&#39; }</code>, manual mode, LRU/SLRU settings, bounded compiled plans, concurrent misses, independent result ownership and revision keys.</p>

@@ -81,4 +81,41 @@ A full Brotli archive includes immutable assertions, schema history, tombstones 
 
 Ordinary `export()` and `exportStream()` preserve latest data using the latest-only logical archive. Restoring a latest-only archive to an empty target creates ordinary collections. Use the full archive to carry history. `maxHistoryRecords` bounds full import/export independently of document and byte budgets. Import is a single atomic transaction and must fit the target's transaction limits.
 
-Logical deletion, `compact()` and `collect()` preserve committed history. There is no automatic expiry or public pruning operation. Size capacity for full DSON images and index keys per change. The tracked-writer clock is shared across tracked collections. Concurrent tracked transactions can conflict even when their documents differ. [Measured performance](PERFORMANCE.md)
+Logical deletion, `compact()` and `collect()` preserve committed history, and nothing expires on its own; [pruning](#pruning) removes it on request. Size capacity for full DSON images and index keys per change. The tracked-writer clock is shared across tracked collections. Concurrent tracked transactions can conflict even when their documents differ. [Measured performance](PERFORMANCE.md)
+
+## Pruning
+
+Every tracked write stores a full DSON image of the document as an immutable assertion, with three rows that order it. Two operations remove recorded history. Neither changes a live document, its indexes or its search data.
+
+```ts
+const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+await prices.pruneHistory({ before: cutoff });          // versions that ended before the cutoff
+await prices.pruneHistory({ ids: ['plan'] });            // every ended version of one document
+await prices.pruneHistory({ from: jan, before: feb });  // a slice in between
+await prices.pruneDeleted({ before: cutoff });          // documents deleted before the cutoff
+```
+
+| Operation | Removes | Keeps |
+| --- | --- | --- |
+| `pruneHistory({ before, from, ids })` | The versions that began at or after `from` and ended at or before `before`, with every assertion recorded for them. A version is one effective segment of an ID, a tombstone included. | The current state, the version in effect at `before` and every later one, a version that a later bounded correction resumes, and the version `restore(id)` writes back for a deleted document. |
+| `pruneDeleted({ before, ids })` | Each document whose current state is a tombstone with an effective time before `before`: every version, the tombstone and its `audit` record. | Live documents and documents deleted at or after `before`. |
+
+Every option is optional. Without `before`, `pruneHistory` removes every version that ended and `pruneDeleted` every deleted document. Without `ids` the whole collection is pruned. Both return `{ documents, versions }`: the documents that lost a version and the versions removed. Both raise `HISTORY_NOT_ENABLED` on an untracked collection and `HISTORY_READ_ONLY` on a collection bound with `at(date)`.
+
+A removed range reads as absent. `get` at an instant in it answers undefined, and a scan at that instant leaves the document out. `history(id)` lists a removed slice that follows a kept version as a segment without a document. The version before the slice still ends where it ended: extending it over the slice would assert a document that did not apply then, and under a `temporalUnique` index it could overlap another owner. Raising `HISTORY_UNAVAILABLE` instead would fail every collection scan at an instant where one ID was pruned. Reads at or after `before` answer as before the prune. `audit(id)` and reads with `$asOfRevision` answer from the assertions that remain, so what the database knew about a removed version at an earlier revision cannot be reproduced.
+
+`pruneHistory` keeps a deleted document restorable; `pruneDeleted` is the operation that removes it. `restore(id)` returns false afterwards. To erase a live document in one commit, delete it and prune it in one transaction:
+
+```ts
+await db.transaction(async (tx) => {
+  const prices = tx.collection('prices');
+  await prices.delete('plan');
+  await prices.pruneDeleted({ ids: ['plan'] });
+});
+```
+
+On a collection, a prune commits in batches of at most three quarters of `maxTransactionOperations`, so its size is not bound by one transaction; a version takes about four operations. Each commit leaves a store that `verify()` accepts. A call that stops midway, by `signal` or an error, has removed what its commits removed; repeat it for the rest.
+
+A prune runs beside writers. It never makes a current write fail, and it conflicts only with a write to a document it is pruning, which it then reads again. Twelve batches in a row without a removal end the call with `CONFLICT`. Stop writers of builds up to 3.1.0 before you prune: this detection relies on a row that those builds leave untouched on a backdated write. VERIFIED: tests/history-prune.test.ts prunes 120 documents while each is updated. In a transaction a prune is atomic and raises `LIMIT_EXCEEDED` when it exceeds the transaction. A full-history archive of a pruned store holds the assertions that remain.
+
+DBSONL commits never reuse file space, so the file shrinks with the next compaction, automatic or `compact()`. VERIFIED: (probe, 2026-11-23, memory store) 1,000 documents of about 1 KiB with 11 versions each held 46,009 stored entries in 30.0 MiB after compaction; after `pruneHistory()` and compaction they held 6,009 entries in 4.6 MiB, the entries of the 1,000 inserts. VERIFIED: tests/history-prune.test.ts.

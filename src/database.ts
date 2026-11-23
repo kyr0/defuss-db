@@ -9,6 +9,15 @@ import {
 import { saveSchema, transactionSchema } from './schema-cache.js';
 import { CREATED_AT, enableTimestamps, stampingKey, UPDATED_AT } from './mutations.js';
 import { touchCollection, versionKey } from './collection-version.js';
+import {
+  COLLECTIONS,
+  ensureEntry,
+  entryKey,
+  readable,
+  readEntry,
+  validatedKey,
+  type CollectionEntry,
+} from './catalog.js';
 import { timeScope, type TimeScope, type CollectionOptions } from './history-types.js';
 import { ensureFormat, storeIdentity } from './format.js';
 import {
@@ -78,8 +87,12 @@ export class DatabaseSnapshot {
     this.parentCheck();
     if (this.closed) throw new DatabaseError('CLOSED', 'Snapshot is closed.');
   };
-  collection<T extends Document = Document>(collection: string): ReadCollection<T> {
-    name(collection);
+  collection<T extends CollectionEntry = CollectionEntry>(
+    collection: typeof COLLECTIONS,
+  ): ReadCollection<T>;
+  collection<T extends Document = Document>(collection: string): ReadCollection<T>;
+  collection(collection: string): ReadCollection {
+    readable(collection);
     this.check();
     return new ReadCollection(collection, {
       cursorIdentity: () => this.databaseId,
@@ -134,8 +147,13 @@ export class DatabaseTransaction {
   ) {
     this.revision = tx.revision;
   }
-  collection<T extends Document = Document>(collection: string): TransactionCollection<T> {
-    name(collection);
+  /** `_collections` is the read-only catalog; setSchema() and ensureCollection() write it. */
+  collection<T extends CollectionEntry = CollectionEntry>(
+    collection: typeof COLLECTIONS,
+  ): ReadCollection<T>;
+  collection<T extends Document = Document>(collection: string): TransactionCollection<T>;
+  collection(collection: string): ReadCollection | TransactionCollection {
+    readable(collection);
     this.scope.check();
     const context: ReadContext = {
       cursorIdentity: () => this.scope.cursorIdentity(),
@@ -149,6 +167,7 @@ export class DatabaseTransaction {
         return { reader: this.tx, close: async () => release() };
       },
     };
+    if (collection === COLLECTIONS) return new ReadCollection(collection, context);
     return new TransactionCollection(
       collection,
       context,
@@ -201,9 +220,14 @@ export class Database {
   private check = () => {
     if (this.closed) throw new DatabaseError('CLOSED', 'Database is closed.');
   };
-  collection<T extends Document = Document>(collection: string): Collection<T> {
+  /** `_collections` is the read-only catalog; setSchema() and ensureCollection() write it. */
+  collection<T extends CollectionEntry = CollectionEntry>(
+    collection: typeof COLLECTIONS,
+  ): ReadCollection<T>;
+  collection<T extends Document = Document>(collection: string): Collection<T>;
+  collection(collection: string): ReadCollection | Collection {
     this.check();
-    name(collection);
+    if (readable(collection) === COLLECTIONS) return new ReadCollection(collection, this.context);
     return new Collection(collection, this.context, this, this.limits);
   }
   async ensureCollection<T extends Document = Document>(
@@ -264,6 +288,10 @@ export class Database {
         throw error;
       await activateBatches(this.store, collection, this.limits, undefined, signal);
     }
+    // After the steps above: they create the collection, and an entry names an existing one. VERIFIED: creating
+    // the entry first, with the collection's r: marker, made history activation treat a fresh collection as one
+    // with unknown prehistory (22 tests of tests/history.test.ts failed, 2026-11-23).
+    await ensureEntry(this.store, collection, signal);
     this.compactor?.committed();
     return this.collection<T>(collection);
   }
@@ -311,6 +339,7 @@ export class Database {
         readSchema(row.value);
         names.add(row.key.slice(2));
       }
+      names.delete(COLLECTIONS);
       return [...names].sort();
     } finally {
       await snapshot.close();
@@ -444,6 +473,12 @@ export class Database {
             throw new DatabaseError('CORRUPT', 'Invalid source lineage.');
           continue;
         }
+        if (row.key.startsWith('m:')) {
+          const entry = await snapshot.get(entryKey(row.key.slice(2)));
+          if (row.value !== 1 || (entry.value as CollectionEntry | undefined)?.schema === undefined)
+            throw new DatabaseError('CORRUPT', 'Schema marker without a schema.');
+          continue;
+        }
         if (/^[abehjkqt]:/.test(row.key)) {
           const schema = await schemaFor(row.key.split(':')[1]!);
           if (
@@ -484,7 +519,7 @@ export class Database {
         }
         if (row.key.startsWith('r:')) {
           const collection = row.key.slice(2);
-          name(collection);
+          readable(collection);
           await schemaFor(collection);
           marks.set(collection, row.revision);
           if (row.value !== 1)
@@ -496,6 +531,14 @@ export class Database {
           assertDocument(row.value);
           if (documentKey(collection, row.value.id) !== row.key)
             throw new DatabaseError('CORRUPT', 'Document key and id disagree.');
+          if (collection === COLLECTIONS) {
+            // A catalog entry names an existing collection, and its marker says whether it holds a schema.
+            const entry = readEntry(row.value);
+            await schemaFor(entry.id);
+            if ((await snapshot.get(validatedKey(entry.id))).found !== (entry.schema !== undefined))
+              throw new DatabaseError('CORRUPT', 'Collection entry and schema marker disagree.');
+            continue;
+          }
           const schema = await schemaFor(collection);
           if (schema.timestamps) {
             let pending = stamping.get(collection);
@@ -584,6 +627,7 @@ export class Database {
             'CORRUPT',
             'Collection revision precedes its documents or schema.',
           );
+      marks.delete(COLLECTIONS);
       const collections = new Set([...marks.keys(), ...stored]).size;
       return { revision: snapshot.revision, documents, indexEntries, collections };
     } finally {

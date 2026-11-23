@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.2.0
+
+The benchmarks on the website and in docs/PERFORMANCE.md were measured on 3.0.0; this release was not measured again.
+
+- `analyzeSchema` and `inferSchema` suggest higher-order types for string fields whose sampled values hold no whitespace: `enum` with the distinct values, `format: 'path'` when a value holds `/`, `format: 'uri'` when every value is a URL with `://`. A value that ends in two or more digits or more than 1,000 distinct values rule an enum out, and a document's own `id` is never one. `{ higherOrder: false }` answers the schema of 3.1.0.
+- `collection.setSchema(schema)` sets a reviewed JSON Schema: later inserts, replacements and updates validate against it and reject with a `ValidationError` (`VALIDATION_FAILED`) that names each violated rule by JSON Pointer. Stored documents are not checked; `setSchema` answers a bounded check with a `warning`, and `validateDocument(id)` and `validateCollection({ limit })` repeat it. `schema()` reads the schema, `setSchema(null)` removes it.
+- `checkSchema(schema)` and `validateValue(schema, value)`: the validator as pure functions, for a form that checks a value before it writes.
+- `_collections`: a read-only catalog with one entry `{ id, schema? }` per collection that `ensureCollection()` or `setSchema()` named. The first `ensureCollection()` of a collection commits the entry after its other steps, so the database revision afterwards is one higher than in 3.1.0. Archives carry the entries.
+- `{ validate: false }` on `insert`, `insertMany`, `insertBatches`, `put`, `update`, `updateMany` and `restore` stores the documents of that call without checking them against the collection's schema, for a bulk import. `restore(id)` validates by default.
+- `collection.pruneHistory({ before, from, ids })` removes the versions of a tracked collection that ended at or before a date, of the whole collection, of named IDs or of a slice between two dates. `collection.pruneDeleted({ before, ids })` removes deleted documents with every version. A removed range reads as absent; the current state and what `restore()` needs stay. On a collection a prune commits in batches, in a transaction it is atomic. It runs beside writers and conflicts only with a write to a document it is pruning; stop writers of 3.1.0 builds first, since they do not rewrite the row this detection reads on a backdated write.
+- The type of `JsonSchema.additionalProperties` is `JsonSchema | boolean`.
+- VERIFIED: a build of the 3.1.0 sources opens a store that holds `_collections` entries, writes to it without validating, lists `_collections` in `collections()`, and fails `verify()` with `CORRUPT` and `export()` with a `TypeError` (probe, 2026-11-23). This build then reads the store and reports the documents written meanwhile in `validateCollection()`. The store format marker is unchanged.
+
 ## 3.1.0
 
 The benchmarks on the website and in docs/PERFORMANCE.md were measured on 3.0.0; this release was not measured again.

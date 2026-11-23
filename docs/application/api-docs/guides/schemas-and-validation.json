@@ -1,0 +1,8 @@
+{
+  "kind": "guide",
+  "route": "#/guides/schemas-and-validation",
+  "title": "Schemas and validation",
+  "id": "schemas-and-validation",
+  "lead": "",
+  "markdown": "schemas-and-validation.md"
+}

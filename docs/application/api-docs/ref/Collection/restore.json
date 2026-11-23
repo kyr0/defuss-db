@@ -4,7 +4,7 @@
   "title": "Collection.restore",
   "namespace": "Collection",
   "name": "restore",
-  "signature": "restore(id: PrimaryKey, options?: Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise<boolean>",
+  "signature": "restore(id: PrimaryKey, options?: Omit<DocumentWriteOptions, '$historic' | '$until' | '$asOfRevision'>): Promise<boolean>",
   "description": "Tracked collections: write back the version a delete removed as a new version; return false if the document is live or was never deleted",
   "async": true,
   "generator": false,
@@ -17,7 +17,7 @@
     },
     {
       "name": "options",
-      "type": "Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>",
+      "type": "Omit<DocumentWriteOptions, '$historic' | '$until' | '$asOfRevision'>",
       "optional": true,
       "rest": false
     }

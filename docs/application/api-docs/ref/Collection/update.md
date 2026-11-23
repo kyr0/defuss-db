@@ -1,7 +1,7 @@
 # Collection.update
 
 ```ts
-update(id: PrimaryKey, updater: Updater<T>, options?: WriteOptions): Promise<boolean>
+update(id: PrimaryKey, updater: Updater<T>, options?: DocumentWriteOptions): Promise<boolean>
 ```
 
 Shallow own-property patch or complete replacement callback; return whether ID existed
@@ -12,7 +12,7 @@ Shallow own-property patch or complete replacement callback; return whether ID e
 | --- | --- | --- |
 | `id` | `PrimaryKey` | yes |
 | `updater` | `Updater<T>` | yes |
-| `options` | `WriteOptions` | no |
+| `options` | `DocumentWriteOptions` | no |
 
 ## Returns
 

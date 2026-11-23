@@ -30,15 +30,17 @@ export const activationKey = (c: string) => 'k:' + c;
 export const lineage = (id: string) => 'l:' + id;
 const MAX_DATE = 8640000000000000n;
 const hex = (v: bigint) => v.toString(16).padStart(16, '0');
-const desc = (t: number) => hex(MAX_DATE - BigInt(t));
-const asc = (t: number) => hex(MAX_DATE + BigInt(t));
+export const desc = (t: number) => hex(MAX_DATE - BigInt(t));
+export const asc = (t: number) => hex(MAX_DATE + BigInt(t));
+/** The effective time a boundary or fact key holds after its ID. */
+export const keyTime = (digits: string) => Number(MAX_DATE - BigInt('0x' + digits.slice(0, 16)));
 const seqKey = (n: number) => (Number.MAX_SAFE_INTEGER - n).toString(16).padStart(14, '0');
-const boundary = (c: string, p: string) => 'b:' + c + ':' + p + '!';
-const forwards = (c: string, p: string) => 'j:' + c + ':' + p + '!';
+export const boundary = (c: string, p: string) => 'b:' + c + ':' + p + '!';
+export const forwards = (c: string, p: string) => 'j:' + c + ':' + p + '!';
 export const heads = (c: string) => 'h:' + c + ':';
-const facts = (c: string, p: string) => 'a:' + c + ':' + p + '!';
+export const facts = (c: string, p: string) => 'a:' + c + ':' + p + '!';
 export const events = (c: string) => 'e:' + c + ':';
-const auditPrefix = (c: string, p: string) => 'q:' + c + ':' + p + '!';
+export const auditPrefix = (c: string, p: string) => 'q:' + c + ':' + p + '!';
 export type Origins = Record<string, number>;
 interface Stamp {
   seq: number;
@@ -91,7 +93,7 @@ export async function clock(tx: Writer): Promise<Active> {
   }
   return v;
 }
-function suffix(s: Stamp) {
+export function suffix(s: Stamp) {
   return seqKey(s.seq) + ':' + seqKey(s.ord);
 }
 export const temporalVersionKey = (c: string) => 't:' + c;
@@ -183,7 +185,7 @@ export async function historicalSchema(
   checkCoverage(schema, scope?.time);
   return schema;
 }
-type Winner = { key: string; fact: Fact; revision: number };
+export type Winner = { key: string; fact: Fact; revision: number };
 async function winner(
   reader: Reader,
   c: string,
@@ -202,11 +204,43 @@ async function winner(
     if (visible(f, basis)) return { key: f.key, fact: f.value as Fact, revision: f.revision };
   }
 }
-async function imageOf(reader: Reader, f: Fact): Promise<Document | null> {
+export async function imageOf(reader: Reader, f: Fact): Promise<Document | null> {
   if (!f.image) return f.document;
   const hit = await reader.get(f.image);
   if (!hit.found || (hit.value as Fact).image) return bad('Invalid historical image pointer.');
   return (hit.value as Fact).document;
+}
+/**
+ * What restore() writes back for a deleted document, with the assertions consulted to find it: the version visible
+ * at the delete's instant as known before the delete was recorded, which also finds a version inserted in the same
+ * millisecond (its effective interval is empty), else the version in effect just before the delete. An archive
+ * import records the delete and that version in one revision; then the instant before the delete holds the version.
+ * Undefined when the document is live or nothing precedes its delete. pruneHistory() keeps the consulted
+ * assertions, so a deleted document stays restorable until pruneDeleted() removes it. Why one function for both:
+ * a prune that kept another version than restore() reads would make the restore return false.
+ * VERIFIED: tests/timestamps.test.ts restores after a same-millisecond insert and delete and after an archive
+ * import; tests/history-prune.test.ts restores after a prune.
+ */
+export async function deletedVersion(
+  reader: Reader,
+  c: string,
+  p: string,
+): Promise<{ document: Document; consulted: Winner[] } | undefined> {
+  let newest: Row<unknown> | undefined;
+  for await (const row of reader.scan({ ...range(facts(c, p)), limit: 1 })) newest = row;
+  const tombstone = newest?.value as Fact | undefined;
+  if (!tombstone || tombstone.document !== null || tombstone.image) return;
+  const consulted: Winner[] = [];
+  for (const [time, basis] of [
+    [tombstone.time, { revision: newest!.revision - 1 }],
+    [tombstone.time - 1, undefined],
+  ] as const) {
+    const match = await winner(reader, c, p, time, basis);
+    if (!match) continue;
+    consulted.push(match);
+    const document = await imageOf(reader, match.fact);
+    if (document !== null) return { document, consulted };
+  }
 }
 export async function point(
   reader: Reader,
@@ -304,7 +338,11 @@ export async function assertChange(
     });
   }
   const latest = resume ? end! : t;
-  if (head === undefined || latest >= head) tx.put(headKey, latest);
+  // Rewritten by every change, also a backdated one that leaves the value: the row's revision tells
+  // history-prune.ts whether the ID's assertions are the ones it planned on. VERIFIED: tests/history-prune.test.ts
+  // 'does not stage a plan that was read before a later correction' fails when the row is written only for a
+  // newer boundary.
+  tx.put(headKey, head === undefined || latest >= head ? latest : head);
   return { applied: true, live: end === null };
 }
 export async function seedCollection(tx: Writer, c: string, schema: Schema, existing: boolean) {
@@ -620,7 +658,7 @@ export async function checkTemporalUnique(
       last = token;
       end = Infinity;
     }
-    const start = Number(MAX_DATE - BigInt('0x' + row.key.slice(split + 1))),
+    const start = keyTime(row.key.slice(split + 1)),
       upper = end;
     end = start;
     if (proposed && (upper <= proposed.from || start >= (proposed.end ?? Infinity))) continue;

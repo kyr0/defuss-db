@@ -20,7 +20,8 @@ describe('inferSchema', () => {
         { id: 2, name: 'Alan', score: 2.5, tags: [], address: { city: 'Wien', zip: '1010' } },
         { id: 3, name: null, score: 3, tags: ['b', 1], note: 'x', address: { city: 'Paris' } },
       ],
-      { title: 'people' },
+      // the plain types: no enum, path or URL suggestion
+      { title: 'people', higherOrder: false },
     );
     expect(schema).toEqual({
       $schema: JSON_SCHEMA_DIALECT,
@@ -59,7 +60,7 @@ describe('inferSchema', () => {
         },
         loop,
       ],
-      { examples: 0 },
+      { examples: 0, higherOrder: false },
     );
     expect(schema.properties).toEqual({
       at: { type: 'string', format: 'date-time', 'x-dson': 'date', 'x-presence': 0.5 },
@@ -87,11 +88,105 @@ describe('inferSchema', () => {
     // an object and a string at one place: anyOf, since the object has properties
     expect(inferSchema([{ v: 'x' }, { v: { a: 1 } }]).properties!.v).toEqual({
       anyOf: [
-        { type: 'string', examples: ['x'] },
+        { type: 'string', enum: ['x'] },
         { type: 'object', properties: { a: { type: 'integer', examples: [1] } }, required: ['a'] },
       ],
     });
     expect(inferSchema([])).toEqual({ $schema: JSON_SCHEMA_DIALECT, type: 'object' });
+  });
+});
+
+/**
+ * Why: a string field that only ever holds a few words without whitespace is most likely an enum, one with `/` a
+ * path and one with `://` a URL. The rules are the human's (2026-11-23): two or more trailing digits (ev-000001,
+ * s-3558) or more than 1,000 distinct values rule an enum out. They stay suggestions: analyzeSchema never stores them.
+ */
+describe('higher-order string types', () => {
+  const events = [
+    {
+      id: 'ev-000001',
+      type: 'search',
+      path: '/help',
+      session: 's-3558',
+      device: 'desktop',
+      country: 'GB',
+      link: 'https://example.com/a?b=1',
+      title: 'Hello world',
+      step: 'step-9',
+    },
+    {
+      id: 'ev-000002',
+      type: 'page_view',
+      path: '/',
+      session: 's-2469',
+      device: 'mobile',
+      country: 'US',
+      link: 'http://localhost:4380/x',
+      title: 'Shop',
+      step: 'step-3',
+    },
+    {
+      id: 'ev-000003',
+      type: 'click',
+      path: '/shop',
+      session: 's-573',
+      device: 'desktop',
+      country: 'GB',
+      link: 'https://example.org',
+      title: 'Help',
+      step: 'step-9',
+    },
+  ];
+  it('enum, path and uri; trailing digits and whitespace keep a plain string', () => {
+    expect(inferSchema(events).properties).toEqual({
+      id: { type: 'string', examples: ['ev-000001', 'ev-000002', 'ev-000003'] },
+      type: { type: 'string', enum: ['search', 'page_view', 'click'] },
+      path: { type: 'string', format: 'path', examples: ['/help', '/', '/shop'] },
+      session: { type: 'string', examples: ['s-3558', 's-2469', 's-573'] },
+      device: { type: 'string', enum: ['desktop', 'mobile'] },
+      country: { type: 'string', enum: ['GB', 'US'] },
+      link: {
+        type: 'string',
+        format: 'uri',
+        examples: ['https://example.com/a?b=1', 'http://localhost:4380/x', 'https://example.org'],
+      },
+      title: { type: 'string', examples: ['Hello world', 'Shop', 'Help'] },
+      // one trailing digit is still an enum
+      step: { type: 'string', enum: ['step-9', 'step-3'] },
+    });
+  });
+  it("a document's own id is no enum: a schema set from it would refuse every new document", () => {
+    expect(
+      inferSchema([
+        { id: 'a', ref: 'a', sub: { id: 'x' } },
+        { id: 'b', ref: 'b' },
+      ]).properties,
+    ).toEqual({
+      id: { type: 'string', examples: ['a', 'b'] },
+      ref: { type: 'string', enum: ['a', 'b'] },
+      sub: {
+        type: 'object',
+        properties: { id: { type: 'string', enum: ['x'] } },
+        required: ['id'],
+        'x-presence': 0.5,
+      },
+    });
+  });
+  it('more than 1,000 distinct values are no enum; items of arrays follow the same rules', () => {
+    // letters only, so no value ends in digits
+    const word = (i: number) => i.toString(26).replace(/\d/g, (d) => 'qrstuvwxyz'[Number(d)]!);
+    const docs = (n: number) => Array.from({ length: n }, (_, i) => ({ id: i, w: word(i) }));
+    expect(inferSchema(docs(1000)).properties!.w!.enum).toHaveLength(1000);
+    expect(inferSchema(docs(1001), { examples: 0 }).properties!.w).toEqual({ type: 'string' });
+    expect(
+      inferSchema([{ tags: ['a', 'b'], files: ['src/a.ts', 'README.md'] }]).properties,
+    ).toEqual({
+      tags: { type: 'array', items: { type: 'string', enum: ['a', 'b'] } },
+      files: {
+        type: 'array',
+        items: { type: 'string', format: 'path', examples: ['src/a.ts', 'README.md'] },
+      },
+    });
   });
 });
 

@@ -1,10 +1,31 @@
-import { listHistory, point, validateWriteTime } from './history-store.js';
+import { checkCoverage, deletedVersion, point, validateWriteTime } from './history-store.js';
+import {
+  applyPlans,
+  liveOnly,
+  planId,
+  prunePages,
+  prunePlan,
+  type IdPlan,
+  type PruneHistoryOptions,
+  type PruneOptions,
+  type PrunePlan,
+  type PruneResult,
+} from './history-prune.js';
 import { transactionSchema } from './schema-cache.js';
 import { timeScope, type TimeScope, type HistoryWriteOptions } from './history-types.js';
 import { encode, decode } from 'defuss-dson/binary';
 import { DEFAULT_OPTIONS, DbsonlError } from 'defuss-dbsonl';
 import { DatabaseError } from './errors.js';
-import { capture, captureDocument, documentKey, name, normalizeIndex, primary } from './keys.js';
+import {
+  capture,
+  captureDocument,
+  documentKey,
+  name,
+  normalizeIndex,
+  primary,
+  readSchema,
+  schemaKey,
+} from './keys.js';
 import {
   createIndex,
   deleteDocument,
@@ -14,6 +35,9 @@ import {
   UPDATED_AT,
 } from './mutations.js';
 import { createSearchIndex, dropSearchIndex } from './search-mutations.js';
+import { setSchema } from './catalog.js';
+import type { JsonSchema } from './json-schema.js';
+import { checkedLimit, checkSchema, type CollectionValidation } from './validate.js';
 import { normalizeSearchIndex } from './search-config.js';
 import type { SearchIndexDefinition } from './search-types.js';
 import { ReadCollection } from './query.js';
@@ -30,6 +54,8 @@ import type {
   QueryOptions,
   TransactionResult,
   Updater,
+  DocumentWriteOptions,
+  ValidationOptions,
   WriteOptions,
   Writer,
 } from './types.js';
@@ -116,18 +142,42 @@ function writeScope(input?: HistoryWriteOptions, bound?: TimeScope) {
     throw new DatabaseError('HISTORY_READ_ONLY', 'Writes require current recorded knowledge.');
   return scope;
 }
-function bulkOptions<T extends Document>(input?: QueryOptions<T> & HistoryWriteOptions) {
+function bulkOptions<T extends Document>(input?: QueryOptions<T> & StoreOptions) {
   if (!input) return;
-  const { $historic: _effective, $until: _end, $asOfRevision: _recorded, ...options } = input;
+  const {
+    $historic: _effective,
+    $until: _end,
+    $asOfRevision: _recorded,
+    validate: _validate,
+    ...options
+  } = input;
   return options;
+}
+/** The options of a write that stores documents inside a transaction. */
+type StoreOptions = HistoryWriteOptions & ValidationOptions;
+/** Whether a write checks its documents against the collection's schema: yes unless `validate: false`. */
+function validated(options?: ValidationOptions): boolean {
+  const validate = options?.validate;
+  if (validate !== undefined && typeof validate !== 'boolean')
+    throw new TypeError('validate must be boolean.');
+  return validate !== false;
 }
 function currentDDL(period?: TimeScope, options?: HistoryWriteOptions) {
   if (period || timeScope(options))
     throw new DatabaseError('HISTORY_READ_ONLY', 'Schema changes require the live collection.');
 }
+/** A caller's schema as an own copy that validateValue enforces in full, or null to remove the schema. */
+function copySchema(schema: JsonSchema | null, limits: MutationLimits): JsonSchema | null {
+  if (schema === null) return null;
+  if (schema === undefined) throw new TypeError('setSchema takes a JSON Schema or null.');
+  const copy = capture(schema, limits);
+  checkSchema(copy);
+  return copy;
+}
 const capturedUpdate = Symbol('capturedUpdate');
 const capturedModifyMany = Symbol('capturedModifyMany');
 const capturedWrite = Symbol('capturedWrite');
+const prunedStep = Symbol('prunedStep');
 export class TransactionCollection<T extends Document = Document> extends ReadCollection<T> {
   constructor(
     collection: string,
@@ -157,46 +207,65 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
       timeScope({ ...options, $historic: date }, this.period),
     );
   }
-  insert(value: NewDocument<T>, options?: HistoryWriteOptions): Promise<PrimaryKey> {
+  insert(value: NewDocument<T>, options?: StoreOptions): Promise<PrimaryKey> {
     const row = captureDocument<T>(value, this.limits, true);
-    return this[capturedWrite]([row], true, writeScope(options, this.period)).then(
-      (ids) => ids[0]!,
-    );
+    return this[capturedWrite](
+      [row],
+      true,
+      writeScope(options, this.period),
+      validated(options),
+    ).then((ids) => ids[0]!);
   }
-  insertMany(
-    values: readonly NewDocument<T>[],
-    options?: HistoryWriteOptions,
-  ): Promise<PrimaryKey[]> {
+  insertMany(values: readonly NewDocument<T>[], options?: StoreOptions): Promise<PrimaryKey[]> {
     const rows = captureMany(values, this.limits);
-    return this[capturedWrite](rows, true, writeScope(options, this.period));
+    return this[capturedWrite](rows, true, writeScope(options, this.period), validated(options));
   }
   /** Replace or insert a whole document. No merge; use update() for shallow patches. */
-  put(value: Replacement<T>, options?: HistoryWriteOptions): Promise<PrimaryKey> {
+  put(value: Replacement<T>, options?: StoreOptions): Promise<PrimaryKey> {
     const row = captureDocument<T>(value as T, this.limits, false);
-    return this[capturedWrite]([row], false, writeScope(options, this.period)).then(
-      (ids) => ids[0]!,
-    );
+    return this[capturedWrite](
+      [row],
+      false,
+      writeScope(options, this.period),
+      validated(options),
+    ).then((ids) => ids[0]!);
   }
   /** Internal ownership transfer: all rows were captured synchronously by the public caller. */
   [capturedWrite](
     rows: readonly T[],
     insertOnly: boolean,
     period = this.period,
+    validate = true,
   ): Promise<PrimaryKey[]> {
     return this.scope.run(true, async () => {
       for (const row of rows)
-        await putDocument(this.tx, this.name, row, insertOnly, undefined, period);
+        await putDocument(
+          this.tx,
+          this.name,
+          row,
+          insertOnly,
+          undefined,
+          period,
+          'write',
+          validate,
+        );
       return rows.map((row) => row.id);
     });
   }
-  update(id: PrimaryKey, updater: Updater<T>, options?: HistoryWriteOptions): Promise<boolean> {
+  update(id: PrimaryKey, updater: Updater<T>, options?: StoreOptions): Promise<boolean> {
     return this[capturedUpdate](
       id,
       copyUpdater(updater, this.limits),
       writeScope(options, this.period),
+      validated(options),
     );
   }
-  [capturedUpdate](id: PrimaryKey, copy: Updater<T>, period = this.period): Promise<boolean> {
+  [capturedUpdate](
+    id: PrimaryKey,
+    copy: Updater<T>,
+    period = this.period,
+    validate = true,
+  ): Promise<boolean> {
     const key = documentKey(this.name, id);
     return this.scope.run(true, async () => {
       if (period) {
@@ -222,6 +291,8 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
         false,
         previous,
         period,
+        'write',
+        validate,
       );
       return true;
     });
@@ -233,12 +304,14 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
   }
   /**
    * Tracked collections: writes back the version a current delete removed, as a new version. Its `_createdAt` stays;
-   * `_updatedAt` is the restore. Returns false when the document is live or was never deleted.
+   * `_updatedAt` is the restore. Returns false when the document is live or was never deleted. The version is
+   * checked against the collection's schema like any write; `validate: false` restores one that predates the schema.
    * VERIFIED: tests/timestamps.test.ts restores after a same-millisecond insert and delete, and after a full-history
-   * archive import.
+   * archive import; tests/schema-validation.test.ts restores a violating version with `validate: false` only.
    */
-  restore(id: PrimaryKey): Promise<boolean> {
-    const token = primary(id);
+  restore(id: PrimaryKey, options?: ValidationOptions): Promise<boolean> {
+    const token = primary(id),
+      validate = validated(options);
     if (this.period)
       throw new DatabaseError('HISTORY_READ_ONLY', 'restore() writes the current version.');
     return this.scope.run(true, async () => {
@@ -246,20 +319,14 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
       if (!schema.history)
         throw new DatabaseError('HISTORY_NOT_ENABLED', 'restore() needs a tracked collection.');
       if ((await this.tx.get(documentKey(this.name, id))).found) return false;
-      const [deleted] = await listHistory<T>(this.tx, this.name, token, undefined, false, {
-        limit: 1,
-      });
-      if (!deleted || deleted.document !== undefined || deleted.until !== null) return false;
-      // The document visible at the delete's instant as known before the delete was recorded, which also finds a
-      // version inserted in the same millisecond (its effective interval is empty). An archive import records the
-      // delete and that version in one revision; then the instant before the delete holds the version.
-      const at = deleted.from.getTime();
-      let before = await point(this.tx, this.name, token, at, { revision: deleted.revision - 1 });
-      if (!before.found) before = await point(this.tx, this.name, token, at - 1);
-      if (!before.found) return false;
+      const deleted = await deletedVersion(this.tx, this.name, token);
+      if (!deleted) return false;
       // A timestamped collection stamps the restore; elsewhere _updatedAt is the caller's own field.
-      const { [UPDATED_AT]: _updated, ...stripped } = before.value as Record<string, unknown>;
-      const image = schema.timestamps ? stripped : before.value;
+      const { [UPDATED_AT]: _updated, ...stripped } = deleted.document as unknown as Record<
+        string,
+        unknown
+      >;
+      const image = schema.timestamps ? stripped : deleted.document;
       await putDocument(
         this.tx,
         this.name,
@@ -268,6 +335,7 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
         undefined,
         undefined,
         'keep',
+        validate,
       );
       return true;
     });
@@ -276,14 +344,14 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
   updateMany(
     request: FindRequest,
     updater: Updater<T>,
-    options?: QueryOptions<T> & HistoryWriteOptions,
+    options?: QueryOptions<T> & StoreOptions,
   ): Promise<number> {
     return this[capturedModifyMany](request, copyUpdater(updater, this.limits), options);
   }
   [capturedModifyMany](
     request: FindRequest,
     copy: Updater<T>,
-    options?: QueryOptions<T> & HistoryWriteOptions,
+    options?: QueryOptions<T> & StoreOptions,
   ): Promise<number> {
     return this.modifyMany(request, copy, options);
   }
@@ -296,10 +364,11 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
   private modifyMany(
     request: FindRequest,
     updater?: Updater<T>,
-    options?: QueryOptions<T> & HistoryWriteOptions,
+    options?: QueryOptions<T> & StoreOptions,
   ): Promise<number> {
     // Querying the same transaction privately avoids re-entering its public sequential-operation guard.
-    const period = writeScope(options, writeScope(request, this.period));
+    const period = writeScope(options, writeScope(request, this.period)),
+      validate = validated(options);
     const internal = new ReadCollection<T>(
       this.name,
       {
@@ -347,11 +416,60 @@ export class TransactionCollection<T extends Document = Document> extends ReadCo
             false,
             previous,
             period,
+            'write',
+            validate,
           );
         } else await deleteDocument(this.tx, this.name, row.id, period);
       }
       return result.rows.length;
     });
+  }
+  /**
+   * Tracked collections: removes versions that ended, in this transaction, so the removal commits with its other
+   * writes or not at all. See history-prune.ts for what stays. A removal larger than one transaction holds raises
+   * LIMIT_EXCEEDED; Collection.pruneHistory() commits in batches instead.
+   */
+  pruneHistory(options?: PruneHistoryOptions): Promise<PruneResult> {
+    return this.prune(prunePlan(options, false), options?.signal);
+  }
+  /**
+   * Tracked collections: removes deleted documents with every version, in this transaction. After `delete(id)` in
+   * the same transaction it erases a live document.
+   */
+  pruneDeleted(options?: PruneOptions): Promise<PruneResult> {
+    return this.prune(prunePlan(options, true), options?.signal);
+  }
+  private prune(plan: PrunePlan, signal?: AbortSignal): Promise<PruneResult> {
+    liveOnly(!!this.period);
+    return this.scope.run(true, async () => {
+      checkCoverage((await transactionSchema(this.tx, this.name)).schema);
+      const result = { documents: 0, versions: 0 };
+      const open = async () => ({ reader: this.tx, close: async () => {} });
+      for await (const page of prunePages(open, this.name, plan, signal))
+        for (const token of page) {
+          signal?.throwIfAborted();
+          // Planned and staged one by one: each plan reads what the ones before it staged.
+          const planned = await planId(this.tx, this.name, plan, token, Infinity, true);
+          const step = await applyPlans(this.tx, this.name, [planned], false);
+          result.documents += step.touched.length;
+          result.versions += step.versions;
+        }
+      return result;
+    });
+  }
+  /** One batch of Collection.pruneHistory() or pruneDeleted(), planned on a snapshot. */
+  [prunedStep](plans: readonly IdPlan[]) {
+    return this.scope.run(true, () => applyPlans(this.tx, this.name, plans, true));
+  }
+  /**
+   * Sets the JSON Schema every later write to this collection validates against (see validate.ts for the enforced
+   * keywords), or removes it with null. Documents the collection already holds are not checked; validateCollection()
+   * finds the ones that violate it.
+   */
+  setSchema(schema: JsonSchema | null): Promise<void> {
+    currentDDL(this.period);
+    const copy = copySchema(schema, this.limits);
+    return this.scope.run(true, () => setSchema(this.tx, this.name, copy));
   }
   createSearchIndex(index: SearchIndexDefinition): Promise<void> {
     currentDDL(this.period);
@@ -423,24 +541,34 @@ export class Collection<T extends Document = Document> extends ReadCollection<T>
       }, options)
     ).result;
   }
-  insert(value: NewDocument<T>, options?: WriteOptions): Promise<PrimaryKey> {
-    const copy = captureDocument<T>(value, this.limits, true);
-    return this.write((tx) => tx[capturedWrite]([copy], true).then((ids) => ids[0]!), options);
+  insert(value: NewDocument<T>, options?: DocumentWriteOptions): Promise<PrimaryKey> {
+    const copy = captureDocument<T>(value, this.limits, true),
+      validate = validated(options);
+    return this.write(
+      (tx) => tx[capturedWrite]([copy], true, undefined, validate).then((ids) => ids[0]!),
+      options,
+    );
   }
-  insertMany(values: readonly NewDocument<T>[], options?: WriteOptions): Promise<PrimaryKey[]> {
-    const copies = captureMany(values, this.limits);
-    return this.write((tx) => tx[capturedWrite](copies, true), options);
+  insertMany(
+    values: readonly NewDocument<T>[],
+    options?: DocumentWriteOptions,
+  ): Promise<PrimaryKey[]> {
+    const copies = captureMany(values, this.limits),
+      validate = validated(options);
+    return this.write((tx) => tx[capturedWrite](copies, true, undefined, validate), options);
   }
   /** Pull-driven ingestion. Each input batch commits atomically; prior receipts remain committed if a later batch fails. */
   insertBatches(
     batches: AsyncIterable<readonly NewDocument<T>[]> | Iterable<readonly NewDocument<T>[]>,
-    options?: WriteOptions,
+    options?: DocumentWriteOptions,
   ): AsyncGenerator<{ ids: PrimaryKey[]; revision: number; storedEntries: number }> {
-    const period = writeScope(options, this.period);
+    const period = writeScope(options, this.period),
+      validate = validated(options);
     const {
       $historic: _time,
       $asOfRevision: _cut,
       $until: _until,
+      validate: _validate,
       ...commitOptions
     } = options ?? {};
     const { host, name, limits } = this;
@@ -449,20 +577,25 @@ export class Collection<T extends Document = Document> extends ReadCollection<T>
         if (commitOptions.signal?.aborted) throw new DbsonlError('ABORTED', 'Import cancelled.');
         const captured = captureMany(batch, limits);
         const { result: ids, ...receipt } = await host.transaction(
-          (tx) => tx.collection<T>(name)[capturedWrite](captured, true, period),
+          (tx) => tx.collection<T>(name)[capturedWrite](captured, true, period, validate),
           commitOptions,
         );
         yield { ids, ...receipt };
       }
     })();
   }
-  put(value: Replacement<T>, options?: WriteOptions): Promise<PrimaryKey> {
-    const copy = captureDocument<T>(value as T, this.limits, false);
-    return this.write((tx) => tx[capturedWrite]([copy], false).then((ids) => ids[0]!), options);
+  put(value: Replacement<T>, options?: DocumentWriteOptions): Promise<PrimaryKey> {
+    const copy = captureDocument<T>(value as T, this.limits, false),
+      validate = validated(options);
+    return this.write(
+      (tx) => tx[capturedWrite]([copy], false, undefined, validate).then((ids) => ids[0]!),
+      options,
+    );
   }
-  update(id: PrimaryKey, updater: Updater<T>, options?: WriteOptions): Promise<boolean> {
-    const copy = copyUpdater(updater, this.limits);
-    return this.write((tx) => tx[capturedUpdate](id, copy), options);
+  update(id: PrimaryKey, updater: Updater<T>, options?: DocumentWriteOptions): Promise<boolean> {
+    const copy = copyUpdater(updater, this.limits),
+      validate = validated(options);
+    return this.write((tx) => tx[capturedUpdate](id, copy, undefined, validate), options);
   }
   delete(id: PrimaryKey, options?: WriteOptions): Promise<boolean> {
     primary(id);
@@ -471,28 +604,129 @@ export class Collection<T extends Document = Document> extends ReadCollection<T>
   /** See TransactionCollection.restore(). */
   restore(
     id: PrimaryKey,
-    options?: Omit<WriteOptions, '$historic' | '$until' | '$asOfRevision'>,
+    options?: Omit<DocumentWriteOptions, '$historic' | '$until' | '$asOfRevision'>,
   ): Promise<boolean> {
     primary(id);
     if (this.period)
       throw new DatabaseError('HISTORY_READ_ONLY', 'restore() writes the current version.');
-    return this.write((tx) => tx.restore(id), options);
+    const validate = validated(options);
+    return this.write((tx) => tx.restore(id, { validate }), options);
   }
   updateMany(
     request: FindRequest,
     updater: Updater<T>,
-    options?: WriteOptions & QueryOptions<T>,
+    options?: DocumentWriteOptions & QueryOptions<T>,
   ): Promise<number> {
     const copy = copyUpdater(updater, this.limits);
     // Capture the query before waiting for a transaction; opaque identity operands retain their identity by design.
     const stable = capture(request, this.limits);
-    const execOptions = bulkOptions(options);
+    const execOptions = { ...bulkOptions(options), validate: validated(options) };
     return this.write((tx) => tx[capturedModifyMany](stable, copy, execOptions), options);
   }
   deleteMany(request: FindRequest = {}, options?: WriteOptions & QueryOptions<T>): Promise<number> {
     const stable = capture(request, this.limits);
     const execOptions = bulkOptions(options);
     return this.write((tx) => tx.deleteMany(stable, execOptions), options);
+  }
+  /**
+   * Tracked collections: removes the versions that ended at or before `before` (default: every version but the
+   * current state), of the named `ids` or of the whole collection; `from` narrows it to a slice of history. The
+   * current state, the version in effect at `before` and what restore() needs always stay; a removed range reads
+   * as absent. See history-prune.ts. The file shrinks with the next compaction.
+   * VERIFIED: tests/history-prune.test.ts prunes 300 documents in several commits with a 64-operation budget.
+   */
+  pruneHistory(options?: PruneHistoryOptions): Promise<PruneResult> {
+    return this.prune(prunePlan(options, false), options?.signal);
+  }
+  /**
+   * Tracked collections: removes the documents deleted before `before` (default: every deleted document), of the
+   * named `ids` or of the whole collection, with every version and the record of the delete. restore() then
+   * returns false for them.
+   */
+  pruneDeleted(options?: PruneOptions): Promise<PruneResult> {
+    return this.prune(prunePlan(options, true), options?.signal);
+  }
+  /**
+   * Commits in batches of at most three quarters of `maxTransactionOperations`. Each batch is planned on a snapshot
+   * and committed with point reads, so it conflicts only with a writer of a document it prunes; that document is
+   * planned again. Twelve batches in a row without a removal end the call with CONFLICT.
+   */
+  private async prune(plan: PrunePlan, signal?: AbortSignal): Promise<PruneResult> {
+    liveOnly(!!this.period);
+    this.rawContext.check();
+    checkCoverage(readSchema((await this.rawContext.get(schemaKey(this.name))).value));
+    const budget = Math.max(1, Math.floor(this.limits.maxTransactionOperations * 0.75));
+    const result = { documents: 0, versions: 0 };
+    for await (const page of prunePages(() => this.rawContext.open(), this.name, plan, signal)) {
+      const touched = new Set<string>();
+      for (let rest = page, idle = 0; rest.length; ) {
+        signal?.throwIfAborted();
+        const plans: IdPlan[] = [];
+        let used = 0,
+          unplanned: string[] = [];
+        const lease = await this.rawContext.open();
+        try {
+          for (let i = 0; i < rest.length; i++) {
+            const next = await planId(
+              lease.reader,
+              this.name,
+              plan,
+              rest[i]!,
+              budget - used,
+              used === 0,
+            );
+            if (next.operations.length) {
+              plans.push(next);
+              used += next.operations.length + 1;
+            }
+            if (!next.done) {
+              unplanned = rest.slice(i);
+              break;
+            }
+          }
+        } finally {
+          await lease.close();
+        }
+        if (!plans.length) break;
+        try {
+          const step = (
+            await this.host.transaction((tx) => tx.collection<T>(this.name)[prunedStep](plans), {
+              signal,
+            })
+          ).result;
+          for (const token of step.touched) touched.add(token);
+          result.versions += step.versions;
+          rest = [...new Set([...step.stale, ...unplanned])];
+          idle = step.stale.length < plans.length ? 0 : idle + 1;
+        } catch (error) {
+          if ((error as { code?: string }).code !== 'CONFLICT') throw error;
+          idle++;
+        }
+        if (idle > 12)
+          throw new DbsonlError('CONFLICT', 'Documents kept changing while they were pruned.');
+      }
+      result.documents += touched.size;
+    }
+    return result;
+  }
+  /**
+   * As TransactionCollection.setSchema(), then checks the documents the collection holds, at most `limit` violating
+   * ones (default 100): the answer carries a `warning` when some violate the schema. They stay as they are. The
+   * check runs after the commit, so a `signal` that aborts it leaves the schema set. Why not inside the commit: the
+   * scan would join the conflict set, and a schema must not wait for old documents.
+   * VERIFIED: tests/schema-validation.test.ts: 150 violating documents answer `>= 100`, and a limit out of range is
+   * refused before the schema is stored.
+   */
+  async setSchema(
+    schema: JsonSchema | null,
+    options: WriteOptions & { limit?: number } = {},
+  ): Promise<CollectionValidation> {
+    const { limit: requested, ...commit } = options;
+    const limit = checkedLimit(requested);
+    currentDDL(this.period, commit);
+    const copy = copySchema(schema, this.limits);
+    await this.write((tx) => tx.setSchema(copy), commit);
+    return this.validateCollection({ limit, signal: commit.signal });
   }
   createSearchIndex(index: SearchIndexDefinition, options?: WriteOptions): Promise<void> {
     currentDDL(this.period, options);

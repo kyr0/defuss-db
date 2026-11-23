@@ -1,0 +1,16 @@
+{
+  "kind": "method",
+  "route": "#/ref/Collection/schema",
+  "title": "Collection.schema",
+  "namespace": "Collection",
+  "name": "schema",
+  "signature": "schema(): Promise<JsonSchema | undefined>",
+  "description": "The JSON Schema set with setSchema, or undefined",
+  "async": true,
+  "generator": false,
+  "params": [],
+  "returns": {
+    "type": "Promise<JsonSchema | undefined>"
+  },
+  "markdown": "schema.md"
+}
