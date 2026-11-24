@@ -19,6 +19,25 @@ export function name(value: string): string {
     throw new TypeError('Names must match [A-Za-z][A-Za-z0-9_-]{0,63}.');
   return value;
 }
+/** Collection names admit letters, digits and combining marks of every script, so an application can name a
+ * collection after a user-facing name such as `商店` or `Café` instead of encoding it into ASCII, which would leave
+ * names unreadable in keys and archives. Index names keep the ASCII `name()` grammar, since no caller needs more.
+ * VERIFIED: every key embeds the collection name between ASCII separators (`d:<collection>:<id>`, `r:`, `c:`,
+ * `i:<collection>:<index>:`), and no letter, digit or mark is ASCII punctuation, so the key ranges of two
+ * collections stay disjoint. A leading `_` stays reserved for `_collections`. The `u` regex rejects lone
+ * surrogates, which a store file could not hold. Names compare by code units: NFC and NFD spellings are two
+ * collections. */
+export function collectionName(value: string): string {
+  if (
+    typeof value !== 'string' ||
+    value.length > 64 ||
+    !/^[\p{L}\p{N}][\p{L}\p{N}\p{M}_-]*$/u.test(value)
+  )
+    throw new TypeError(
+      'Collection names hold 1 to 64 UTF-16 code units: a letter or digit, then letters, digits, marks, _ or -.',
+    );
+  return value;
+}
 // A string ID's token keeps code units above '"' and writes each other unit as '"' plus the unit + 0x23, so a token
 // never contains '!', the separator that follows it in history keys, and sorts in the IDs' code-unit order, like the
 // four hex digits per unit it replaces. VERIFIED: (probe, 2026-11-21) with hex tokens of 6-character string IDs, a

@@ -214,6 +214,27 @@ it('rejects invalid documents, unsupported values and unsafe names', async () =>
   });
   expect(await c.has(1)).toBe(true);
 });
+it('accepts collection names in every script and keeps them through verify, export and import', async () => {
+  const db = await memory(),
+    names = ['商店', 'Café', 'Ä', 'Ä', '123', '𝒜'.repeat(32)];
+  for (const [i, collection] of names.entries()) await db.collection(collection).insert({ id: i });
+  const stamped = await db.ensureCollection('Bestellungen-ä', { $timestamps: true });
+  await stamped.insert({ id: 'b' });
+  expect(await db.collection('Ä').has(3)).toBe(false);
+  expect(await db.collection('Ä').has(3)).toBe(true);
+  expect(await db.collections()).toEqual([...names, 'Bestellungen-ä'].sort());
+  expect((await db.verify()).documents).toBe(names.length + 1);
+  const target = await memory();
+  await target.import(await db.export());
+  expect(await target.collections()).toEqual(await db.collections());
+  expect(await target.collection('商店').get(0)).toEqual({ id: 0 });
+  expect((await target.verify()).documents).toBe(names.length + 1);
+  const shop = await memory();
+  await shop.import(await db.export({ collections: ['商店'] }));
+  expect(await shop.collections()).toEqual(['商店']);
+  for (const bad of ['', '_x', '-x', 'a:b', 'a b', 'a.b', 'x'.repeat(65), '𝒜'.repeat(33), '\uD800'])
+    expect(() => db.collection(bad), bad).toThrow(TypeError);
+});
 it('exposes the native directory-independent backend and reopens memory state', async () => {
   const backend = createMemoryBackend();
   const a = await openDatabase(backend, { name: 'shared' });

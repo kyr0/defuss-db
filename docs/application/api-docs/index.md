@@ -1,6 +1,6 @@
 # defuss-db API reference
 
-Every page of the API reference app for defuss-db 3.2.0 as Markdown, with JSON beside it.
+Every page of the API reference app for defuss-db 3.3.0 as Markdown, with JSON beside it.
 
 ## Guides
 

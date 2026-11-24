@@ -26,13 +26,6 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-20T21:10:10Z s=19560c1d FINDING package.json lint and format scripts learn=none: make lint runs both
 2026-11-20T23:14:53Z s=19560c1d FINDING website/index.html (whole file) learn=none: the author and content of the out-of-session edit are not known; the human was asked
 2026-11-21T00:52:25Z s=19560c1d FINDING whole repository (git index) learn=none: staging changes the fingerprint without changing content
-2026-11-21T04:24:30Z s=19560c1d DONE fp=75fb949824b7 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/PERFORMANCE.md(+24)
-2026-11-21T04:24:30Z s=19560c1d FINDING scripts/bench-stats.mjs (+ .d.mts), tests/bench-stats.test.ts, scripts/bench-mongo.mjs (5 bulk-load rounds), scripts/mongo-report.mjs (comparison, relativeText, chart data with ratio/low/high/verdict, loadRounds and per-round sample checks), scripts/site-evidence.mjs (method text, table header), scripts/check-site.mjs (verdict guards), docs/assets/site.js + site.css (verdict colours, CI whiskers, caption), website/index.html (headline, cards, section title, comparison paragraph, legend), src/compaction.ts (minBytes 1 MiB, IDLE_REORDER 1.5), tests/compaction.test.ts, ARCH/CHANGELOG/OPERATIONS/MEMORY, regenerated docs/benchmarks, PERFORMANCE, VALIDATION, guides, index, demo worker learn=test: tests/bench-stats.test.ts, tests/compaction.test.ts (1.5x reorder), scripts/check-site.mjs verdict guards, scripts/mongo-report.mjs pairing assertions
-2026-11-21T04:26:36Z s=19560c1d DONE fp=c77110e3b7b9 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/PERFORMANCE.md(+24)
-2026-11-21T04:35:32Z s=19560c1d DONE fp=4445a1228946 cov=93.0% paths=ARCH.md,CHANGELOG.md,docs/OPERATIONS.md,docs/PERFORMANCE.md(+30)
-2026-11-21T04:35:32Z s=19560c1d FINDING website/index.html hero (tabs + 3 panels, caption), website/examples/orders.{browser,server,memory}.ts (orders.ts removed), scripts/site.mjs variantLines/withExamples, docs/assets/site.js hero rotation, docs/assets/site.css hero tabs/progress/db-diff, scripts/e2e-site.mjs hero steps, regenerated docs/index.html learn=test: scripts/e2e-site.mjs hero steps; scripts/site.mjs variant alignment assertion
-2026-11-21T19:58:47Z s=19560c1d FAIL tests.e2e.1,release.version-sync,docs.performance-evidence
-2026-11-21T20:08:59Z s=19560c1d DONE fp=c86849684c62 cov=93.1% paths=ARCH.md,CHANGELOG.md,README.md,bun.lock(+25)
 2026-11-21T20:08:59Z s=19560c1d FINDING src/mutations.ts:enableTimestamps + stamp() keep branch learn=test: tests/timestamps.test.ts 'keep archived timestamps...' fails without the fix and passes with it.
 2026-11-21T20:08:59Z s=19560c1d FINDING src/collection.ts:TransactionCollection.restore learn=test: tests/timestamps.test.ts restore fork case fails without the fallback.
 2026-11-21T20:08:59Z s=19560c1d FINDING src/collection.ts:TransactionCollection.restore learn=test: restore tests cover a tracked collection without timestamps.
@@ -106,3 +99,10 @@ Wrap: EVERY lead becomes a test | .vae/VERIFY.py rule | one MEMORY line with BC,
 2026-11-23T19:29:10Z s=131abc06 FINDING scripts/bench-history.mjs, scripts/bench-mongo.mjs (one run published) -> scripts/bench-merge.mjs:mergeRuns learn=verifier: loadReports and loadMongoReports call assertMerged: a single-run report, or one that is not the merge of its runs, fails make site and rule docs.performance-evi
 2026-11-23T19:29:10Z s=131abc06 FINDING scripts/site-evidence.mjs (Reproduce paragraph) learn=none: a wording choice; no rule kind expresses it
 2026-11-23T19:29:10Z s=131abc06 FINDING scripts/site-evidence.mjs (collection load sentence), scripts/site.mjs:mongoContext learn=verifier: the texts render report.fixture.loadRounds, and site-evidence --check compares the page with the reports
+2026-11-23T19:45:46Z s=131abc06 DONE fp=7028b7a1596e cov=94.2% paths=ARCH.md,CHANGELOG.md,Makefile,README.md(+127)
+2026-11-24T19:41:55Z s=aceaa8e2 FAIL lint,tests.unit,tests.e2e.1,coverage,docs.performance-evidence
+2026-11-24T19:52:35Z s=aceaa8e2 DONE fp=79cf712e6eb4 cov=94.2% paths=ARCH.md,CHANGELOG.md,README.md,docs/API.md(+21)
+2026-11-24T19:52:35Z s=aceaa8e2 FINDING src/archive.ts:119 exportOptions learn=test: tests/database.test.ts exports ["商店"] by name and imports it into a fresh memory database.
+2026-11-24T20:07:08Z s=254901a4 DONE fp=b1c0bd7f6636 cov=94.2% paths=ARCH.md,CHANGELOG.md,README.md,docs/API.md(+21)
+2026-11-24T20:07:08Z s=254901a4 FINDING ARCH.md:46 rule P (precision) learn=none: a wording slip; no rule kind can check that prose matches a regex's character set
+2026-11-24T20:07:08Z s=254901a4 FINDING src/keys.ts:30 collectionName (no defect) learn=none: no defect found; tests/database.test.ts already covers non-BMP names, export by name and import

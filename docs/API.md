@@ -26,7 +26,7 @@ All methods use the same APIs on memory, files and OPFS. See generated `.d.mts`/
 | `openDirectory` | `defuss-db/server` | Root path, `OpenOptions & { storage?: FileBackendOptions; parallel?: boolean \| ParallelOptions }` |
 | `openOPFS` | `defuss-db/browser` | `OpenOptions & { namespace?: string; storage?: OPFSStorageOptions without name }` |
 
-`OpenOptions`: `name` (default `default`), `create` (default `true`), `signal`, `queryCache` (automatic by default; false or cache configuration), `autoCompact` (on by default; false or `{ minBytes, growth, idleMs }`, see [operations](OPERATIONS.md#reclaim-space)), and DBSONL resource options. Existing storage opens with `create: false`. Logical database names follow DBSONL's lowercase 1–64-character name grammar. Collection/index names match `[A-Za-z][A-Za-z0-9_-]{0,63}`.
+`OpenOptions`: `name` (default `default`), `create` (default `true`), `signal`, `queryCache` (automatic by default; false or cache configuration), `autoCompact` (on by default; false or `{ minBytes, growth, idleMs }`, see [operations](OPERATIONS.md#reclaim-space)), and DBSONL resource options. Existing storage opens with `create: false`. Logical database names follow DBSONL's lowercase 1–64-character name grammar. Collection names hold 1 to 64 UTF-16 code units: a letter or digit of any script, then letters, digits, combining marks, `_` or `-`, so `商店` and `Café` work. Names compare by code units, so the NFC and NFD spellings of `Ä` are two collections. Index names match `[A-Za-z][A-Za-z0-9_-]{0,63}`.
 
 | Storage limit | Default |
 | --- | ---: |

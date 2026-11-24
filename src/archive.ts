@@ -24,7 +24,7 @@ import {
   documentKey,
   documentPrefix,
   FORMAT_KEY,
-  name,
+  collectionName,
   range,
   readSchema,
   schemaKey,
@@ -116,7 +116,7 @@ function exportOptions(input: ExportOptions) {
   );
   const collections = input.collections === undefined ? undefined : [...input.collections].sort();
   if (collections) {
-    collections.forEach(name);
+    collections.forEach(collectionName);
     if (new Set(collections).size !== collections.length)
       throw new TypeError('Duplicate export collections.');
   }
@@ -196,7 +196,7 @@ async function* logicalRecords(
     // The catalog travels as the `entry` of each collection's schema record.
     names.delete(COLLECTIONS);
     for (const collection of [...names].sort()) {
-      name(collection);
+      collectionName(collection);
       collections.push(collection);
       if (collections.length > options.maxCollections)
         throw new RangeError('Export collection limit exceeded.');
@@ -576,7 +576,7 @@ export async function importRecords(tx: Writer, prepared: ReturnType<typeof capt
       continue;
     }
     if (record.type === 'schema') {
-      name(record.collection);
+      collectionName(record.collection);
       if (sawDocument || record.collection <= lastCollection)
         corrupt('schemas must be unique and sorted before documents');
       if (schemas.size >= options.maxCollections)
@@ -615,7 +615,7 @@ export async function importRecords(tx: Writer, prepared: ReturnType<typeof capt
     } else if (record.type === 'document') {
       if (historyRecords) corrupt('document after history records');
       sawDocument = true;
-      name(record.collection);
+      collectionName(record.collection);
       assertDocument(record.document);
       const key = documentKey(record.collection, record.document.id);
       if (

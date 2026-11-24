@@ -37,7 +37,7 @@
 <td><code>OpenOptions &amp; { namespace?: string; storage?: OPFSStorageOptions without name }</code></td>
 </tr>
 </tbody></table>
-<p><code>OpenOptions</code>: <code>name</code> (default <code>default</code>), <code>create</code> (default <code>true</code>), <code>signal</code>, <code>queryCache</code> (automatic by default; false or cache configuration), <code>autoCompact</code> (on by default; false or <code>{ minBytes, growth, idleMs }</code>, see <a href="operations.html#reclaim-space">operations</a>), and DBSONL resource options. Existing storage opens with <code>create: false</code>. Logical database names follow DBSONL&#39;s lowercase 1–64-character name grammar. Collection/index names match <code>[A-Za-z][A-Za-z0-9_-]{0,63}</code>.</p>
+<p><code>OpenOptions</code>: <code>name</code> (default <code>default</code>), <code>create</code> (default <code>true</code>), <code>signal</code>, <code>queryCache</code> (automatic by default; false or cache configuration), <code>autoCompact</code> (on by default; false or <code>{ minBytes, growth, idleMs }</code>, see <a href="operations.html#reclaim-space">operations</a>), and DBSONL resource options. Existing storage opens with <code>create: false</code>. Logical database names follow DBSONL&#39;s lowercase 1–64-character name grammar. Collection names hold 1 to 64 UTF-16 code units: a letter or digit of any script, then letters, digits, combining marks, <code>_</code> or <code>-</code>, so <code>商店</code> and <code>Café</code> work. Names compare by code units, so the NFC and NFD spellings of <code>Ä</code> are two collections. Index names match <code>[A-Za-z][A-Za-z0-9_-]{0,63}</code>.</p>
 <table>
 <thead>
 <tr>

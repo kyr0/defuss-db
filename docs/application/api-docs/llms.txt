@@ -1,6 +1,6 @@
 # defuss-db API
 
-> The API reference of defuss-db 3.2.0, a document database for the browser, Node.js and Bun: guides, then every documented function and method with its signature. Each link is a Markdown page; the same path with .json is its data.
+> The API reference of defuss-db 3.3.0, a document database for the browser, Node.js and Bun: guides, then every documented function and method with its signature. Each link is a Markdown page; the same path with .json is its data.
 
 ## Guides
 

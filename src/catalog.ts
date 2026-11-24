@@ -18,7 +18,7 @@ import type { Dbsonl } from 'defuss-dbsonl';
 import { touchCollection } from './collection-version.js';
 import { DatabaseError } from './errors.js';
 import type { JsonSchema } from './json-schema.js';
-import { documentKey, name } from './keys.js';
+import { collectionName, documentKey } from './keys.js';
 import type { Document, Writer } from './types.js';
 import { checkSchema } from './validate.js';
 
@@ -34,13 +34,13 @@ export const entryKey = (collection: string): string => documentKey(COLLECTIONS,
 export const validatedKey = (collection: string): string => 'm:' + collection;
 /** A collection name to read: a user collection or the catalog. */
 export function readable(collection: string): string {
-  return collection === COLLECTIONS ? collection : name(collection);
+  return collection === COLLECTIONS ? collection : collectionName(collection);
 }
 /** A stored or imported entry, or CORRUPT. */
 export function readEntry(value: unknown): CollectionEntry {
   try {
     const entry = value as CollectionEntry;
-    name(entry.id);
+    collectionName(entry.id);
     if (entry.schema !== undefined) checkSchema(entry.schema);
     return entry;
   } catch (error) {

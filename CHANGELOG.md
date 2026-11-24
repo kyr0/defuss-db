@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.0
+
+The benchmarks on the website and in docs/PERFORMANCE.md were measured on 3.2.0; this release was not measured again.
+
+- Collection names admit letters, digits and combining marks of every script: `db.collection('商店')`, `Café` and `123` work. A name holds 1 to 64 UTF-16 code units, starts with a letter or digit and continues with letters, digits, marks, `_` or `-`. Names compare by code units, so the NFC and NFD spellings of `Ä` are two collections. Every name that 3.2.0 accepted stays valid. Index names keep the ASCII grammar.
+- VERIFIED: a 3.1.0 build opens a store with a collection named `商店`, lists it in `collections()` and reads the store's ASCII collections. It then rejects that collection with a `TypeError`, and its `verify()` and `export()` fail with the same `TypeError` (probe, 2026-11-24). Upgrade every process that opens such a store before writing the first non-ASCII name. The store format marker is unchanged.
+
 ## 3.2.0
 
 The benchmarks on the website and in docs/PERFORMANCE.md were measured on this release. Each workload is published from the least disturbed of eight runs (`make bench-runs`): on the shared benchmark host, the median of a series differed between single runs by a typical factor of 1.4 to 1.6. VERIFIED (probe, 2026-11-23): the published 3.1.0 package, measured between those runs, differed from this release by about 1% in the median over all series.

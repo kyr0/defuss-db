@@ -52,7 +52,7 @@ import {
   documentKey,
   documentPrefix,
   indexKey,
-  name,
+  collectionName,
   primary,
   range,
   readSchema,
@@ -235,7 +235,7 @@ export class Database {
     options: CollectionOptions = {},
   ): Promise<Collection<T>> {
     this.check();
-    name(collection);
+    collectionName(collection);
     const requested = options.$trackHistory,
       stamped = options.$timestamps;
     if (requested !== undefined && typeof requested !== 'boolean')
@@ -508,7 +508,7 @@ export class Database {
         }
         if (row.key.startsWith('c:')) {
           const collection = row.key.slice(2);
-          name(collection);
+          collectionName(collection);
           if (
             !(await schemaFor(collection)).timestamps ||
             typeof row.value !== 'string' ||
